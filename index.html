@@ -188,7 +188,7 @@ const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" targe
 let me = localStorage.getItem("prism-name") || "";
 let channel = "general";
 let db = null, myId = "u" + Math.random().toString(36).slice(2,10);
-let presRef = null;
+let presRef = null, typingRef = null, msgRef = null;
 function goOnline(){
   if(!db || !me) return;
   presRef = db.ref("prism/presence/" + myId);
@@ -275,8 +275,6 @@ function initChat(){
 
   switchChannel("general");
 }
-
-let typingRef = null, msgRef = null;
 
 function switchChannel(ch){
   if(typingRef) typingRef.off();
