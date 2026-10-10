@@ -1,1 +1,328 @@
-coming soon
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#313338; --side:#2b2d31; --dark:#1e1f22; --darker:#17181b;
+    --text:#dbdee1; --dim:#949ba4; --accent:#5865f2; --accent2:#8b5cf6;
+    --input:#383a40; --hover:#35373c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden}
+  body{font-family:"gg sans","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);
+    display:flex;font-size:15px}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#1a1b1e;border-radius:4px}
+
+  /* server rail */
+  #rail{width:72px;flex:none;background:var(--darker);display:flex;flex-direction:column;align-items:center;
+    padding:12px 0;gap:10px}
+  .srv{width:48px;height:48px;border-radius:50%;background:var(--side);display:flex;align-items:center;
+    justify-content:center;cursor:pointer;font-size:22px;transition:border-radius .2s;position:relative;color:#fff}
+  .srv:hover{border-radius:16px;background:var(--accent)}
+  .srv.home{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px}
+  .srv .pill{position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:4px;height:0;
+    background:#fff;border-radius:0 4px 4px 0;transition:height .2s}
+  .srv.active .pill{height:32px}
+  .rail-sep{width:32px;height:2px;background:#35363c;border-radius:2px}
+
+  /* channels */
+  #channels{width:240px;flex:none;background:var(--side);display:flex;flex-direction:column}
+  #channels .srv-name{padding:16px;font-weight:700;border-bottom:1px solid var(--darker);
+    display:flex;align-items:center;gap:8px}
+  #channels .srv-name .free{font-size:10px;font-weight:600;background:rgba(88,101,242,.2);color:#b5bac1;
+    padding:3px 8px;border-radius:8px}
+  #chan-list{flex:1;overflow-y:auto;padding:12px 8px}
+  #chan-list .cat{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;padding:8px}
+  .chan{padding:8px 10px;border-radius:6px;color:var(--dim);cursor:pointer;margin:1px 0;
+    display:flex;align-items:center;gap:8px;font-weight:500}
+  .chan:hover{background:var(--hover);color:var(--text)}
+  .chan.active{background:#404249;color:#fff}
+  .chan .hash{color:#80848e;font-size:18px;font-weight:400}
+  #userbar{padding:10px;background:#232428;display:flex;align-items:center;gap:10px}
+  #avatar{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#fff;font-size:15px}
+  #uname{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #uname small{display:block;color:var(--dim);font-weight:400;font-size:11px}
+  #editname{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:6px;border-radius:6px}
+  #editname:hover{background:var(--hover);color:var(--text)}
+
+  /* main */
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+  #chead{padding:12px 16px;border-bottom:1px solid var(--darker);font-weight:700;display:flex;gap:10px;align-items:center}
+  #chead .hash{color:#80848e;font-size:22px;font-weight:400}
+  #chead .topic{color:var(--dim);font-weight:400;font-size:13px}
+  #msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:2px}
+  .daydiv{display:flex;align-items:center;gap:12px;color:var(--dim);font-size:11px;font-weight:700;
+    margin:14px 0 6px;text-transform:uppercase}
+  .daydiv::before,.daydiv::after{content:"";flex:1;height:1px;background:#3f4147}
+  .msg{display:flex;gap:14px;padding:6px 8px;border-radius:6px}
+  .msg:hover{background:#2e3035}
+  .msg .ma{width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#fff}
+  .msg .mb{min-width:0;flex:1}
+  .msg .mh{display:flex;gap:8px;align-items:baseline}
+  .msg .mu{font-weight:600;color:#fff}
+  .msg .mt{font-size:11px;color:var(--dim)}
+  .msg .mx{color:var(--text);line-height:1.5;word-wrap:break-word;white-space:pre-wrap}
+  .msg .mx a{color:#00a8fc}
+  #typing{padding:4px 18px;font-size:12px;color:var(--dim);min-height:22px;font-style:italic}
+  #inputbar{padding:0 16px 20px}
+  #inputwrap{background:var(--input);border-radius:10px;padding:12px 16px}
+  #minput{background:none;border:none;outline:none;color:var(--text);font-size:15px;width:100%;
+    font-family:inherit;resize:none;max-height:120px}
+  #minput::placeholder{color:#6d6f78}
+
+  /* members */
+  #members{width:230px;flex:none;background:var(--side);padding:16px 12px;overflow-y:auto}
+  #members h4{font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:10px}
+  .mem{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;color:var(--dim)}
+  .mem:hover{background:var(--hover)}
+  .mem .dot{width:10px;height:10px;border-radius:50%;background:#23a55a;flex:none}
+  .mem .mav{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;
+    justify-content:center;font-size:12px;font-weight:700;color:#fff}
+
+  /* setup + name modal */
+  #setup{flex:1;display:flex;align-items:center;justify-content:center;padding:30px;background:var(--bg)}
+  #setup .card{max-width:560px;background:var(--side);border-radius:14px;padding:32px;line-height:1.7}
+  #setup h2{margin-bottom:12px}
+  #setup ol{margin:12px 0 12px 22px;color:var(--dim);font-size:14px}
+  #setup code{background:var(--darker);padding:2px 8px;border-radius:6px;font-size:13px;color:#fff}
+  #namemodal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
+  #namemodal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
+  #namemodal h2{margin-bottom:6px}
+  #namemodal p{color:var(--dim);font-size:13px;margin-bottom:16px}
+  #namemodal input{width:100%;padding:12px;border-radius:8px;border:none;background:var(--input);
+    color:var(--text);font-size:15px;outline:none;margin-bottom:14px}
+  #namemodal button{width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;
+    font-size:15px;background:var(--accent);color:#fff}
+  #namemodal button:hover{background:#4752c4}
+  .hidden{display:none!important}
+  @media (max-width:900px){#members{display:none}}
+  @media (max-width:640px){#channels{width:200px}#rail{width:60px}.srv{width:42px;height:42px}}
+</style>
+</head>
+<body>
+
+<div id="rail">
+  <div class="srv home active" title="Prism"><span class="pill"></span>◈</div>
+  <div class="rail-sep"></div>
+  <div class="srv" title="Games">🎮</div>
+  <div class="srv" title="Music">🎵</div>
+  <div class="srv" title="Art">🎨</div>
+</div>
+
+<div id="channels">
+  <div class="srv-name">◈ Prism <span class="free">FREE · no nitro</span></div>
+  <div id="chan-list">
+    <div class="cat">TEXT CHANNELS</div>
+    <div class="chan active" data-ch="general"><span class="hash">#</span>general</div>
+    <div class="chan" data-ch="random"><span class="hash">#</span>random</div>
+    <div class="chan" data-ch="gaming"><span class="hash">#</span>gaming</div>
+    <div class="cat" style="margin-top:12px">INFO</div>
+    <div class="chan" data-ch="rules"><span class="hash">#</span>rules</div>
+  </div>
+  <div id="userbar">
+    <div id="avatar">?</div>
+    <div id="uname">...<small>online</small></div>
+    <button id="editname" title="Change name">✎</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="chead"><span class="hash">#</span><span id="chname">general</span><span class="topic" id="chtopic">Welcome to Prism — everything free, forever.</span></div>
+  <div id="msgs"></div>
+  <div id="typing"></div>
+  <div id="inputbar"><div id="inputwrap">
+    <textarea id="minput" rows="1" placeholder="Message #general"></textarea>
+  </div></div>
+</div>
+
+<div id="members"><h4>ONLINE</h4><div id="memlist"></div></div>
+
+<div id="namemodal" class="hidden">
+  <div class="box">
+    <h2>Welcome to Prism ◈</h2>
+    <p>Pick a display name to start chatting. No account, no nitro, no nonsense.</p>
+    <input id="nameinput" maxlength="24" placeholder="Your name" autocomplete="off">
+    <button id="namego">Start chatting</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   PRISM — database config
+   1. Go to https://console.firebase.google.com → create a project (free)
+   2. Build → Realtime Database → Create database → Start in test mode
+   3. Project settings → Your apps → web → copy the config below
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  appId: "YOUR_APP_ID"
+};
+const DB_READY = firebaseConfig.apiKey.indexOf("YOUR_") !== 0;
+/* ============================================================ */
+
+const CHANNELS = {
+  general:{topic:"Welcome to Prism — everything free, forever."},
+  random:{topic:"Anything goes."},
+  gaming:{topic:"What are you playing?"},
+  rules:{topic:"Be kind. That's the whole rules list."}
+};
+const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
+const colorFor = n => COLORS[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+
+let me = localStorage.getItem("prism-name") || "";
+let channel = "general";
+let db = null, myId = "u" + Math.random().toString(36).slice(2,10);
+
+const $ = id => document.getElementById(id);
+const msgsEl = $("msgs"), memEl = $("memlist"), typeEl = $("typing");
+
+function setUser(name){
+  me = name.trim().slice(0,24) || ("user"+Math.floor(Math.random()*9999));
+  localStorage.setItem("prism-name", me);
+  $("uname").innerHTML = esc(me) + "<small>online</small>";
+  $("avatar").textContent = me[0].toUpperCase();
+  $("avatar").style.background = colorFor(me);
+  $("namemodal").classList.add("hidden");
+  if(DB_READY) goOnline();
+}
+$("namego").onclick = () => setUser($("nameinput").value);
+$("nameinput").addEventListener("keydown", e => { if(e.key==="Enter") setUser($("nameinput").value); });
+$("editname").onclick = () => { $("namemodal").classList.remove("hidden"); $("nameinput").value = me; $("nameinput").focus(); };
+
+if(!me){ $("namemodal").classList.remove("hidden"); }
+else setUser(me);
+
+/* ---------- no-database setup screen ---------- */
+if(!DB_READY){
+  $("main").innerHTML =
+    '<div id="setup"><div class="card"><h2>◈ Prism needs its database</h2>'+
+    '<p style="color:var(--dim);font-size:14px">Prism stores messages in a free Firebase Realtime Database. '+
+    'It takes about 3 minutes to set up, once:</p>'+
+    '<ol><li>Go to <code>console.firebase.google.com</code> and create a project (free).</li>'+
+    '<li><b>Build → Realtime Database → Create database</b>, choose <b>test mode</b>.</li>'+
+    '<li><b>Project settings → Your apps → Web</b>, copy the <code>firebaseConfig</code> into the top of this file.</li></ol>'+
+    '<p style="color:var(--dim);font-size:14px">Then reload — chat goes live for everyone.</p></div></div>';
+  $("members").style.display = "none";
+}else{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  initChat();
+}
+
+function initChat(){
+  /* presence */
+  const presRef = db.ref("prism/presence/" + myId);
+  function goOnline(){
+    presRef.set({u: me, ts: firebase.database.ServerValue.TIMESTAMP});
+    presRef.onDisconnect().remove();
+  }
+  window.goOnline = goOnline;
+  if(me) goOnline();
+  db.ref("prism/presence").on("value", snap => {
+    const now = Date.now(); memEl.innerHTML = "";
+    const seen = {};
+    snap.forEach(c => {
+      const v = c.val();
+      if(!v || !v.u || seen[v.u]) return;
+      if(now - (v.ts||0) > 120000) return;
+      seen[v.u] = 1;
+      const d = document.createElement("div");
+      d.className = "mem";
+      d.innerHTML = '<span class="dot"></span><div class="mav" style="background:'+colorFor(v.u)+'">'+esc(v.u[0].toUpperCase())+'</div>'+esc(v.u);
+      memEl.appendChild(d);
+    });
+  });
+  /* keep presence fresh */
+  setInterval(() => { if(me) presRef.update({ts: firebase.database.ServerValue.TIMESTAMP}); }, 60000);
+
+  /* channels */
+  document.querySelectorAll(".chan").forEach(el => el.addEventListener("click", () => {
+    document.querySelectorAll(".chan").forEach(x => x.classList.remove("active"));
+    el.classList.add("active");
+    switchChannel(el.dataset.ch);
+  }));
+
+  /* typing indicator */
+  const minput = $("minput");
+  let typeTimer = null;
+  minput.addEventListener("input", () => {
+    db.ref("prism/typing/" + channel + "/" + myId).set(me);
+    clearTimeout(typeTimer);
+    typeTimer = setTimeout(() => db.ref("prism/typing/" + channel + "/" + myId).remove(), 2500);
+    minput.style.height = "auto";
+    minput.style.height = Math.min(minput.scrollHeight, 120) + "px";
+  });
+  minput.addEventListener("keydown", e => {
+    if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
+  });
+
+  switchChannel("general");
+}
+
+let typingRef = null, msgRef = null;
+
+function switchChannel(ch){
+  if(typingRef) typingRef.off();
+  if(msgRef) msgRef.off();
+  channel = ch;
+  $("chname").textContent = ch;
+  $("chtopic").textContent = CHANNELS[ch].topic;
+  $("minput").placeholder = "Message #" + ch;
+  $("minput").value = ""; $("minput").style.height = "auto";
+  msgsEl.innerHTML = ""; typeEl.textContent = "";
+  if(!db) return;
+
+  typingRef = db.ref("prism/typing/" + ch);
+  typingRef.on("value", snap => {
+    const names = [];
+    snap.forEach(c => { const v = c.val(); if(v && v !== me && c.key !== myId) names.push(v); });
+    typeEl.textContent = names.length ? names.join(", ") + (names.length===1?" is":" are") + " typing..." : "";
+  });
+
+  msgRef = db.ref("prism/channels/" + ch + "/messages").limitToLast(100);
+  let lastDay = "";
+  msgRef.on("child_added", snap => {
+    const m = snap.val(); if(!m || !m.u) return;
+    const d = new Date(m.ts || Date.now());
+    const day = d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    if(day !== lastDay){ lastDay = day;
+      const dv = document.createElement("div"); dv.className = "daydiv"; dv.textContent = day;
+      msgsEl.appendChild(dv);
+    }
+    const el = document.createElement("div");
+    el.className = "msg";
+    const time = d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+    el.innerHTML =
+      '<div class="ma" style="background:'+colorFor(m.u)+'">'+esc(m.u[0].toUpperCase())+'</div>'+
+      '<div class="mb"><div class="mh"><span class="mu">'+esc(m.u)+'</span><span class="mt">'+time+'</span></div>'+
+      '<div class="mx">'+linkify(String(m.t||""))+'</div></div>';
+    msgsEl.appendChild(el);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  });
+}
+
+function send(){
+  const t = $("minput").value.trim();
+  if(!t || !db || !me) return;
+  db.ref("prism/channels/" + channel + "/messages").push({
+    u: me, t: t.slice(0, 2000), ts: firebase.database.ServerValue.TIMESTAMP
+  });
+  db.ref("prism/typing/" + channel + "/" + myId).remove();
+  $("minput").value = ""; $("minput").style.height = "auto";
+}
+</script>
+</body>
+</html>
