@@ -188,6 +188,13 @@ const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" targe
 let me = localStorage.getItem("prism-name") || "";
 let channel = "general";
 let db = null, myId = "u" + Math.random().toString(36).slice(2,10);
+let presRef = null;
+function goOnline(){
+  if(!db || !me) return;
+  presRef = db.ref("prism/presence/" + myId);
+  presRef.set({u: me, ts: firebase.database.ServerValue.TIMESTAMP});
+  presRef.onDisconnect().remove();
+}
 
 const $ = id => document.getElementById(id);
 const msgsEl = $("msgs"), memEl = $("memlist"), typeEl = $("typing");
@@ -199,7 +206,7 @@ function setUser(name){
   $("avatar").textContent = me[0].toUpperCase();
   $("avatar").style.background = colorFor(me);
   $("namemodal").classList.add("hidden");
-  if(DB_READY) goOnline();
+  goOnline();
 }
 $("namego").onclick = () => setUser($("nameinput").value);
 $("nameinput").addEventListener("keydown", e => { if(e.key==="Enter") setUser($("nameinput").value); });
@@ -227,13 +234,7 @@ if(!DB_READY){
 
 function initChat(){
   /* presence */
-  const presRef = db.ref("prism/presence/" + myId);
-  function goOnline(){
-    presRef.set({u: me, ts: firebase.database.ServerValue.TIMESTAMP});
-    presRef.onDisconnect().remove();
-  }
-  window.goOnline = goOnline;
-  if(me) goOnline();
+  goOnline();
   db.ref("prism/presence").on("value", snap => {
     const now = Date.now(); memEl.innerHTML = "";
     const seen = {};
@@ -249,7 +250,7 @@ function initChat(){
     });
   });
   /* keep presence fresh */
-  setInterval(() => { if(me) presRef.update({ts: firebase.database.ServerValue.TIMESTAMP}); }, 60000);
+  setInterval(() => { if(me && presRef) presRef.update({ts: firebase.database.ServerValue.TIMESTAMP}); }, 60000);
 
   /* channels */
   document.querySelectorAll(".chan").forEach(el => el.addEventListener("click", () => {
