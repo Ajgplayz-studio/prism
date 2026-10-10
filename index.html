@@ -125,6 +125,93 @@
   .mem .dot{width:10px;height:10px;border-radius:50%;background:#23a55a;flex:none}
   .mem .mav{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;
     justify-content:center;font-size:12px;font-weight:700;color:#fff}
+  .mem .mtext{min-width:0}
+  .mem .mname{color:var(--dim);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mem .mstatus{font-size:11px;color:var(--dim);opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px}
+
+  /* ---------- themes ---------- */
+  [data-theme="light"]{
+    --bg:#ffffff; --side:#f2f3f5; --dark:#e3e5e8; --darker:#c7cad0;
+    --text:#060607; --dim:#5f636b; --input:#e3e5e8; --hover:#dbdde1; --err:#c03535;
+  }
+  [data-theme="light"] .tabs button.active{color:#060607}
+  [data-theme="light"] #userbar{background:#e3e5e8}
+  [data-theme="light"] .msg:hover{background:#f2f3f5}
+  [data-theme="light"] .daydiv::before,[data-theme="light"] .daydiv::after{background:#c7cad0}
+  [data-theme="light"] .chan .odot{border-color:#f2f3f5}
+  [data-theme="midnight"]{
+    --bg:#000000; --side:#08080a; --dark:#000000; --darker:#000000;
+    --text:#dcddde; --dim:#87898c; --input:#121214; --hover:#18181c; --err:#f04747;
+  }
+
+  /* ---------- message extras ---------- */
+  .msg{position:relative}
+  .msg .mact{position:absolute;top:2px;right:6px;display:none;background:var(--side);border:1px solid var(--darker);
+    border-radius:8px;padding:2px;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:5}
+  .msg:hover .mact{display:flex}
+  .msg .mact button{background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;
+    padding:5px 7px;border-radius:6px;line-height:1}
+  .msg .mact button:hover{background:var(--hover);color:var(--text)}
+  .msg .mact button.on{color:var(--accent)}
+  .rxns{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .rxn{background:var(--input);border:1px solid transparent;border-radius:8px;padding:2px 8px;
+    font-size:13px;cursor:pointer;color:var(--text)}
+  .rxn.me{border-color:var(--accent);background:rgba(88,101,242,.18)}
+  .rply{font-size:12px;color:var(--dim);border-left:2px solid var(--dim);padding:2px 0 2px 8px;
+    margin-bottom:4px;cursor:pointer;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .rply:hover{opacity:1}
+  .rply b{color:var(--text)}
+  .edited{font-size:10px;color:var(--dim);margin-left:4px}
+  .msg.flash{animation:flash 1.5s}
+  @keyframes flash{0%,60%{background:rgba(88,101,242,.25)}100%{background:transparent}}
+  #epick{position:fixed;z-index:70;background:var(--side);border:1px solid var(--darker);border-radius:12px;
+    padding:10px;display:grid;grid-template-columns:repeat(8,1fr);gap:2px;
+    box-shadow:0 10px 34px rgba(0,0,0,.55);width:330px}
+  #epick button{background:none;border:none;font-size:22px;cursor:pointer;padding:5px;border-radius:6px;line-height:1}
+  #epick button:hover{background:var(--hover);transform:scale(1.15)}
+  #replybar{display:flex;align-items:center;gap:8px;background:var(--input);border-radius:8px 8px 0 0;
+    padding:8px 12px;font-size:13px;color:var(--dim);margin:0 16px}
+  #replybar b{color:var(--text)}
+  #replybar #reply-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+  #replybar .rx{margin-left:auto;cursor:pointer;padding:2px 6px;border-radius:4px;flex:none}
+  #replybar .rx:hover{background:var(--hover);color:var(--text)}
+  #pinbtn{margin-left:auto;background:var(--input);border:none;color:var(--dim);cursor:pointer;
+    font-size:13px;padding:5px 10px;border-radius:8px;font-weight:600}
+  #pinbtn:hover{color:var(--text);background:var(--hover)}
+
+  /* ---------- settings + pins overlays ---------- */
+  #settings,#pins{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;
+    justify-content:center;z-index:60}
+  #settings .box,#pins .box{background:var(--side);border-radius:14px;padding:28px;width:min(440px,92vw);
+    max-height:86vh;overflow-y:auto}
+  #settings h2,#pins h2{margin-bottom:14px}
+  #settings label{display:block;font-size:12px;font-weight:700;color:var(--dim);letter-spacing:.5px;
+    margin:14px 0 6px;text-transform:uppercase}
+  #settings .trow{display:flex;gap:8px}
+  #settings .trow button{flex:1;padding:10px;border:2px solid transparent;border-radius:8px;cursor:pointer;
+    background:var(--input);color:var(--text);font-weight:600;font-size:13px}
+  #settings .trow button.sel{border-color:var(--accent)}
+  #settings input[type="text"],#settings textarea{width:100%;padding:10px 12px;border-radius:8px;border:none;
+    background:var(--input);color:var(--text);font-size:14px;outline:none;font-family:inherit}
+  #settings textarea{min-height:90px;resize:vertical;font-family:monospace;font-size:12px}
+  #settings input[type="color"]{width:52px;height:38px;border:none;border-radius:8px;background:var(--input);
+    padding:4px;cursor:pointer}
+  #settings .row{display:flex;gap:10px;margin-top:18px}
+  #settings .row button{flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px}
+  #set-save{background:var(--accent);color:#fff}
+  #set-cancel{background:var(--input);color:var(--text)}
+  .pinitem{background:var(--input);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer}
+  .pinitem:hover{background:var(--hover)}
+  .pinitem .pinhead{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+  .pinitem .pinhead b{color:var(--text)}
+  .pinitem .pinhead span{color:var(--dim)}
+  .pinitem .pintext{font-size:14px;color:var(--text);word-wrap:break-word}
+  .pin-empty{color:var(--dim);text-align:center;padding:20px}
+  #pins .prow{display:flex;justify-content:flex-end;margin-top:6px}
+  #pins .prow button{background:var(--input);border:none;color:var(--text);padding:10px 18px;border-radius:8px;
+    cursor:pointer;font-weight:700}
+  #set-open{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:6px;border-radius:6px}
+  #set-open:hover{background:var(--hover);color:var(--text)}
 
   /* modal + toast */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
@@ -192,15 +279,16 @@
     <div id="userbar">
       <div id="avatar">?</div>
       <div id="uname">...<small>online</small></div>
+      <button id="set-open" title="Settings">⚙</button>
       <button id="logout" title="Log out">⏻</button>
     </div>
   </div>
 
   <div id="main">
-    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span></div>
+    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span><button id="pinbtn" class="hidden" title="Pinned messages">📌 <span id="pincount">0</span></button></div>
     <div id="msgs"></div>
     <div id="typing"></div>
-    <div id="inputbar"><div id="inputwrap">
+    <div id="inputbar"><div id="replybar" class="hidden"><span>↩ Replying to <b id="reply-u"></b></span><span id="reply-t"></span><span class="rx" id="reply-x" title="Cancel reply">✕</span></div><div id="inputwrap">
       <textarea id="minput" rows="1" placeholder="Message"></textarea>
     </div></div>
   </div>
@@ -222,6 +310,39 @@
 </div>
 
 <div id="toast"></div>
+<div id="epick" class="hidden"></div>
+
+<!-- settings -->
+<div id="settings" class="hidden">
+  <div class="box">
+    <h2>Settings</h2>
+    <label>Theme</label>
+    <div class="trow" id="theme-row">
+      <button data-th="dark">🌙 Dark</button>
+      <button data-th="light">☀️ Light</button>
+      <button data-th="midnight">⬛ Midnight</button>
+    </div>
+    <label>Accent color</label>
+    <div class="trow"><input type="color" id="set-accent" value="#5865f2"></div>
+    <label>Status</label>
+    <input type="text" id="set-status" maxlength="60" placeholder="What's on your mind?" autocomplete="off">
+    <label>Custom CSS</label>
+    <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
+    <div class="row">
+      <button id="set-save">Save</button>
+      <button id="set-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- pins -->
+<div id="pins" class="hidden">
+  <div class="box">
+    <h2>📌 Pinned messages</h2>
+    <div id="pins-list"></div>
+    <div class="prow"><button id="pins-close">Close</button></div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -348,6 +469,7 @@ async function boot(){
   $("avatar").textContent = me.name[0].toUpperCase();
   $("avatar").style.background = colorFor(me.name);
   goOnline();
+  loadSettings();
   setInterval(() => { if(me) db.ref("prism/presence/" + me.uid).update({ts: TS}); }, 60000);
   await seedOfficial();
   const sRef = db.ref("prism/servers");
@@ -597,9 +719,15 @@ function openDM(otherUid, otherName, dmId){
 }
 
 /* ---------------- messages ---------------- */
+let msgScope = "", msgPath = "";
+let rxnData = {}, pinData = {};
+let replyTo = null;
 function renderMessages(path, typeScope){
   $("msgs").innerHTML = ""; $("typing").textContent = "";
   $("minput").value = ""; $("minput").style.height = "auto";
+  clearReply();
+  msgScope = typeScope; msgPath = path;
+  rxnData = {}; pinData = {};
   const tRef = db.ref("prism/typing/" + typeScope);
   listen(tRef, "value", snap => {
     const names = [];
@@ -618,20 +746,82 @@ function renderMessages(path, typeScope){
       dv.className = "daydiv"; dv.textContent = day;
       $("msgs").appendChild(dv);
     }
-    const el = document.createElement("div");
-    el.className = "msg";
-    el.innerHTML =
-      '<div class="ma" style="background:' + colorFor(m.u) + '">' + esc(m.u[0].toUpperCase()) + "</div>" +
-      '<div class="mb"><div class="mh"><span class="mu">' + esc(m.u) + '</span><span class="mt">' +
-      d.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"}) + "</span></div>" +
-      '<div class="mx">' + linkify(m.t || "") + "</div></div>";
+    const el = buildMsgEl(snap.key, m, typeScope, path);
     $("msgs").appendChild(el);
+    paintMsgRx(el, typeScope);
     $("msgs").scrollTop = $("msgs").scrollHeight;
     if(typeScope.charAt(0) === "d" && view.type === "dm" && view.dmId && m.uid !== me.uid){
       const w = dmWatch[view.dmId];
       if(w && w.ready && (m.ts || 0) > w.readTs) markDMRead(view.dmId);
     }
   });
+  listen(mRef, "child_changed", snap => {
+    const m = snap.val(); if(!m || !m.u) return;
+    const el = document.querySelector('#msgs .msg[data-key="' + snap.key + '"]');
+    if(!el) return;
+    el.querySelector(".mx").innerHTML = linkify(m.t || "");
+    const mt = el.querySelector(".mt");
+    if(m.edited && mt && !mt.querySelector(".edited"))
+      mt.insertAdjacentHTML("beforeend", '<span class="edited">(edited)</span>');
+  });
+  listen(mRef, "child_removed", snap => {
+    const el = document.querySelector('#msgs .msg[data-key="' + snap.key + '"]');
+    if(el) el.remove();
+  });
+  listen(db.ref("prism/reactions/" + typeScope), "value", snap => {
+    rxnData = snap.val() || {};
+    document.querySelectorAll("#msgs .msg").forEach(el => paintMsgRx(el, typeScope));
+  });
+  listen(db.ref("prism/pins/" + typeScope), "value", snap => {
+    pinData = snap.val() || {};
+    paintPins();
+  });
+}
+function buildMsgEl(key, m, typeScope, path){
+  const d = new Date(m.ts || Date.now());
+  const mine = m.uid === me.uid;
+  const el = document.createElement("div");
+  el.className = "msg";
+  el.dataset.key = key;
+  let html =
+    '<div class="ma" style="background:' + colorFor(m.u) + '">' + esc(m.u[0].toUpperCase()) + "</div>" +
+    '<div class="mb"><div class="mh"><span class="mu">' + esc(m.u) + '</span><span class="mt">' +
+    d.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"}) +
+    (m.edited ? '<span class="edited">(edited)</span>' : "") + "</span></div>";
+  if(m.reply && m.reply.u){
+    html += '<div class="rply" title="Jump to message">↩ <b>' + esc(m.reply.u) + "</b> " +
+      esc(m.reply.t || "") + "</div>";
+  }
+  html += '<div class="mx">' + linkify(m.t || "") + '</div><div class="rxns"></div></div>' +
+    '<div class="mact">' +
+    '<button data-act="react" title="Add reaction">😊</button>' +
+    '<button data-act="reply" title="Reply">↩</button>' +
+    '<button data-act="pin" title="Pin message">📌</button>' +
+    (mine ? '<button data-act="edit" title="Edit">✎</button><button data-act="del" title="Delete">🗑</button>' : "") +
+    "</div>";
+  el.innerHTML = html;
+  el.querySelector('[data-act="react"]').onclick = e => {
+    e.stopPropagation(); openEmojiPicker(e.currentTarget, typeScope, key);
+  };
+  el.querySelector('[data-act="reply"]').onclick = () => setReply(key, m.u, m.t);
+  const pinB = el.querySelector('[data-act="pin"]');
+  pinB.onclick = () => togglePin(typeScope, key, m);
+  if(pinData[key]) pinB.classList.add("on");
+  const eb = el.querySelector('[data-act="edit"]');
+  if(eb) eb.onclick = () => editMessage(path, key, m.t);
+  const dbtn = el.querySelector('[data-act="del"]');
+  if(dbtn) dbtn.onclick = () => deleteMessage(path, typeScope, key);
+  const rq = el.querySelector(".rply");
+  if(rq) rq.onclick = () => jumpToMsg(m.reply.key);
+  return el;
+}
+function jumpToMsg(key){
+  const el = document.querySelector('#msgs .msg[data-key="' + key + '"]');
+  if(el){
+    el.scrollIntoView({block: "center"});
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    setTimeout(() => el.classList.remove("flash"), 1600);
+  }else toast("That message isn't loaded.");
 }
 let inputWired = false;
 function wireInput(){
@@ -657,6 +847,7 @@ function send(){
   const t = $("minput").value.trim();
   if(!t || !me) return;
   const msg = {uid: me.uid, u: me.name, t: t.slice(0, 2000), ts: TS};
+  if(replyTo) msg.reply = replyTo;
   if(view.type === "server" && view.cid){
     const scope = "s_" + view.sid + "_" + view.cid;
     db.ref("prism/messages/" + view.sid + "/" + view.cid).push(msg)
@@ -671,7 +862,185 @@ function send(){
     db.ref("prism/userDMs/" + view.otherUid + "/" + me.uid + "/lastTs").set(now).catch(() => {});
   }else return;
   $("minput").value = ""; $("minput").style.height = "auto";
+  clearReply();
 }
+
+/* ---------------- themes & settings ---------------- */
+let settings = {theme: "dark", accent: "#5865f2", status: "", css: ""};
+let selTheme = "dark";
+function applySettings(){
+  const root = document.documentElement;
+  if(settings.theme && settings.theme !== "dark") root.setAttribute("data-theme", settings.theme);
+  else root.removeAttribute("data-theme");
+  root.style.setProperty("--accent", settings.accent || "#5865f2");
+  let css = $("user-css");
+  if(!css){ css = document.createElement("style"); css.id = "user-css"; document.head.appendChild(css); }
+  css.textContent = settings.css || "";
+}
+async function loadSettings(){
+  try{
+    const s = await db.ref("prism/users/" + me.uid + "/settings").once("value");
+    if(s.exists()) settings = Object.assign({}, settings, s.val());
+  }catch(e){}
+  selTheme = settings.theme || "dark";
+  applySettings();
+  if(me) db.ref("prism/presence/" + me.uid).update({status: settings.status || ""}).catch(() => {});
+}
+function openSettings(){
+  selTheme = settings.theme || "dark";
+  document.querySelectorAll("#theme-row button").forEach(b =>
+    b.classList.toggle("sel", b.dataset.th === selTheme));
+  $("set-accent").value = settings.accent || "#5865f2";
+  $("set-status").value = settings.status || "";
+  $("set-css").value = settings.css || "";
+  $("settings").classList.remove("hidden");
+}
+$("set-open").onclick = openSettings;
+$("set-cancel").onclick = () => $("settings").classList.add("hidden");
+document.querySelectorAll("#theme-row button").forEach(b => {
+  b.onclick = () => {
+    selTheme = b.dataset.th;
+    document.querySelectorAll("#theme-row button").forEach(x =>
+      x.classList.toggle("sel", x === b));
+  };
+});
+$("set-save").onclick = async () => {
+  settings.theme = selTheme;
+  settings.accent = $("set-accent").value || "#5865f2";
+  settings.status = $("set-status").value.trim().slice(0, 60);
+  settings.css = $("set-css").value;
+  applySettings();
+  $("settings").classList.add("hidden");
+  try{
+    await db.ref("prism/users/" + me.uid + "/settings").set(settings);
+    await db.ref("prism/presence/" + me.uid).update({status: settings.status});
+    toast("Settings saved.");
+  }catch(e){ toast("Couldn't save settings."); }
+};
+
+/* ---------------- reactions ---------------- */
+const EMOJIS = ["😀","😁","😂","🤣","😊","😍","🥰","😎","🤔","😅","😭","😡","🥳","😇","🤡",
+  "👍","👎","👏","🙏","💯","🔥","❤️","💀","🎉","🤝","👀","😴","🤖","👾","🎮",
+  "🍕","☕","🌙","⭐","✨","💡","✅","❌","❓","‼️"];
+function openEmojiPicker(btn, scope, key){
+  closeEmojiPicker();
+  const p = $("epick");
+  p.innerHTML = "";
+  EMOJIS.forEach(e => {
+    const b = document.createElement("button");
+    b.textContent = e;
+    b.onclick = ev => { ev.stopPropagation(); toggleReaction(scope, key, e); closeEmojiPicker(); };
+    p.appendChild(b);
+  });
+  const r = btn.getBoundingClientRect();
+  p.classList.remove("hidden");
+  p.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 340)) + "px";
+  p.style.top = Math.max(8, r.top - 330) + "px";
+  setTimeout(() => document.addEventListener("click", epickOutside), 0);
+}
+function epickOutside(e){
+  const p = $("epick");
+  if(p && !p.classList.contains("hidden") && !p.contains(e.target)) closeEmojiPicker();
+}
+function closeEmojiPicker(){
+  const p = $("epick");
+  if(p) p.classList.add("hidden");
+  document.removeEventListener("click", epickOutside);
+}
+function toggleReaction(scope, key, emoji){
+  if(!me) return;
+  const r = db.ref("prism/reactions/" + scope + "/" + key + "/" + emoji + "/" + me.uid);
+  r.once("value").then(s => {
+    if(s.exists()) r.remove().catch(() => {});
+    else r.set(true).catch(() => {});
+  }).catch(() => {});
+}
+function paintMsgRx(el, scope){
+  const box = el.querySelector(".rxns");
+  if(!box) return;
+  const rx = (rxnData && rxnData[el.dataset.key]) || {};
+  box.innerHTML = "";
+  Object.keys(rx).forEach(e => {
+    const users = rx[e] || {};
+    const uids = Object.keys(users);
+    if(!uids.length) return;
+    const pill = document.createElement("button");
+    pill.className = "rxn" + (me && users[me.uid] ? " me" : "");
+    pill.textContent = e + " " + uids.length;
+    pill.onclick = () => toggleReaction(scope, el.dataset.key, e);
+    box.appendChild(pill);
+  });
+}
+
+/* ---------------- reply ---------------- */
+function setReply(key, u, t){
+  replyTo = {key: key, u: u, t: (t || "").slice(0, 80)};
+  $("reply-u").textContent = u;
+  $("reply-t").textContent = replyTo.t;
+  $("replybar").classList.remove("hidden");
+  $("minput").focus();
+}
+function clearReply(){
+  replyTo = null;
+  const rb = $("replybar");
+  if(rb) rb.classList.add("hidden");
+}
+
+/* ---------------- edit / delete ---------------- */
+function editMessage(path, key, oldText){
+  openModal("Edit message", "Make it say something better.", "", "Save", v => {
+    const t = (v || "").trim();
+    if(!t) return;
+    db.ref(path + "/" + key).update({t: t.slice(0, 2000), edited: true})
+      .catch(() => toast("Couldn't edit that message."));
+  });
+  $("m-input").value = oldText;
+}
+function deleteMessage(path, scope, key){
+  db.ref(path + "/" + key).remove().catch(() => toast("Couldn't delete that message."));
+  db.ref("prism/reactions/" + scope + "/" + key).remove().catch(() => {});
+  db.ref("prism/pins/" + scope + "/" + key).remove().catch(() => {});
+}
+
+/* ---------------- pins ---------------- */
+function togglePin(scope, key, m){
+  const r = db.ref("prism/pins/" + scope + "/" + key);
+  r.once("value").then(s => {
+    if(s.exists()) r.remove().catch(() => {});
+    else r.set({u: m.u, t: (m.t || "").slice(0, 140), ts: m.ts || Date.now()}).catch(() => {});
+  }).catch(() => {});
+}
+function paintPins(){
+  const n = Object.keys(pinData).length;
+  const b = $("pinbtn");
+  if(b){
+    b.classList.toggle("hidden", n === 0);
+    $("pincount").textContent = n;
+  }
+  document.querySelectorAll("#msgs .msg").forEach(el => {
+    const pb = el.querySelector('[data-act="pin"]');
+    if(pb) pb.classList.toggle("on", !!pinData[el.dataset.key]);
+  });
+}
+function openPins(){
+  const box = $("pins-list");
+  box.innerHTML = "";
+  const keys = Object.keys(pinData).sort((a, b) => (pinData[b].ts || 0) - (pinData[a].ts || 0));
+  if(!keys.length) box.innerHTML = '<div class="pin-empty">No pinned messages yet.</div>';
+  keys.forEach(k => {
+    const p = pinData[k];
+    const d = document.createElement("div");
+    d.className = "pinitem";
+    const dt = new Date(p.ts || Date.now()).toLocaleString(undefined,
+      {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+    d.innerHTML = '<div class="pinhead"><b>' + esc(p.u) + "</b><span>" + esc(dt) + "</span></div>" +
+      '<div class="pintext">' + esc(p.t || "") + "</div>";
+    d.onclick = () => { closePins(); jumpToMsg(k); };
+    box.appendChild(d);
+  });
+  $("pins").classList.remove("hidden");
+}
+function closePins(){ $("pins").classList.add("hidden"); }
 
 /* ---------------- members ---------------- */
 function renderMembers(snap){
@@ -685,7 +1054,8 @@ function renderMembers(snap){
     const d = document.createElement("div");
     d.className = "mem";
     d.innerHTML = '<span class="dot"></span><div class="mav" style="background:' + colorFor(v.u) + '">' +
-      esc(v.u[0].toUpperCase()) + "</div>" + esc(v.u);
+      esc(v.u[0].toUpperCase()) + '</div><div class="mtext"><div class="mname">' + esc(v.u) + "</div>" +
+      (v.status ? '<div class="mstatus">' + esc(v.status) + "</div>" : "") + "</div>";
     box.appendChild(d);
   });
 }
@@ -704,6 +1074,9 @@ function openModal(title, sub, placeholder, okLabel, cb){
 }
 function closeModal(){ $("modal").classList.add("hidden"); modalCb = null; }
 $("m-cancel").onclick = closeModal;
+$("pinbtn").onclick = openPins;
+$("pins-close").onclick = closePins;
+$("reply-x").onclick = clearReply;
 $("m-ok").onclick = () => { const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); };
 $("m-input").addEventListener("keydown", e => {
   if(e.key === "Enter"){ const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); }
