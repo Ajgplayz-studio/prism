@@ -270,9 +270,10 @@ function friendlyAuth(e){
   if(c === "auth/wrong-password" || c === "auth/invalid-credential") return "Wrong username or password.";
   if(c === "auth/user-not-found") return "No account with that username.";
   if(c === "auth/weak-password") return "Password needs at least 6 characters.";
+  if(c === "auth/invalid-email") return "That username can't be used — try letters and numbers only.";
   if(c === "auth/operation-not-allowed") return "Email sign-in isn't turned on yet in the Firebase console.";
   if(c === "auth/network-request-failed") return "Network error — check your connection.";
-  return "Something went wrong. Try again.";
+  return "Something went wrong" + (c ? " (" + c + ")" : "") + ". Try again.";
 }
 $("li-go").onclick = doLogin;
 $("li-pw").addEventListener("keydown", e => { if(e.key === "Enter") doLogin(); });
