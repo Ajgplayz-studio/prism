@@ -577,6 +577,7 @@ $("dm-add").onclick = () => {
       const now = Date.now();
       await db.ref("prism/userDMs/" + me.uid + "/" + otherUid).set({dmId: dmId, name: otherName, lastTs: now});
       await db.ref("prism/userDMs/" + otherUid + "/" + me.uid).set({dmId: dmId, name: me.name, lastTs: now});
+      await db.ref("prism/dmRead/" + otherUid + "/" + dmId).set(0);
       openDM(otherUid, otherName, dmId);
     }catch(e){ toast("Couldn't start the DM."); }
   });
