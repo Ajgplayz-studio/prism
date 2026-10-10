@@ -5,57 +5,88 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prism</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   :root{
     --bg:#313338; --side:#2b2d31; --dark:#1e1f22; --darker:#17181b;
     --text:#dbdee1; --dim:#949ba4; --accent:#5865f2; --accent2:#8b5cf6;
-    --input:#383a40; --hover:#35373c;
+    --input:#383a40; --hover:#35373c; --err:#f04747;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;overflow:hidden}
-  body{font-family:"gg sans","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);
-    display:flex;font-size:15px}
+  body{font-family:"gg sans","Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
   ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#1a1b1e;border-radius:4px}
+  .hidden{display:none!important}
 
-  /* server rail */
+  /* ---------- auth ---------- */
+  #auth{height:100%;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:radial-gradient(800px 500px at 50% 20%, rgba(88,101,242,.18), transparent 70%), var(--darker)}
+  .abox{width:min(420px,94vw);background:var(--side);border-radius:16px;padding:36px 32px;text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .abox .logo{font-size:52px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .abox h1{font-size:30px;margin:4px 0}
+  .abox .tag{color:var(--dim);font-size:13px;margin-bottom:22px}
+  .tabs{display:flex;background:var(--darker);border-radius:10px;padding:4px;margin-bottom:18px}
+  .tabs button{flex:1;border:none;background:none;color:var(--dim);padding:10px;border-radius:8px;
+    cursor:pointer;font-size:14px;font-weight:600}
+  .tabs button.active{background:var(--input);color:#fff}
+  .abox input{width:100%;padding:12px 14px;border-radius:8px;border:none;background:var(--input);
+    color:var(--text);font-size:15px;outline:none;margin-bottom:12px}
+  .abox input:focus{outline:2px solid var(--accent)}
+  .abox .go{width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;
+    font-size:15px;background:var(--accent);color:#fff;margin-top:4px}
+  .abox .go:hover{background:#4752c4}
+  .abox .go:disabled{opacity:.5;cursor:wait}
+  .err{color:var(--err);font-size:13px;min-height:20px;margin:6px 0;text-align:left}
+
+  /* ---------- layout ---------- */
+  #app{height:100%;display:flex}
   #rail{width:72px;flex:none;background:var(--darker);display:flex;flex-direction:column;align-items:center;
-    padding:12px 0;gap:10px}
+    padding:12px 0;gap:10px;overflow-y:auto}
   .srv{width:48px;height:48px;border-radius:50%;background:var(--side);display:flex;align-items:center;
-    justify-content:center;cursor:pointer;font-size:22px;transition:border-radius .2s;position:relative;color:#fff}
+    justify-content:center;cursor:pointer;font-size:20px;font-weight:700;transition:border-radius .2s;
+    position:relative;color:#fff;flex:none;overflow:hidden;white-space:nowrap}
   .srv:hover{border-radius:16px;background:var(--accent)}
-  .srv.home{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:16px}
+  .srv.active{border-radius:16px;background:var(--accent)}
   .srv .pill{position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:4px;height:0;
     background:#fff;border-radius:0 4px 4px 0;transition:height .2s}
   .srv.active .pill{height:32px}
-  .rail-sep{width:32px;height:2px;background:#35363c;border-radius:2px}
+  .srv.add{background:transparent;border:2px dashed #4e5058;color:#4e5058;font-size:24px;font-weight:400}
+  .srv.add:hover{border-color:var(--accent);color:var(--accent);background:transparent}
+  .rail-sep{width:32px;height:2px;background:#35363c;border-radius:2px;flex:none}
 
-  /* channels */
   #channels{width:240px;flex:none;background:var(--side);display:flex;flex-direction:column}
   #channels .srv-name{padding:16px;font-weight:700;border-bottom:1px solid var(--darker);
     display:flex;align-items:center;gap:8px}
   #channels .srv-name .free{font-size:10px;font-weight:600;background:rgba(88,101,242,.2);color:#b5bac1;
     padding:3px 8px;border-radius:8px}
   #chan-list{flex:1;overflow-y:auto;padding:12px 8px}
-  #chan-list .cat{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;padding:8px}
+  #chan-list .cat{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;padding:8px;
+    display:flex;align-items:center;justify-content:space-between}
+  #chan-list .cat button{background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer;
+    padding:0 4px;border-radius:4px}
+  #chan-list .cat button:hover{color:#fff;background:var(--hover)}
   .chan{padding:8px 10px;border-radius:6px;color:var(--dim);cursor:pointer;margin:1px 0;
     display:flex;align-items:center;gap:8px;font-weight:500}
   .chan:hover{background:var(--hover);color:var(--text)}
   .chan.active{background:#404249;color:#fff}
   .chan .hash{color:#80848e;font-size:18px;font-weight:400}
+  .chan .dmav{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:700;color:#fff}
   #userbar{padding:10px;background:#232428;display:flex;align-items:center;gap:10px}
   #avatar{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
     font-weight:700;color:#fff;font-size:15px}
   #uname{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #uname small{display:block;color:var(--dim);font-weight:400;font-size:11px}
-  #editname{background:none;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:6px;border-radius:6px}
-  #editname:hover{background:var(--hover);color:var(--text)}
+  #logout{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:6px;border-radius:6px}
+  #logout:hover{background:var(--hover);color:var(--text)}
 
-  /* main */
   #main{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
   #chead{padding:12px 16px;border-bottom:1px solid var(--darker);font-weight:700;display:flex;gap:10px;align-items:center}
   #chead .hash{color:#80848e;font-size:22px;font-weight:400}
-  #chead .topic{color:var(--dim);font-weight:400;font-size:13px}
+  #chead .topic{color:var(--dim);font-weight:400;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:2px}
   .daydiv{display:flex;align-items:center;gap:12px;color:var(--dim);font-size:11px;font-weight:700;
     margin:14px 0 6px;text-transform:uppercase}
@@ -77,7 +108,6 @@
     font-family:inherit;resize:none;max-height:120px}
   #minput::placeholder{color:#6d6f78}
 
-  /* members */
   #members{width:230px;flex:none;background:var(--side);padding:16px 12px;overflow-y:auto}
   #members h4{font-size:11px;color:var(--dim);letter-spacing:1px;margin-bottom:10px}
   .mem{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;color:var(--dim)}
@@ -86,81 +116,106 @@
   .mem .mav{width:28px;height:28px;border-radius:50%;flex:none;display:flex;align-items:center;
     justify-content:center;font-size:12px;font-weight:700;color:#fff}
 
-  /* setup + name modal */
-  #setup{flex:1;display:flex;align-items:center;justify-content:center;padding:30px;background:var(--bg)}
-  #setup .card{max-width:560px;background:var(--side);border-radius:14px;padding:32px;line-height:1.7}
-  #setup h2{margin-bottom:12px}
-  #setup ol{margin:12px 0 12px 22px;color:var(--dim);font-size:14px}
-  #setup code{background:var(--darker);padding:2px 8px;border-radius:6px;font-size:13px;color:#fff}
-  #namemodal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
-  #namemodal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
-  #namemodal h2{margin-bottom:6px}
-  #namemodal p{color:var(--dim);font-size:13px;margin-bottom:16px}
-  #namemodal input{width:100%;padding:12px;border-radius:8px;border:none;background:var(--input);
+  /* modal + toast */
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
+  #modal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
+  #modal h2{margin-bottom:6px}
+  #modal p{color:var(--dim);font-size:13px;margin-bottom:16px}
+  #modal input{width:100%;padding:12px;border-radius:8px;border:none;background:var(--input);
     color:var(--text);font-size:15px;outline:none;margin-bottom:14px}
-  #namemodal button{width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;
-    font-size:15px;background:var(--accent);color:#fff}
-  #namemodal button:hover{background:#4752c4}
-  .hidden{display:none!important}
+  #modal .row{display:flex;gap:10px}
+  #modal .row button{flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px}
+  #m-ok{background:var(--accent);color:#fff}
+  #m-cancel{background:var(--input);color:var(--text)}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#111214;
+    color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:99;transition:transform .25s;
+    border:1px solid var(--err);max-width:90vw}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+
   @media (max-width:900px){#members{display:none}}
   @media (max-width:640px){#channels{width:200px}#rail{width:60px}.srv{width:42px;height:42px}}
 </style>
 </head>
 <body>
 
-<div id="rail">
-  <div class="srv home active" title="Prism"><span class="pill"></span>◈</div>
-  <div class="rail-sep"></div>
-  <div class="srv" title="Games">🎮</div>
-  <div class="srv" title="Music">🎵</div>
-  <div class="srv" title="Art">🎨</div>
-</div>
-
-<div id="channels">
-  <div class="srv-name">◈ Prism <span class="free">FREE · no nitro</span></div>
-  <div id="chan-list">
-    <div class="cat">TEXT CHANNELS</div>
-    <div class="chan active" data-ch="general"><span class="hash">#</span>general</div>
-    <div class="chan" data-ch="random"><span class="hash">#</span>random</div>
-    <div class="chan" data-ch="gaming"><span class="hash">#</span>gaming</div>
-    <div class="cat" style="margin-top:12px">INFO</div>
-    <div class="chan" data-ch="rules"><span class="hash">#</span>rules</div>
+<!-- auth -->
+<div id="auth">
+  <div class="abox">
+    <div class="logo">◈</div>
+    <h1>Prism</h1>
+    <p class="tag">Free forever. No nitro. Just chat.</p>
+    <div class="tabs">
+      <button id="tab-login" class="active">Log in</button>
+      <button id="tab-signup">Sign up</button>
+    </div>
+    <div id="pane-login">
+      <input id="li-name" placeholder="Username" autocomplete="username" maxlength="20">
+      <input id="li-pw" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="err" id="li-err"></div>
+      <button class="go" id="li-go">Log in</button>
+    </div>
+    <div id="pane-signup" class="hidden">
+      <input id="su-name" placeholder="Pick a username (letters, numbers, _)" autocomplete="username" maxlength="20">
+      <input id="su-pw" type="password" placeholder="Pick a password (6+ characters)" autocomplete="new-password">
+      <div class="err" id="su-err"></div>
+      <button class="go" id="su-go">Create account</button>
+    </div>
   </div>
-  <div id="userbar">
-    <div id="avatar">?</div>
-    <div id="uname">...<small>online</small></div>
-    <button id="editname" title="Change name">✎</button>
+</div>
+
+<!-- app -->
+<div id="app" class="hidden">
+  <div id="rail">
+    <div id="rail-servers" style="display:flex;flex-direction:column;gap:10px;align-items:center"></div>
+    <div class="rail-sep"></div>
+    <div class="srv add" id="srv-add" title="Create a server">+</div>
   </div>
+
+  <div id="channels">
+    <div class="srv-name"><span id="srv-title">◈ Prism</span><span class="free">FREE · no nitro</span></div>
+    <div id="chan-list">
+      <div class="cat">TEXT CHANNELS</div>
+      <div id="srv-channels"></div>
+      <div class="cat" style="margin-top:12px">DIRECT MESSAGES <button id="dm-add" title="Start a DM">+</button></div>
+      <div id="dm-list"></div>
+    </div>
+    <div id="userbar">
+      <div id="avatar">?</div>
+      <div id="uname">...<small>online</small></div>
+      <button id="logout" title="Log out">⏻</button>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span></div>
+    <div id="msgs"></div>
+    <div id="typing"></div>
+    <div id="inputbar"><div id="inputwrap">
+      <textarea id="minput" rows="1" placeholder="Message"></textarea>
+    </div></div>
+  </div>
+
+  <div id="members"><h4>ONLINE</h4><div id="memlist"></div></div>
 </div>
 
-<div id="main">
-  <div id="chead"><span class="hash">#</span><span id="chname">general</span><span class="topic" id="chtopic">Welcome to Prism — everything free, forever.</span></div>
-  <div id="msgs"></div>
-  <div id="typing"></div>
-  <div id="inputbar"><div id="inputwrap">
-    <textarea id="minput" rows="1" placeholder="Message #general"></textarea>
-  </div></div>
-</div>
-
-<div id="members"><h4>ONLINE</h4><div id="memlist"></div></div>
-
-<div id="namemodal" class="hidden">
+<!-- modal -->
+<div id="modal" class="hidden">
   <div class="box">
-    <h2>Welcome to Prism ◈</h2>
-    <p>Pick a display name to start chatting. No account, no nitro, no nonsense.</p>
-    <input id="nameinput" maxlength="24" placeholder="Your name" autocomplete="off">
-    <button id="namego">Start chatting</button>
+    <h2 id="m-title"></h2>
+    <p id="m-sub"></p>
+    <input id="m-input" maxlength="40" autocomplete="off">
+    <div class="row">
+      <button id="m-ok">Create</button>
+      <button id="m-cancel">Cancel</button>
+    </div>
   </div>
 </div>
+
+<div id="toast"></div>
 
 <script>
 "use strict";
-/* ============================================================
-   PRISM — database config
-   1. Go to https://console.firebase.google.com → create a project (free)
-   2. Build → Realtime Database → Create database → Start in test mode
-   3. Project settings → Your apps → web → copy the config below
-   ============================================================ */
+/* Prism v2 — accounts, DMs, custom servers. Database: Firebase Realtime Database. */
 const firebaseConfig = {
   apiKey: "AIzaSyCyWBVhG8iKbmK3K5oz0NBFmIWzopFQ5N0",
   authDomain: "discord-prism.firebaseapp.com",
@@ -171,160 +226,376 @@ const firebaseConfig = {
   appId: "1:819453764446:web:95f06de84fa69d994165cf",
   measurementId: "G-8DB05G3V3Y"
 };
-const DB_READY = firebaseConfig.apiKey.indexOf("YOUR_") !== 0;
-/* ============================================================ */
-
-const CHANNELS = {
-  general:{topic:"Welcome to Prism — everything free, forever."},
-  random:{topic:"Anything goes."},
-  gaming:{topic:"What are you playing?"},
-  rules:{topic:"Be kind. That's the whole rules list."}
-};
-const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
-const colorFor = n => COLORS[[...n].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
-const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
-
-let me = localStorage.getItem("prism-name") || "";
-let channel = "general";
-let db = null, myId = "u" + Math.random().toString(36).slice(2,10);
-let presRef = null, typingRef = null, msgRef = null;
-function goOnline(){
-  if(!db || !me) return;
-  presRef = db.ref("prism/presence/" + myId);
-  presRef.set({u: me, ts: firebase.database.ServerValue.TIMESTAMP});
-  presRef.onDisconnect().remove();
-}
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+const TS = firebase.database.ServerValue.TIMESTAMP;
 
 const $ = id => document.getElementById(id);
-const msgsEl = $("msgs"), memEl = $("memlist"), typeEl = $("typing");
+const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
+const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+const emailOf = name => name.toLowerCase() + "@prism.chat";
+const validName = n => /^[a-zA-Z0-9_]{3,20}$/.test(n);
 
-function setUser(name){
-  me = name.trim().slice(0,24) || ("user"+Math.floor(Math.random()*9999));
-  localStorage.setItem("prism-name", me);
-  $("uname").innerHTML = esc(me) + "<small>online</small>";
-  $("avatar").textContent = me[0].toUpperCase();
-  $("avatar").style.background = colorFor(me);
-  $("namemodal").classList.add("hidden");
-  goOnline();
-}
-$("namego").onclick = () => setUser($("nameinput").value);
-$("nameinput").addEventListener("keydown", e => { if(e.key==="Enter") setUser($("nameinput").value); });
-$("editname").onclick = () => { $("namemodal").classList.remove("hidden"); $("nameinput").value = me; $("nameinput").focus(); };
-
-if(!me){ $("namemodal").classList.remove("hidden"); }
-else setUser(me);
-
-/* ---------- no-database setup screen ---------- */
-if(!DB_READY){
-  $("main").innerHTML =
-    '<div id="setup"><div class="card"><h2>◈ Prism needs its database</h2>'+
-    '<p style="color:var(--dim);font-size:14px">Prism stores messages in a free Firebase Realtime Database. '+
-    'It takes about 3 minutes to set up, once:</p>'+
-    '<ol><li>Go to <code>console.firebase.google.com</code> and create a project (free).</li>'+
-    '<li><b>Build → Realtime Database → Create database</b>, choose <b>test mode</b>.</li>'+
-    '<li><b>Project settings → Your apps → Web</b>, copy the <code>firebaseConfig</code> into the top of this file.</li></ol>'+
-    '<p style="color:var(--dim);font-size:14px">Then reload — chat goes live for everyone.</p></div></div>';
-  $("members").style.display = "none";
-}else{
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  initChat();
+let toastT = null;
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), 3500);
 }
 
-function initChat(){
-  /* presence */
+/* ---------------- state ---------------- */
+let me = null;                 // {uid, name}
+let servers = {};             // sid -> {name, owner}
+let view = {type:"server", sid:null, cid:null};
+let liveRefs = [];            // message/typing refs to .off() on view change
+let chanListRef = null;       // channel-list ref for the open server
+let bootRefs = [];            // persistent boot listeners
+function unlisten(){ liveRefs.forEach(r => r.off()); liveRefs = []; }
+function listen(ref, ev, cb){ ref.on(ev, cb); liveRefs.push(ref); }
+
+/* ---------------- auth UI ---------------- */
+$("tab-login").onclick = () => {
+  $("tab-login").classList.add("active"); $("tab-signup").classList.remove("active");
+  $("pane-login").classList.remove("hidden"); $("pane-signup").classList.add("hidden");
+};
+$("tab-signup").onclick = () => {
+  $("tab-signup").classList.add("active"); $("tab-login").classList.remove("active");
+  $("pane-signup").classList.remove("hidden"); $("pane-login").classList.add("hidden");
+};
+function friendlyAuth(e){
+  const c = (e && e.code) || "";
+  if(c === "auth/email-already-in-use") return "That username is taken.";
+  if(c === "auth/wrong-password" || c === "auth/invalid-credential") return "Wrong username or password.";
+  if(c === "auth/user-not-found") return "No account with that username.";
+  if(c === "auth/weak-password") return "Password needs at least 6 characters.";
+  if(c === "auth/operation-not-allowed") return "Email sign-in isn't turned on yet in the Firebase console.";
+  if(c === "auth/network-request-failed") return "Network error — check your connection.";
+  return "Something went wrong. Try again.";
+}
+$("li-go").onclick = doLogin;
+$("li-pw").addEventListener("keydown", e => { if(e.key === "Enter") doLogin(); });
+async function doLogin(){
+  const name = $("li-name").value.trim().toLowerCase(), pw = $("li-pw").value;
+  $("li-err").textContent = "";
+  if(!validName(name)){ $("li-err").textContent = "Enter your username."; return; }
+  if(!pw){ $("li-err").textContent = "Enter your password."; return; }
+  $("li-go").disabled = true;
+  try{ await auth.signInWithEmailAndPassword(emailOf(name), pw); }
+  catch(e){ $("li-err").textContent = friendlyAuth(e); $("li-go").disabled = false; }
+}
+$("su-go").onclick = doSignup;
+$("su-pw").addEventListener("keydown", e => { if(e.key === "Enter") doSignup(); });
+async function doSignup(){
+  const name = $("su-name").value.trim(), pw = $("su-pw").value;
+  $("su-err").textContent = "";
+  if(!validName(name)){ $("su-err").textContent = "Username: 3–20 characters, letters, numbers, _ only."; return; }
+  if(pw.length < 6){ $("su-err").textContent = "Password needs at least 6 characters."; return; }
+  $("su-go").disabled = true;
+  try{
+    const lower = name.toLowerCase();
+    const taken = await db.ref("prism/usernames/" + lower).once("value");
+    if(taken.exists()){ $("su-err").textContent = "That username is taken."; $("su-go").disabled = false; return; }
+    const cred = await auth.createUserWithEmailAndPassword(emailOf(lower), pw);
+    const uid = cred.user.uid;
+    await db.ref("prism/users/" + uid).set({name: name, createdAt: TS});
+    await db.ref("prism/usernames/" + lower).set(uid);
+  }catch(e){ $("su-err").textContent = friendlyAuth(e); $("su-go").disabled = false; }
+}
+$("logout").onclick = () => {
+  if(me) db.ref("prism/presence/" + me.uid).remove().catch(() => {});
+  auth.signOut();
+};
+
+auth.onAuthStateChanged(async user => {
+  if(user){
+    try{
+      const snap = await db.ref("prism/users/" + user.uid + "/name").once("value");
+      me = {uid: user.uid, name: snap.val() || "user"};
+    }catch(e){ toast("Couldn't load your profile."); return; }
+    $("auth").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    boot();
+  }else{
+    me = null;
+    unlisten();
+    if(chanListRef){ chanListRef.off(); chanListRef = null; }
+    view = {type:"server", sid:null, cid:null};
+    $("app").classList.add("hidden");
+    $("auth").classList.remove("hidden");
+    $("li-go").disabled = false; $("su-go").disabled = false;
+  }
+});
+
+/* ---------------- boot ---------------- */
+async function boot(){
+  bootRefs.forEach(r => r.off()); bootRefs = [];
+  $("uname").innerHTML = esc(me.name) + "<small>online</small>";
+  $("avatar").textContent = me.name[0].toUpperCase();
+  $("avatar").style.background = colorFor(me.name);
   goOnline();
-  db.ref("prism/presence").on("value", snap => {
-    const now = Date.now(); memEl.innerHTML = "";
-    const seen = {};
-    snap.forEach(c => {
-      const v = c.val();
-      if(!v || !v.u || seen[v.u]) return;
-      if(now - (v.ts||0) > 120000) return;
-      seen[v.u] = 1;
-      const d = document.createElement("div");
-      d.className = "mem";
-      d.innerHTML = '<span class="dot"></span><div class="mav" style="background:'+colorFor(v.u)+'">'+esc(v.u[0].toUpperCase())+'</div>'+esc(v.u);
-      memEl.appendChild(d);
-    });
+  setInterval(() => { if(me) db.ref("prism/presence/" + me.uid).update({ts: TS}); }, 60000);
+  await seedOfficial();
+  const sRef = db.ref("prism/servers");
+  sRef.on("value", snap => {
+    servers = snap.val() || {};
+    renderRail();
+    if(view.type === "server" && !view.sid){
+      const first = servers.official ? "official" : Object.keys(servers)[0];
+      if(first) openServer(first);
+    }
   });
-  /* keep presence fresh */
-  setInterval(() => { if(me && presRef) presRef.update({ts: firebase.database.ServerValue.TIMESTAMP}); }, 60000);
+  bootRefs.push(sRef);
+  const pRef = db.ref("prism/presence");
+  pRef.on("value", renderMembers);
+  bootRefs.push(pRef);
+  const dRef = db.ref("prism/userDMs/" + me.uid);
+  dRef.on("value", renderDMs);
+  bootRefs.push(dRef);
+  wireInput();
+}
+function goOnline(){
+  if(!me) return;
+  const r = db.ref("prism/presence/" + me.uid);
+  r.set({u: me.name, ts: TS});
+  r.onDisconnect().remove();
+}
+async function seedOfficial(){
+  const ref = db.ref("prism/servers/official");
+  const s = await ref.once("value");
+  if(s.exists()) return;
+  await ref.set({name: "Prism", owner: "system", createdAt: TS});
+  await db.ref("prism/serverChannels/official").set({
+    general: {name: "general", topic: "Welcome to Prism — everything free, forever."},
+    random:  {name: "random",  topic: "Anything goes."},
+    gaming:  {name: "gaming",  topic: "What are you playing?"},
+    rules:   {name: "rules",   topic: "Be kind. That's the whole rules list."}
+  });
+  await db.ref("prism/messages/official/general").push(
+    {uid: "system", u: "Prism", t: "Welcome to Prism! Create an account, make servers, DM your friends — it's all free.", ts: TS});
+}
 
-  /* channels */
-  document.querySelectorAll(".chan").forEach(el => el.addEventListener("click", () => {
-    document.querySelectorAll(".chan").forEach(x => x.classList.remove("active"));
-    el.classList.add("active");
-    switchChannel(el.dataset.ch);
-  }));
+/* ---------------- servers ---------------- */
+function renderRail(){
+  const rail = $("rail-servers"); rail.innerHTML = "";
+  const ids = Object.keys(servers).sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
+  ids.forEach(sid => {
+    const s = servers[sid]; if(!s) return;
+    const d = document.createElement("div");
+    d.className = "srv" + (view.type === "server" && view.sid === sid ? " active" : "");
+    d.title = s.name;
+    d.innerHTML = "<span class='pill'></span>" + esc((s.name[0] || "?").toUpperCase());
+    d.onclick = () => openServer(sid);
+    rail.appendChild(d);
+  });
+}
+$("srv-add").onclick = () => {
+  openModal("Create a server", "Give your server a name. Your friends will see it in the list.",
+    "My cool server", "Create", async name => {
+      if(!name.trim()) return;
+      const ref = db.ref("prism/servers").push();
+      const sid = ref.key;
+      try{
+        await ref.set({name: name.trim().slice(0, 32), owner: me.uid, createdAt: TS});
+        await db.ref("prism/serverChannels/" + sid + "/general")
+          .set({name: "general", topic: "The beginning."});
+        openServer(sid);
+      }catch(e){ toast("Couldn't create the server."); }
+    });
+};
+function openServer(sid){
+  if(!servers[sid]) return;
+  if(chanListRef){ chanListRef.off(); chanListRef = null; }
+  unlisten();
+  view = {type: "server", sid: sid, cid: null};
+  $("srv-title").textContent = "◈ " + servers[sid].name;
+  renderRail();
+  chanListRef = db.ref("prism/serverChannels/" + sid);
+  chanListRef.on("value", snap => {
+    const chs = snap.val() || {};
+    const box = $("srv-channels"); box.innerHTML = "";
+    Object.keys(chs).forEach(cid => {
+      const c = chs[cid];
+      const d = document.createElement("div");
+      d.className = "chan" + (view.cid === cid ? " active" : "");
+      d.innerHTML = '<span class="hash">#</span>' + esc(c.name);
+      d.onclick = () => openChannel(sid, cid, c.name, c.topic || "");
+      box.appendChild(d);
+    });
+    if(view.type === "server" && view.sid === sid && (!view.cid || !chs[view.cid])){
+      const first = chs.general ? "general" : Object.keys(chs)[0];
+      if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "");
+    }
+  });
+}
+function openChannel(sid, cid, cname, topic){
+  unlisten();
+  view = {type: "server", sid: sid, cid: cid, cname: cname, topic: topic};
+  renderRail();
+  document.querySelectorAll("#srv-channels .chan").forEach(el => el.classList.remove("active"));
+  $("ch-hash").textContent = "#";
+  $("chname").textContent = cname;
+  $("chtopic").textContent = topic;
+  $("minput").placeholder = "Message #" + cname;
+  renderMessages("prism/messages/" + sid + "/" + cid, "s_" + sid + "_" + cid);
+}
 
-  /* typing indicator */
+/* ---------------- DMs ---------------- */
+function renderDMs(snap){
+  const box = $("dm-list"); box.innerHTML = "";
+  const dms = snap.val() || {};
+  Object.keys(dms).sort((a,b) => (dms[b].lastTs || 0) - (dms[a].lastTs || 0)).forEach(otherUid => {
+    const d = dms[otherUid];
+    const el = document.createElement("div");
+    el.className = "chan" + (view.type === "dm" && view.otherUid === otherUid ? " active" : "");
+    el.innerHTML = '<div class="dmav" style="background:' + colorFor(d.name) + '">' +
+      esc(d.name[0].toUpperCase()) + "</div>" + esc(d.name);
+    el.onclick = () => openDM(otherUid, d.name, d.dmId);
+    box.appendChild(el);
+  });
+}
+$("dm-add").onclick = () => {
+  openModal("Start a DM", "Enter your friend's Prism username.", "", "Message", async name => {
+    name = (name || "").trim().toLowerCase();
+    if(!validName(name)){ toast("That's not a valid username."); return; }
+    if(name === me.name.toLowerCase()){ toast("That's you!"); return; }
+    try{
+      const snap = await db.ref("prism/usernames/" + name).once("value");
+      if(!snap.exists()){ toast("No user named " + name + "."); return; }
+      const otherUid = snap.val();
+      const otherSnap = await db.ref("prism/users/" + otherUid + "/name").once("value");
+      const otherName = otherSnap.val() || name;
+      const dmId = [me.uid, otherUid].sort().join("_");
+      const now = Date.now();
+      await db.ref("prism/userDMs/" + me.uid + "/" + otherUid).set({dmId: dmId, name: otherName, lastTs: now});
+      await db.ref("prism/userDMs/" + otherUid + "/" + me.uid).set({dmId: dmId, name: me.name, lastTs: now});
+      openDM(otherUid, otherName, dmId);
+    }catch(e){ toast("Couldn't start the DM."); }
+  });
+};
+function openDM(otherUid, otherName, dmId){
+  if(chanListRef){ chanListRef.off(); chanListRef = null; }
+  unlisten();
+  view = {type: "dm", dmId: dmId, otherUid: otherUid, otherName: otherName};
+  renderRail();
+  document.querySelectorAll("#srv-channels .chan").forEach(el => el.classList.remove("active"));
+  $("ch-hash").textContent = "@";
+  $("chname").textContent = otherName;
+  $("chtopic").textContent = "Direct message";
+  $("minput").placeholder = "Message " + otherName;
+  renderMessages("prism/dmMessages/" + dmId, "d_" + dmId);
+}
+
+/* ---------------- messages ---------------- */
+function renderMessages(path, typeScope){
+  $("msgs").innerHTML = ""; $("typing").textContent = "";
+  $("minput").value = ""; $("minput").style.height = "auto";
+  const tRef = db.ref("prism/typing/" + typeScope);
+  listen(tRef, "value", snap => {
+    const names = [];
+    snap.forEach(c => { if(c.key !== me.uid && c.val()) names.push(c.val()); });
+    $("typing").textContent = names.length ? names.join(", ") + (names.length === 1 ? " is" : " are") + " typing..." : "";
+  });
+  const mRef = db.ref(path).limitToLast(100);
+  let lastDay = "";
+  listen(mRef, "child_added", snap => {
+    const m = snap.val(); if(!m || !m.u) return;
+    const d = new Date(m.ts || Date.now());
+    const day = d.toLocaleDateString(undefined, {weekday: "long", month: "long", day: "numeric"});
+    if(day !== lastDay){
+      lastDay = day;
+      const dv = document.createElement("div");
+      dv.className = "daydiv"; dv.textContent = day;
+      $("msgs").appendChild(dv);
+    }
+    const el = document.createElement("div");
+    el.className = "msg";
+    el.innerHTML =
+      '<div class="ma" style="background:' + colorFor(m.u) + '">' + esc(m.u[0].toUpperCase()) + "</div>" +
+      '<div class="mb"><div class="mh"><span class="mu">' + esc(m.u) + '</span><span class="mt">' +
+      d.toLocaleTimeString(undefined, {hour: "numeric", minute: "2-digit"}) + "</span></div>" +
+      '<div class="mx">' + linkify(m.t || "") + "</div></div>";
+    $("msgs").appendChild(el);
+    $("msgs").scrollTop = $("msgs").scrollHeight;
+  });
+}
+let inputWired = false;
+function wireInput(){
+  if(inputWired) return; inputWired = true;
   const minput = $("minput");
   let typeTimer = null;
   minput.addEventListener("input", () => {
-    db.ref("prism/typing/" + channel + "/" + myId).set(me);
-    clearTimeout(typeTimer);
-    typeTimer = setTimeout(() => db.ref("prism/typing/" + channel + "/" + myId).remove(), 2500);
+    const scope = view.type === "server" ? "s_" + view.sid + "_" + view.cid : "d_" + view.dmId;
+    if(view.cid || view.dmId){
+      db.ref("prism/typing/" + scope + "/" + me.uid).set(me.name).catch(() => {});
+      clearTimeout(typeTimer);
+      typeTimer = setTimeout(() =>
+        db.ref("prism/typing/" + scope + "/" + me.uid).remove().catch(() => {}), 2500);
+    }
     minput.style.height = "auto";
     minput.style.height = Math.min(minput.scrollHeight, 120) + "px";
   });
   minput.addEventListener("keydown", e => {
     if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
   });
-
-  switchChannel("general");
 }
-
-function switchChannel(ch){
-  if(typingRef) typingRef.off();
-  if(msgRef) msgRef.off();
-  channel = ch;
-  $("chname").textContent = ch;
-  $("chtopic").textContent = CHANNELS[ch].topic;
-  $("minput").placeholder = "Message #" + ch;
-  $("minput").value = ""; $("minput").style.height = "auto";
-  msgsEl.innerHTML = ""; typeEl.textContent = "";
-  if(!db) return;
-
-  typingRef = db.ref("prism/typing/" + ch);
-  typingRef.on("value", snap => {
-    const names = [];
-    snap.forEach(c => { const v = c.val(); if(v && v !== me && c.key !== myId) names.push(v); });
-    typeEl.textContent = names.length ? names.join(", ") + (names.length===1?" is":" are") + " typing..." : "";
-  });
-
-  msgRef = db.ref("prism/channels/" + ch + "/messages").limitToLast(100);
-  let lastDay = "";
-  msgRef.on("child_added", snap => {
-    const m = snap.val(); if(!m || !m.u) return;
-    const d = new Date(m.ts || Date.now());
-    const day = d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
-    if(day !== lastDay){ lastDay = day;
-      const dv = document.createElement("div"); dv.className = "daydiv"; dv.textContent = day;
-      msgsEl.appendChild(dv);
-    }
-    const el = document.createElement("div");
-    el.className = "msg";
-    const time = d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
-    el.innerHTML =
-      '<div class="ma" style="background:'+colorFor(m.u)+'">'+esc(m.u[0].toUpperCase())+'</div>'+
-      '<div class="mb"><div class="mh"><span class="mu">'+esc(m.u)+'</span><span class="mt">'+time+'</span></div>'+
-      '<div class="mx">'+linkify(String(m.t||""))+'</div></div>';
-    msgsEl.appendChild(el);
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  });
-}
-
 function send(){
   const t = $("minput").value.trim();
-  if(!t || !db || !me) return;
-  db.ref("prism/channels/" + channel + "/messages").push({
-    u: me, t: t.slice(0, 2000), ts: firebase.database.ServerValue.TIMESTAMP
-  });
-  db.ref("prism/typing/" + channel + "/" + myId).remove();
+  if(!t || !me) return;
+  const msg = {uid: me.uid, u: me.name, t: t.slice(0, 2000), ts: TS};
+  if(view.type === "server" && view.cid){
+    const scope = "s_" + view.sid + "_" + view.cid;
+    db.ref("prism/messages/" + view.sid + "/" + view.cid).push(msg)
+      .catch(() => toast("Couldn't send — check your connection."));
+    db.ref("prism/typing/" + scope + "/" + me.uid).remove().catch(() => {});
+  }else if(view.type === "dm"){
+    db.ref("prism/dmMessages/" + view.dmId).push(msg)
+      .catch(() => toast("Couldn't send — check your connection."));
+    db.ref("prism/typing/d_" + view.dmId + "/" + me.uid).remove().catch(() => {});
+    const now = Date.now();
+    db.ref("prism/userDMs/" + me.uid + "/" + view.otherUid + "/lastTs").set(now).catch(() => {});
+    db.ref("prism/userDMs/" + view.otherUid + "/" + me.uid + "/lastTs").set(now).catch(() => {});
+  }else return;
   $("minput").value = ""; $("minput").style.height = "auto";
 }
+
+/* ---------------- members ---------------- */
+function renderMembers(snap){
+  const box = $("memlist"); box.innerHTML = "";
+  const now = Date.now(), seen = {};
+  snap.forEach(c => {
+    const v = c.val();
+    if(!v || !v.u || seen[v.u]) return;
+    if(now - (v.ts || 0) > 120000) return;
+    seen[v.u] = 1;
+    const d = document.createElement("div");
+    d.className = "mem";
+    d.innerHTML = '<span class="dot"></span><div class="mav" style="background:' + colorFor(v.u) + '">' +
+      esc(v.u[0].toUpperCase()) + "</div>" + esc(v.u);
+    box.appendChild(d);
+  });
+}
+
+/* ---------------- modal ---------------- */
+let modalCb = null;
+function openModal(title, sub, placeholder, okLabel, cb){
+  $("m-title").textContent = title;
+  $("m-sub").textContent = sub;
+  $("m-input").value = "";
+  $("m-input").placeholder = placeholder;
+  $("m-ok").textContent = okLabel;
+  modalCb = cb;
+  $("modal").classList.remove("hidden");
+  setTimeout(() => $("m-input").focus(), 50);
+}
+function closeModal(){ $("modal").classList.add("hidden"); modalCb = null; }
+$("m-cancel").onclick = closeModal;
+$("m-ok").onclick = () => { const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); };
+$("m-input").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); }
+  if(e.key === "Escape") closeModal();
+});
 </script>
 </body>
 </html>
