@@ -74,7 +74,17 @@
   .chan.active{background:#404249;color:#fff}
   .chan .hash{color:#80848e;font-size:18px;font-weight:400}
   .chan .dmav{width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;
-    justify-content:center;font-size:11px;font-weight:700;color:#fff}
+    justify-content:center;font-size:11px;font-weight:700;color:#fff;position:relative}
+  .chan .odot{position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;
+    background:#80848e;border:2px solid var(--side)}
+  .chan .odot.on{background:#23a55a}
+  .chan .dname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chan .badge{background:var(--accent);color:#fff;font-size:11px;font-weight:700;border-radius:10px;
+    padding:2px 7px;flex:none}
+  .chan .badge.hidden{display:none}
+  .chan .dx{display:none;color:var(--dim);font-size:16px;line-height:1;padding:2px 6px;border-radius:4px;flex:none}
+  .chan:hover .dx{display:block}
+  .chan .dx:hover{color:#fff;background:var(--hover)}
   #userbar{padding:10px;background:#232428;display:flex;align-items:center;gap:10px}
   #avatar{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
     font-weight:700;color:#fff;font-size:15px}
@@ -321,6 +331,7 @@ auth.onAuthStateChanged(async user => {
   }else{
     me = null;
     unlisten();
+    stopAllDMWatchers();
     if(chanListRef){ chanListRef.off(); chanListRef = null; }
     view = {type:"server", sid:null, cid:null};
     $("app").classList.add("hidden");
@@ -332,6 +343,7 @@ auth.onAuthStateChanged(async user => {
 /* ---------------- boot ---------------- */
 async function boot(){
   bootRefs.forEach(r => r.off()); bootRefs = [];
+  stopAllDMWatchers();
   $("uname").innerHTML = esc(me.name) + "<small>online</small>";
   $("avatar").textContent = me.name[0].toUpperCase();
   $("avatar").style.background = colorFor(me.name);
@@ -443,18 +455,112 @@ function openChannel(sid, cid, cname, topic){
 }
 
 /* ---------------- DMs ---------------- */
+const dmWatch = {}; // dmId -> watcher {otherUid, name, readTs, ready, lastN, msgs, online, readRef, msgRef, presRef}
+function dmReadPath(dmId){ return "prism/dmRead/" + me.uid + "/" + dmId; }
+function markDMRead(dmId){
+  if(!me || !dmId) return;
+  db.ref(dmReadPath(dmId)).set(Date.now()).catch(() => {});
+}
+function stopDMWatcher(dmId){
+  const w = dmWatch[dmId];
+  if(!w) return;
+  if(w.readRef) w.readRef.off();
+  if(w.msgRef) w.msgRef.off();
+  if(w.presRef) w.presRef.off();
+  delete dmWatch[dmId];
+}
+function stopAllDMWatchers(){ Object.keys(dmWatch).forEach(stopDMWatcher); }
+function watchDM(dmId, otherUid, name){
+  if(!me || dmWatch[dmId]) return;
+  const w = dmWatch[dmId] = {dmId: dmId, otherUid: otherUid, name: name,
+    readTs: 0, ready: false, lastN: 0, msgs: null, online: false};
+  w.readRef = db.ref(dmReadPath(dmId));
+  w.readRef.on("value", snap => {
+    if(!me) return;
+    const v = snap.val();
+    if(v == null){
+      db.ref(dmReadPath(dmId)).set(Date.now()).catch(() => {}); // mark pre-existing history read
+      return;
+    }
+    w.readTs = v; w.ready = true; recountDM(w, false);
+  });
+  w.msgRef = db.ref("prism/dmMessages/" + dmId).limitToLast(200);
+  w.msgRef.on("value", snap => {
+    if(!me) return;
+    const isNew = w.msgs !== null;
+    w.msgs = snap.val() || {};
+    recountDM(w, isNew);
+  });
+  w.presRef = db.ref("prism/presence/" + otherUid);
+  w.presRef.on("value", snap => {
+    const v = snap.val();
+    w.online = !!(v && v.u && (Date.now() - (v.ts || 0) < 120000));
+    paintDMOnline(dmId, w.online);
+  });
+}
+function recountDM(w, isNew){
+  if(!w.ready || !me) return;
+  let n = 0;
+  const vals = w.msgs ? Object.values(w.msgs) : [];
+  for(let i = 0; i < vals.length; i++){
+    const m = vals[i];
+    if(m && m.ts > w.readTs && m.uid !== me.uid) n++;
+  }
+  const viewing = view.type === "dm" && view.dmId === w.dmId;
+  if(isNew && n > 0 && w.lastN === 0 && !viewing)
+    toast("\uD83D\uDCAC New message from " + w.name);
+  w.lastN = n;
+  paintDMUnread(w.dmId, n);
+}
+function paintDMUnread(dmId, n){
+  const badge = document.querySelector('#dm-list [data-dm="' + dmId + '"] .badge');
+  if(!badge) return;
+  badge.textContent = n > 99 ? "99+" : n;
+  badge.classList.toggle("hidden", n === 0);
+}
+function paintDMOnline(dmId, on){
+  const dot = document.querySelector('#dm-list [data-dm="' + dmId + '"] .odot');
+  if(dot) dot.classList.toggle("on", on);
+}
 function renderDMs(snap){
   const box = $("dm-list"); box.innerHTML = "";
   const dms = snap.val() || {};
+  const seen = {};
   Object.keys(dms).sort((a,b) => (dms[b].lastTs || 0) - (dms[a].lastTs || 0)).forEach(otherUid => {
-    const d = dms[otherUid];
+    const d = dms[otherUid] || {};
+    if(!d.dmId) return;
+    const dname = d.name || "user";
+    seen[d.dmId] = true;
+    watchDM(d.dmId, otherUid, dname);
     const el = document.createElement("div");
     el.className = "chan" + (view.type === "dm" && view.otherUid === otherUid ? " active" : "");
-    el.innerHTML = '<div class="dmav" style="background:' + colorFor(d.name) + '">' +
-      esc(d.name[0].toUpperCase()) + "</div>" + esc(d.name);
-    el.onclick = () => openDM(otherUid, d.name, d.dmId);
+    el.setAttribute("data-dm", d.dmId);
+    el.innerHTML =
+      '<div class="dmav" style="background:' + colorFor(dname) + '">' + esc(dname[0].toUpperCase()) +
+      '<span class="odot"></span></div>' +
+      '<span class="dname">' + esc(dname) + "</span>" +
+      '<span class="badge hidden"></span>' +
+      '<span class="dx" title="Close DM">\u00d7</span>';
+    el.onclick = () => openDM(otherUid, dname, d.dmId);
+    el.querySelector(".dx").onclick = e => { e.stopPropagation(); closeDM(otherUid, d.dmId); };
     box.appendChild(el);
   });
+  Object.keys(dmWatch).forEach(id => { if(!seen[id]) stopDMWatcher(id); });
+  Object.values(dmWatch).forEach(w => {
+    paintDMUnread(w.dmId, w.lastN);
+    paintDMOnline(w.dmId, w.online);
+  });
+}
+function closeDM(otherUid, dmId){
+  stopDMWatcher(dmId);
+  if(me){
+    db.ref("prism/userDMs/" + me.uid + "/" + otherUid).remove().catch(() => {});
+    db.ref(dmReadPath(dmId)).remove().catch(() => {});
+  }
+  if(view.type === "dm" && view.dmId === dmId){
+    const first = servers.official ? "official" : Object.keys(servers)[0];
+    if(first) openServer(first);
+  }
 }
 $("dm-add").onclick = () => {
   openModal("Start a DM", "Enter your friend's Prism username.", "", "Message", async name => {
@@ -485,6 +591,7 @@ function openDM(otherUid, otherName, dmId){
   $("chname").textContent = otherName;
   $("chtopic").textContent = "Direct message";
   $("minput").placeholder = "Message " + otherName;
+  markDMRead(dmId);
   renderMessages("prism/dmMessages/" + dmId, "d_" + dmId);
 }
 
@@ -519,6 +626,10 @@ function renderMessages(path, typeScope){
       '<div class="mx">' + linkify(m.t || "") + "</div></div>";
     $("msgs").appendChild(el);
     $("msgs").scrollTop = $("msgs").scrollHeight;
+    if(typeScope.charAt(0) === "d" && view.type === "dm" && view.dmId && m.uid !== me.uid){
+      const w = dmWatch[view.dmId];
+      if(w && w.ready && (m.ts || 0) > w.readTs) markDMRead(view.dmId);
+    }
   });
 }
 let inputWired = false;
