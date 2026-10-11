@@ -886,7 +886,7 @@
   #main.discover-mode #ch-hash, #main.discover-mode #chtopic, #main.discover-mode #pinbtn, #main.discover-mode #chdel { display:none!important; }
   #main.discover-mode #chname { font-size:14px; }
   #main.discover-mode #msgs, #main.discover-mode #typing, #main.discover-mode #inputbar, #main.discover-mode #home-screen { display:none!important; }
-  #main.discover-mode #discover-screen { display:flex!important; }
+  #main.discover-mode #discover-screen:not(.hidden) { display:flex!important; }
   #app.discover-mode #members { display:none!important; }
   #channels.discover-mode #server-channel-category, #channels.discover-mode #srv-channels { display:none!important; }
   #channels.discover-mode #dm-category { margin-top:0!important; padding-top:3px; }
@@ -1334,7 +1334,7 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.4 5.2-5.2 2.4 2.4-5.2 5.2-2.4Z"/></svg>
         </div>
         <h3>No servers found</h3>
-        <p>Try another search or category. Server owners can publish a community using the server menu.</p>
+        <p id="discover-empty-copy">Try another search or category. Server owners can publish a community using the server menu.</p>
         <button id="discover-reset" class="home-secondary" type="button">Clear filters</button>
       </div>
       <div class="discover-footnote">Only servers marked public by their owners appear here.</div>
@@ -1574,6 +1574,8 @@ function toast(msg){
 let me = null;                 // {uid, name}
 let servers = {};             // sid -> {name, owner}
 let myServers = {};           // sid -> true (servers I've joined)
+let discoveryListings = {};   // public catalog, independent from private server access
+let discoveryLoadError = false;
 let view = {type:"server", sid:null, cid:null};
 let homeView = false;
 let discoverView = false;
@@ -1765,10 +1767,22 @@ async function boot(){
     if(view.type === "server" && !view.sid) openServer("official");
   });
   bootRefs.push(sRef);
+  const discoveryRef = db.ref("prism/discoverableServers");
+  discoveryRef.on("value", snap => {
+    discoveryListings = snap.val() || {};
+    discoveryLoadError = false;
+    renderDiscoverServers();
+  }, error => {
+    discoveryLoadError = true;
+    console.warn("Prism Discover catalog could not be read:", error);
+    renderDiscoverServers();
+  });
+  bootRefs.push(discoveryRef);
   const msRef = db.ref("prism/myServers/" + me.uid);
   msRef.on("value", snap => {
     myServers = snap.val() || {};
     renderRail();
+    renderDiscoverServers();
   });
   bootRefs.push(msRef);
   const pRef = db.ref("prism/presence");
@@ -1835,6 +1849,8 @@ function updateHomeLayout(){
   $("app").classList.toggle("discover-mode", discoverView);
   $("channels").classList.toggle("discover-mode", discoverView);
   $("main").classList.toggle("discover-mode", discoverView);
+  $("discover-screen").classList.toggle("hidden", !discoverView);
+  $("home-screen").classList.toggle("hidden", !homeView);
   $("rail-home").classList.toggle("active", homeView);
   $("rail-discover").classList.toggle("active", discoverView);
   if(homeView || discoverView){
@@ -2138,20 +2154,69 @@ $("discover-editor-save").onclick = async () => {
   button.disabled = true;
   button.textContent = "Saving…";
   try{
-    await db.ref("prism/servers/" + sid).update(updates);
+    const serverRef = db.ref("prism/servers/" + sid);
+    const catalogRef = db.ref("prism/discoverableServers/" + sid);
+    const previous = {
+      discoverable: server.discoverable === true,
+      description: server.description || "",
+      category: server.category || "Community"
+    };
+    const previousCatalog = discoveryListings[sid] || null;
+    await serverRef.update(updates);
     Object.assign(server, updates);
+    if(isPublic){
+      await catalogRef.set({
+        sid: sid,
+        name: server.name || "Untitled server",
+        description: description,
+        category: category,
+        icon: server.icon || "",
+        owner: server.owner,
+        publishedAt: (previousCatalog && previousCatalog.publishedAt) || Date.now(),
+        updatedAt: Date.now()
+      });
+    }else{
+      await catalogRef.remove();
+      delete discoveryListings[sid];
+    }
     closeDiscoveryEditor();
     renderDiscoverServers();
     toast(isPublic ? "Server published in Discover." : "Server removed from Discover.");
   }catch(e){
-    toast("Couldn't save the Discover listing. Check your Firebase database rules.");
+    // Keep the old server settings if publishing its directory record failed.
+    try{
+      await db.ref("prism/servers/" + sid).update({
+        discoverable: server.discoverable === true,
+        description: server.description || "",
+        category: server.category || "Community"
+      });
+    }catch(_){}
+    toast("Couldn't publish this server. Check Firebase rules for prism/discoverableServers.");
   }finally{
     button.disabled = false;
     button.textContent = "Save listing";
   }
 };
 function isListedForDiscovery(sid, server){
-  return sid === "official" || !!(server && server.discoverable === true);
+  return sid === "official" ||
+    !!(discoveryListings && discoveryListings[sid]) ||
+    !!(server && server.discoverable === true);
+}
+function discoveryRecordMap(){
+  const records = Object.create(null);
+  Object.entries(discoveryListings || {}).forEach(([sid, listing]) => {
+    if(!listing || listing.discoverable === false) return;
+    records[sid] = Object.assign({}, servers[sid] || {}, listing, {sid:sid});
+  });
+  Object.entries(servers || {}).forEach(([sid, server]) => {
+    if(isListedForDiscovery(sid, server) && !records[sid]){
+      records[sid] = Object.assign({}, server || {}, {sid:sid});
+    }
+  });
+  if(servers.official && !records.official){
+    records.official = Object.assign({}, servers.official, {sid:"official"});
+  }
+  return records;
 }
 function openDiscover(){
   homeView = false;
@@ -2167,21 +2232,25 @@ function renderDiscoverServers(){
   if(!grid) return;
   grid.innerHTML = "";
   const q = ($("discover-search-input").value || "").trim().toLowerCase();
-  const publicServers = Object.keys(servers).filter(sid => isListedForDiscovery(sid, servers[sid]));
-  const visible = publicServers.filter(sid => {
-    const server = servers[sid] || {};
+  const records = discoveryRecordMap();
+  const visible = Object.keys(records).filter(sid => {
+    const server = records[sid] || {};
     const category = server.category || (sid === "official" ? "Community" : "Other");
     if(discoverCategoryFilter !== "All" && category !== discoverCategoryFilter) return false;
-    const haystack = [server.name || "", server.description || "", category, ...(Array.isArray(server.tags) ? server.tags : [])].join(" ").toLowerCase();
+    const haystack = [server.name || "", server.description || "", category,
+      ...(Array.isArray(server.tags) ? server.tags : [])].join(" ").toLowerCase();
     return !q || haystack.includes(q);
-  }).sort((a,b) => a === "official" ? -1 : b === "official" ? 1 : String(servers[a].name || "").localeCompare(String(servers[b].name || "")));
+  }).sort((a,b) => a === "official" ? -1 : b === "official" ? 1 :
+    String(records[a].name || "").localeCompare(String(records[b].name || "")));
   $("discover-count").textContent = visible.length + (visible.length === 1 ? " server" : " servers");
   $("discover-results-title").textContent = discoverCategoryFilter === "All" ? "Public communities" : discoverCategoryFilter;
-  $("discover-results-subtitle").textContent = q ? "Search results for “" + q + "”" : "Servers shared by their owners";
+  $("discover-results-subtitle").textContent = discoveryLoadError && !Object.keys(discoveryListings || {}).length
+    ? "Public directory unavailable — showing any listings visible to your account."
+    : q ? "Search results for “" + q + "”" : "Servers shared by their owners";
   $("discover-empty").classList.toggle("hidden", visible.length !== 0);
   grid.classList.toggle("hidden", visible.length === 0);
   visible.forEach(sid => {
-    const server = servers[sid] || {};
+    const server = records[sid] || {};
     const category = server.category || (sid === "official" ? "Community" : "Other");
     const card = document.createElement("article");
     card.className = "discover-server-card";
@@ -2222,7 +2291,7 @@ function renderDiscoverServers(){
     join.type = "button";
     join.className = "discover-join-button";
     const joined = sid === "official" || !!(myServers && myServers[sid]);
-    join.textContent = joined ? (sid === "official" || view.sid === sid && !homeView && !discoverView ? "Open server" : "Joined · Open") : "Join server";
+    join.textContent = joined ? "Open server" : "Join server";
     join.onclick = () => joinDiscoveredServer(sid);
     actions.appendChild(join);
     content.append(heading, desc, meta, actions);
@@ -2231,27 +2300,40 @@ function renderDiscoverServers(){
   });
 }
 async function joinDiscoveredServer(sid){
-  if(!me || !servers[sid]) return;
+  if(!me || !sid) return;
   if(sid === "official" || (myServers && myServers[sid])){
-    openServer(sid);
-    return;
+    const official = servers[sid];
+    if(official){openServer(sid);return;}
   }
   try{
-    const snap = await db.ref("prism/servers/" + sid).once("value");
-    const server = snap.val();
-    if(!server || server.discoverable !== true){
-      toast("This server is no longer listed in Discover.");
+    // Read the public directory first. Some Firebase rules only let members read full server details.
+    const publicSnap = await db.ref("prism/discoverableServers/" + sid).once("value").catch(()=>null);
+    const listed = publicSnap && publicSnap.exists() ? publicSnap.val() : null;
+    const fallback = servers[sid];
+    if(sid !== "official" && !listed && !(fallback && fallback.discoverable === true)){
+      toast("This server isn't listed publicly anymore.");
+      delete discoveryListings[sid];
       renderDiscoverServers();
       return;
     }
     await db.ref("prism/myServers/" + me.uid + "/" + sid).set(true);
     myServers[sid] = true;
+    // Load the full server only after membership is written.
+    const serverSnap = await db.ref("prism/servers/" + sid).once("value").catch(()=>null);
+    const server = serverSnap && serverSnap.val ? serverSnap.val() : null;
+    if(!server){
+      await db.ref("prism/myServers/" + me.uid + "/" + sid).remove().catch(()=>{});
+      delete myServers[sid];
+      toast("The server was listed, but its details couldn't be loaded. Check Firebase rules.");
+      renderRail();
+      return;
+    }
     servers[sid] = server;
     renderRail();
     openServer(sid);
     toast("Joined " + (server.name || "the server") + ".");
   }catch(e){
-    toast("Couldn't join this server. Check that you're connected and try again.");
+    toast("Couldn't join this server. Check Firebase rules for myServers and server access.");
   }
 }
 document.querySelectorAll(".discover-filter").forEach(button => {
