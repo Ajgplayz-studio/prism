@@ -212,6 +212,11 @@
   #profile-icon-actions .trow{margin-top:8px}
   #profile-icon-actions .trow button{padding:8px;font-size:12px}
   #set-avatar-help{display:block;margin-top:7px;color:var(--dim);font-size:11px;line-height:1.4}
+  #set-banner-tools{margin:8px 0 2px}
+  #set-banner-preview{height:82px;width:100%;border-radius:6px;border:1px solid color-mix(in srgb,var(--text) 12%,transparent);background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 34%,var(--side)),var(--side));background-position:center;background-size:cover;background-repeat:no-repeat}
+  #set-banner-tools .trow{margin-top:8px;display:flex;gap:8px}
+  #set-banner-tools .trow button{flex:1;padding:8px;font-size:12px}
+  #set-banner-help{display:block;margin-top:7px;color:var(--dim);font-size:11px;line-height:1.4}
   #settings input[type="file"]{display:none}
   .profile-avatar-img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
   #settings .row{display:flex;gap:10px;margin-top:18px}
@@ -1001,7 +1006,9 @@
   #profile-card { position:fixed; inset:0; z-index:130; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.58); backdrop-filter:blur(2px); }
   #profile-card.hidden { display:none!important; }
   .profile-card-box { position:relative; width:min(340px,92vw); overflow:hidden; border:1px solid color-mix(in srgb,var(--text) 10%,transparent); border-radius:8px; background:var(--side); color:var(--text); box-shadow:0 18px 50px rgba(0,0,0,.38); }
-  .profile-card-banner { height:88px; background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 44%,var(--side)),var(--side)); border-bottom:1px solid color-mix(in srgb,var(--text) 7%,transparent); }
+  .profile-card-banner { height:88px; background-position:center; background-size:cover; background-repeat:no-repeat; background-color:var(--side); background-image:linear-gradient(110deg,color-mix(in srgb,var(--accent) 44%,var(--side)),var(--side)); border-bottom:1px solid color-mix(in srgb,var(--text) 7%,transparent); }
+  #profile-card-bio { margin:10px 0 0; color:var(--dim); font-size:12px; line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap; }
+  #profile-card-presence.dnd .profile-presence-dot { background:#efb33f; }
   #profile-card-close { position:absolute; top:10px; right:10px; width:28px; height:28px; border:1px solid color-mix(in srgb,#fff 12%,transparent); border-radius:5px; background:rgba(10,10,14,.25); color:var(--text); font-size:20px; cursor:pointer; }
   #profile-card-avatar { width:76px; height:76px; margin:-39px 0 0 18px; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:50%; border:5px solid var(--side); background:var(--accent); color:#fff; font-size:24px; font-weight:700; }
   #profile-card-avatar img { width:100%; height:100%; object-fit:cover; }
@@ -1393,6 +1400,20 @@
     <input type="file" id="set-avatar-file" accept="image/png,image/jpeg,image/webp">
     <label for="set-avatar-url">Image URL (optional)</label>
     <input type="text" id="set-avatar-url" maxlength="2000" placeholder="https://example.com/avatar.png" autocomplete="off">
+    <label>Profile banner</label>
+    <div id="set-banner-tools">
+      <div id="set-banner-preview" aria-label="Profile banner preview"></div>
+      <div class="trow">
+        <button id="set-banner-upload" type="button">Upload image/GIF</button>
+        <button id="set-banner-reset" type="button">Remove banner</button>
+      </div>
+      <small id="set-banner-help">Choose a still image or animated GIF, or paste an HTTPS image URL below.</small>
+    </div>
+    <input type="file" id="set-banner-file" accept="image/png,image/jpeg,image/webp,image/gif">
+    <label for="set-banner-url">Banner URL (optional)</label>
+    <input type="text" id="set-banner-url" maxlength="2000" placeholder="https://example.com/banner.gif" autocomplete="off">
+    <label for="set-bio">Profile description</label>
+    <textarea id="set-bio" maxlength="180" rows="3" placeholder="Tell people a little about yourself."></textarea>
     <label>Theme</label>
     <div class="trow" id="theme-row">
       <button data-th="dark">🌙 Dark</button>
@@ -1401,7 +1422,13 @@
     </div>
     <label>Accent color</label>
     <div class="trow"><input type="color" id="set-accent" value="#5865f2"></div>
-    <label>Status</label>
+    <label for="set-presence-mode">Availability</label>
+    <select id="set-presence-mode">
+      <option value="online">🟢 Online</option>
+      <option value="dnd">⛔ Do not disturb</option>
+      <option value="offline">⚪ Appear offline</option>
+    </select>
+    <label for="set-status">Custom status</label>
     <input type="text" id="set-status" maxlength="60" placeholder="What's on your mind?" autocomplete="off">
     <label class="notification-setting">
       <input type="checkbox" id="set-notifications">
@@ -1458,15 +1485,17 @@
 <!-- User profile card -->
 <div id="profile-card" class="hidden" role="dialog" aria-modal="true" aria-label="User profile">
   <div class="profile-card-box">
-    <div class="profile-card-banner"></div>
+    <div id="profile-card-banner" class="profile-card-banner"></div>
     <button type="button" id="profile-card-close" aria-label="Close profile">×</button>
     <div id="profile-card-avatar">?</div>
     <div class="profile-card-content">
       <h2 id="profile-card-name">User</h2>
       <div id="profile-card-presence"><span class="profile-presence-dot"></span><span id="profile-card-status">Online</span></div>
+      <p id="profile-card-bio"></p>
       <p id="profile-card-note"></p>
       <div class="profile-card-actions">
         <button id="profile-card-message" class="home-primary" type="button">Message</button>
+        <button id="profile-card-call" class="home-secondary" type="button">Call</button>
         <button id="profile-card-copy" class="home-secondary" type="button">Copy username</button>
       </div>
     </div>
@@ -1599,6 +1628,11 @@ function isSafeAvatarSource(value){
   if(typeof value !== "string" || value.length > 260000) return false;
   if(/^https:\/\/[^\s"'<>]+$/i.test(value)) return true;
   return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value);
+}
+function isSafeBannerSource(value){
+  if(typeof value !== "string" || value.length > 2100000) return false;
+  if(/^https:\/\/[^\s"'<>]+$/i.test(value)) return true;
+  return /^data:image\/(?:gif|jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value);
 }
 function renderProfileAvatar(el, source, name){
   if(!el) return;
@@ -1808,7 +1842,10 @@ async function boot(){
 function goOnline(){
   if(!me) return;
   const r = db.ref("prism/presence/" + me.uid);
-  r.set({u: me.name, ts: TS, status: settings.status || "", avatar: settings.avatar || ""});
+  r.set({
+    u: me.name, ts: TS, status: settings.status || "", mode: settings.presenceMode || "online",
+    avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+  });
   r.onDisconnect().remove();
 }
 async function seedOfficial(){
@@ -1940,7 +1977,7 @@ function renderFriendsView(){
   const incoming = Object.entries(incomingFriendRequests || {});
   const outgoing = Object.entries(outgoingFriendRequests || {});
   const friendList = Object.entries(friendEntries || {});
-  const onlineFriends = friendList.filter(([uid]) => !!presenceCache[uid]);
+  const onlineFriends = friendList.filter(([uid]) => !!(presenceCache[uid] && presenceCache[uid].online));
   const count = incoming.length;
   $("friends-request-badge").textContent = String(count);
   $("friends-request-badge").classList.toggle("hidden", count === 0);
@@ -1959,8 +1996,8 @@ function renderFriendsView(){
     rows = filtered.map(([uid,friend]) => ({
       kind:"friend", uid,
       name:(friend && friend.name) || (presenceCache[uid] && presenceCache[uid].name) || "Prism user",
-      status:presenceCache[uid] ? (presenceCache[uid].status || "Online") : "Offline",
-      online:!!presenceCache[uid]
+      status:presenceCache[uid] ? (presenceCache[uid].mode === "dnd" ? "Do not disturb" : presenceCache[uid].online ? (presenceCache[uid].status || "Online") : "Offline") : "Offline",
+      online:!!(presenceCache[uid] && presenceCache[uid].online)
     }));
   }
   $("friends-empty-title").textContent = friendFilter === "pending" ? "No pending requests" : friendFilter === "online" ? "No friends online" : "No friends yet";
@@ -3387,7 +3424,7 @@ function send(){
 }
 
 /* ---------------- themes & settings ---------------- */
-let settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: "", notifications: false};
+let settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false};
 let selTheme = "dark";
 function applySettings(){
   const root = document.documentElement;
@@ -3404,7 +3441,7 @@ function applySettings(){
   }
 }
 async function loadSettings(){
-  settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: "", notifications: false};
+  settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false};
   try{
     const snap = await db.ref("prism/users/" + me.uid + "/settings").once("value");
     if(snap.exists()) settings = Object.assign({}, settings, snap.val());
@@ -3414,9 +3451,16 @@ async function loadSettings(){
     }
   }catch(e){}
   settings.avatar = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
+  settings.banner = isSafeBannerSource(settings.banner) ? settings.banner : "";
+  settings.bio = String(settings.bio || "").slice(0,180);
+  settings.presenceMode = ["online","dnd","offline"].includes(settings.presenceMode) ? settings.presenceMode : "online";
   selTheme = settings.theme || "dark";
+  draftBanner = settings.banner;
   applySettings();
-  if(me) db.ref("prism/presence/" + me.uid).update({status: settings.status || "", avatar: settings.avatar || ""}).catch(() => {});
+  if(me) db.ref("prism/presence/" + me.uid).update({
+    status: settings.status || "", mode: settings.presenceMode || "online",
+    avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+  }).catch(() => {});
 }
 function refreshAvatarPreview(){
   renderProfileAvatar($("set-avatar-preview"), draftAvatar || "", me && me.name || "?");
@@ -3600,11 +3644,23 @@ $("admin-grant-username").addEventListener("keydown",event=>{if(event.key==="Ent
 $("admin-users-search").addEventListener("input",renderAdminUsers);
 $("admin-servers-search").addEventListener("input",renderAdminServers);
 
+let draftBanner = "";
+function refreshBannerPreview(){
+  const el = $("set-banner-preview");
+  if(!el) return;
+  el.style.backgroundImage = isSafeBannerSource(draftBanner) ? 'url("' + draftBanner + '")' : "";
+}
 function openSettings(){
   selTheme = settings.theme || "dark";
   draftAvatar = settings.avatar || "";
-  $("set-avatar-url").value = /^https:\/\//i.test(draftAvatar) ? draftAvatar : "";
+  draftBanner = settings.banner || "";
+  $("set-avatar-url").value = /^https:///i.test(draftAvatar) ? draftAvatar : "";
   $("set-avatar-file").value = "";
+  $("set-banner-url").value = /^https:///i.test(draftBanner) ? draftBanner : "";
+  $("set-banner-file").value = "";
+  $("set-bio").value = settings.bio || "";
+  $("set-presence-mode").value = settings.presenceMode || "online";
+  refreshBannerPreview();
   refreshAvatarPreview();
   document.querySelectorAll("#theme-row button").forEach(b =>
     b.classList.toggle("sel", b.dataset.th === selTheme));
@@ -3680,6 +3736,41 @@ $("set-avatar-reset").onclick = () => {
   $("set-avatar-file").value = "";
   refreshAvatarPreview();
 };
+$("set-banner-upload").onclick = () => $("set-banner-file").click();
+$("set-banner-reset").onclick = () => {
+  draftBanner = "";
+  $("set-banner-url").value = "";
+  $("set-banner-file").value = "";
+  refreshBannerPreview();
+};
+$("set-banner-file").onchange = async () => {
+  const file = $("set-banner-file").files && $("set-banner-file").files[0];
+  if(!file) return;
+  if(!/^image\/(?:gif|png|jpeg|webp)$/i.test(file.type)){
+    toast("Choose a PNG, JPG, WebP, or GIF banner.");
+    $("set-banner-file").value = "";
+    return;
+  }
+  if(file.size > 1500000){
+    toast("Choose a banner smaller than 1.5 MB.");
+    $("set-banner-file").value = "";
+    return;
+  }
+  try{
+    const banner = await new Promise((resolve,reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Couldn't read that image."));
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.readAsDataURL(file);
+    });
+    if(!isSafeBannerSource(banner)) throw new Error("That banner format isn't supported.");
+    draftBanner = banner;
+    $("set-banner-url").value = "";
+    refreshBannerPreview();
+    toast("Banner ready. Press Save to apply it.");
+  }catch(e){ toast(e && e.message || "Couldn't read that banner."); }
+  finally{ $("set-banner-file").value = ""; }
+};
 $("set-open").onclick = openSettings;
 $("avatar").style.cursor = "pointer";
 $("avatar").onclick = () => me && openUserProfile(me.uid, me.name, settings.status || "", settings.avatar || "", true);
@@ -3691,6 +3782,7 @@ $("get-themes").onclick = () => { window.open("https://ajgplayz-studio.github.io
 $("set-cancel").onclick = () => {
   $("settings").classList.add("hidden");
   draftAvatar = settings.avatar || "";
+  draftBanner = settings.banner || "";
 };
 document.querySelectorAll("#theme-row button").forEach(b => {
   b.onclick = () => {
@@ -3705,10 +3797,19 @@ $("set-save").onclick = async () => {
     toast("Use a valid HTTPS image URL or upload an image.");
     return;
   }
+  const bannerUrlValue = $("set-banner-url").value.trim();
+  if(bannerUrlValue && !isSafeBannerSource(bannerUrlValue)){
+    toast("Use a valid HTTPS image/GIF URL or upload a banner.");
+    return;
+  }
   if(urlValue) draftAvatar = urlValue;
+  if(bannerUrlValue) draftBanner = bannerUrlValue;
   settings.theme = selTheme;
   settings.accent = $("set-accent").value || "#5865f2";
   settings.status = $("set-status").value.trim().slice(0, 60);
+  settings.presenceMode = ["online","dnd","offline"].includes($("set-presence-mode").value) ? $("set-presence-mode").value : "online";
+  settings.bio = $("set-bio").value.trim().slice(0, 180);
+  settings.banner = isSafeBannerSource(draftBanner) ? draftBanner : "";
   settings.notifications = $("set-notifications").checked;
   settings.css = $("set-css").value;
   if(settings.notifications && "Notification" in window && Notification.permission === "default"){
@@ -3721,10 +3822,14 @@ $("set-save").onclick = async () => {
   }
   settings.avatar = isSafeAvatarSource(draftAvatar) ? draftAvatar : "";
   applySettings();
+  refreshBannerPreview();
   $("settings").classList.add("hidden");
   try{
     await db.ref("prism/users/" + me.uid + "/settings").set(settings);
-    await db.ref("prism/presence/" + me.uid).update({status: settings.status, avatar: settings.avatar || ""});
+    await db.ref("prism/presence/" + me.uid).update({
+      status: settings.status || "", mode: settings.presenceMode || "online",
+      avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+    });
     db.ref("prism/users/" + me.uid + "/avatar").set(settings.avatar || "").catch(() => {});
     profileAvatarCache[me.uid] = settings.avatar || "";
     avatarReadDone.add(me.uid);
@@ -3861,17 +3966,53 @@ function closePins(){ $("pins").classList.add("hidden"); }
 
 /* ---------------- members ---------------- */
 let profileCardUser = null;
+function updateProfileCardDetails(uid, data){
+  if(!profileCardUser || profileCardUser.uid !== uid) return;
+  const details = data || {};
+  const banner = isSafeBannerSource(details.banner) ? details.banner : "";
+  const bannerEl = $("profile-card-banner");
+  bannerEl.style.backgroundImage = banner ? 'url("' + banner + '")' : "";
+  $("profile-card-bio").textContent = String(details.bio || "").slice(0,180);
+  const mode = details.presenceMode || details.mode || "online";
+  const statusText = mode === "offline" ? "Offline" : mode === "dnd" ? "Do not disturb" : "Online";
+  const custom = String(details.status || "").trim();
+  $("profile-card-presence").classList.toggle("offline", mode === "offline");
+  $("profile-card-presence").classList.toggle("dnd", mode === "dnd");
+  $("profile-card-status").textContent = custom ? statusText + " · " + custom : statusText;
+}
 function openUserProfile(uid, name, status, avatar, online){
+  const cached = presenceCache[uid] || {};
+  const own = uid === (me && me.uid);
   profileCardUser = {uid:uid, name:name || "User"};
   const box = $("profile-card");
   $("profile-card-name").textContent = name || "User";
-  $("profile-card-status").textContent = status || (online ? "Online" : "Offline");
-  $("profile-card-note").textContent = uid === (me && me.uid) ? "This is how other Prism users see you." : "";
-  $("profile-card-presence").classList.toggle("offline", !online);
-  renderProfileAvatar($("profile-card-avatar"), avatar || "", name || "?");
-  $("profile-card-message").textContent = uid === (me && me.uid) ? "Your profile" : "Message";
-  $("profile-card-message").disabled = uid === (me && me.uid);
+  renderProfileAvatar($("profile-card-avatar"), avatar || cached.avatar || "", name || "?");
+  $("profile-card-note").textContent = own ? "This is how other Prism users see you." : "";
+  $("profile-card-message").textContent = own ? "Your profile" : "Message";
+  $("profile-card-message").disabled = own;
+  $("profile-card-call").disabled = own;
+  $("profile-card-call").classList.toggle("hidden", own);
+  $("profile-card-presence").classList.remove("offline","dnd");
+  updateProfileCardDetails(uid, {
+    bio: own ? settings.bio : cached.bio,
+    banner: own ? settings.banner : cached.banner,
+    presenceMode: own ? settings.presenceMode : (cached.mode || (online ? "online" : "offline")),
+    status: own ? settings.status : (cached.status || status || "")
+  });
   box.classList.remove("hidden");
+  if(!own){
+    db.ref("prism/users/" + uid + "/settings").once("value").then(snap => {
+      if(!snap.exists() || !profileCardUser || profileCardUser.uid !== uid) return;
+      const v = snap.val() || {};
+      const live = presenceCache[uid] || {};
+      updateProfileCardDetails(uid, {
+        bio: live.bio || v.bio || "",
+        banner: live.banner || v.banner || "",
+        presenceMode: live.mode || v.presenceMode || (online ? "online" : "offline"),
+        status: live.status || v.status || status || ""
+      });
+    }).catch(()=>{});
+  }
 }
 function closeUserProfile(){ $("profile-card").classList.add("hidden"); profileCardUser = null; }
 $("profile-card-close").onclick = closeUserProfile;
@@ -3895,6 +4036,12 @@ $("profile-card-message").onclick = () => {
   closeUserProfile();
   if(profile && me && profile.uid !== me.uid) startDMWithUser(profile.uid,profile.name);
 };
+$("profile-card-call").onclick = () => {
+  const profile = profileCardUser;
+  if(!profile || !me || profile.uid === me.uid) return;
+  if(window.PrismVoice && typeof window.PrismVoice.callUser === "function") window.PrismVoice.callUser(profile.uid,profile.name);
+  else toast("Calling is still loading. Try again in a moment.");
+};
 const presenceCache = Object.create(null);
 function renderMembers(snap){
   const box = $("memlist"); box.innerHTML = "";
@@ -3905,17 +4052,21 @@ function renderMembers(snap){
     if(!v || !v.u || seen[v.u]) return;
     if(now - (v.ts || 0) > 120000) return;
     seen[v.u] = 1;
-    presenceCache[c.key] = {uid:c.key, name:v.u, status:v.status || "", avatar:v.avatar || "", online:true};
+    const mode = v.mode || "online";
+    presenceCache[c.key] = {uid:c.key, name:v.u, status:v.status || "", avatar:v.avatar || "", banner:v.banner || "", bio:v.bio || "", mode:mode, online:mode !== "offline"};
     if(v.avatar && isSafeAvatarSource(v.avatar)){
       profileAvatarCache[c.key] = v.avatar;
       avatarReadDone.add(c.key);
     }
+    if(mode === "offline") return;
     const d = document.createElement("div");
-    d.className = "mem";
+    d.className = "mem" + (mode === "dnd" ? " presence-dnd" : "");
     d.innerHTML = '<span class="dot"></span><div class="mav" style="background:' + colorFor(v.u) + '">' +
       esc(v.u[0].toUpperCase()) + '</div><div class="mtext"><div class="mname">' + esc(v.u) + "</div>" +
       (v.status ? '<div class="mstatus">' + esc(v.status) + "</div>" : "") + "</div>";
     renderProfileAvatar(d.querySelector(".mav"), v.avatar || profileAvatarCache[c.key] || "", v.u);
+    const statusDot = d.querySelector(".dot");
+    if(statusDot && mode === "dnd") statusDot.style.background = "#efb33f";
     d.tabIndex = 0;
     d.setAttribute("role", "button");
     d.setAttribute("aria-label", "Open " + v.u + "'s profile");
