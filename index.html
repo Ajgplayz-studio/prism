@@ -1099,6 +1099,17 @@
     #inputwrap { gap:5px; }
   }
 
+
+  /* Group direct messages */
+  #group-dm-list { display:flex; flex-direction:column; gap:1px; }
+  .group-dm-avatar { display:grid; place-items:center; background:color-mix(in srgb,var(--accent) 16%,var(--side)); color:var(--accent2); font-size:17px; }
+  .group-chan.active .group-dm-avatar { color:var(--text); }
+  #group-dm-list .chan .dname { min-width:0; }
+  #group-dm-list .chan .dx { opacity:.15; }
+  #group-dm-list .chan:hover .dx { opacity:1; }
+  .group-chan .dmav { border-radius:8px; }
+  .group-chan.active .dmav { background:color-mix(in srgb,var(--accent) 25%,var(--side)); }
+
 </style>
 </head>
 <body>
@@ -1157,6 +1168,11 @@
       <div id="srv-channels"></div>
       <div id="dm-category" class="cat" style="margin-top:12px"><span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Direct Messages</span><button id="dm-add" title="Start a DM" aria-label="Start a direct message">+</button></div>
       <div id="dm-list"></div>
+      <div id="group-dm-category" class="cat" style="margin-top:12px">
+        <span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Group Messages</span>
+        <button id="group-dm-add" title="Create a group message" aria-label="Create a group message">+</button>
+      </div>
+      <div id="group-dm-list"></div>
     </div>
     <div id="userbar">
       <div id="avatar">?</div>
@@ -1479,6 +1495,7 @@ let friendFilter = "all";
 let friendEntries = {};
 let incomingFriendRequests = {};
 let outgoingFriendRequests = {};
+let myGroupDMs = {};
 let liveRefs = [];            // message/typing refs to .off() on view change
 let chanListRef = null;       // channel-list ref for the open server
 let bootRefs = [];            // persistent boot listeners
@@ -1659,6 +1676,9 @@ async function boot(){
   const dRef = db.ref("prism/userDMs/" + me.uid);
   dRef.on("value", renderDMs);
   bootRefs.push(dRef);
+  const gRef = db.ref("prism/userGroupDMs/" + me.uid);
+  gRef.on("value", renderGroupDMs);
+  bootRefs.push(gRef);
   const fRef = db.ref("prism/friends/" + me.uid);
   fRef.on("value", snap => { friendEntries=snap.val()||{}; renderFriendsView(); });
   bootRefs.push(fRef);
@@ -1727,20 +1747,21 @@ function updateHomeLayout(){
 }
 function applySidebarSearch(){
   const q = ($("sidebar-search-input").value || "").trim().toLowerCase();
-  document.querySelectorAll("#srv-channels .chan, #dm-list .chan").forEach(item => {
+  document.querySelectorAll("#srv-channels .chan, #dm-list .chan, #group-dm-list .chan").forEach(item => {
     const label = (item.textContent || "").toLowerCase();
     item.style.display = !q || label.includes(q) ? "" : "none";
   });
   const hasVisible = selector => [...document.querySelectorAll(selector)].some(el => el.style.display !== "none");
   $("server-channel-category").style.display = (homeView || discoverView) || (q && !hasVisible("#srv-channels .chan")) ? "none" : "";
   $("dm-category").style.display = q && !hasVisible("#dm-list .chan") ? "none" : "";
+  $("group-dm-category").style.display = q && !hasVisible("#group-dm-list .chan") ? "none" : "";
 }
 function renderHomeDMList(){
   const box = $("home-dm-list");
   if(!box) return;
   box.innerHTML = "";
   const q = (($("home-search") && $("home-search").value) || $("sidebar-search-input").value || "").trim().toLowerCase();
-  const items = [...document.querySelectorAll("#dm-list .chan")].filter(item => {
+  const items = [...document.querySelectorAll("#dm-list .chan, #group-dm-list .chan")].filter(item => {
     const label = (item.querySelector(".dname")?.textContent || item.textContent || "").trim().toLowerCase();
     return !q || label.includes(q);
   });
@@ -1772,7 +1793,7 @@ function renderHomeDMList(){
     const copy = document.createElement("span"); copy.className = "home-dm-copy";
     const title = document.createElement("span"); title.className = "home-dm-name"; title.textContent = name;
     const subtitle = document.createElement("span"); subtitle.className = "home-dm-status";
-    subtitle.textContent = sourceAvatar && sourceAvatar.querySelector(".odot.on") ? "Online" : "Open conversation";
+    subtitle.textContent = item.dataset.group === "true" ? ((item.dataset.membersCount || "2") + " members") : (sourceAvatar && sourceAvatar.querySelector(".odot.on") ? "Online" : "Open conversation");
     copy.append(title, subtitle);
     const arrow = document.createElement("span"); arrow.className = "home-dm-arrow"; arrow.textContent = "›";
     card.append(avatar, copy, arrow);
@@ -2748,6 +2769,88 @@ function renderDMs(snap){
   applySidebarSearch();
   renderHomeDMList();
 }
+function renderGroupDMs(snap){
+  const box=$("group-dm-list"); if(!box)return;
+  box.innerHTML="";
+  myGroupDMs=snap.val()||{};
+  Object.keys(myGroupDMs).sort((a,b)=>(myGroupDMs[b].lastTs||0)-(myGroupDMs[a].lastTs||0)).forEach(groupId=>{
+    const group=myGroupDMs[groupId]||{};
+    if(!group.name)return;
+    const members=group.members||{};
+    const count=Object.keys(members).length||2;
+    const row=document.createElement("div");
+    row.className="chan group-chan"+(view.type==="group"&&view.dmId===groupId?" active":"");
+    row.dataset.group="true";row.dataset.groupId=groupId;row.dataset.membersCount=String(count);
+    row.innerHTML='<div class="dmav group-dm-avatar" aria-hidden="true">♧</div><span class="dname"></span><span class="dx" title="Close group message">×</span>';
+    row.querySelector(".dname").textContent=group.name;
+    row.querySelector(".dx").onclick=event=>{event.stopPropagation();closeGroupDM(groupId);};
+    row.onclick=()=>openGroupDM(groupId,group.name,members);
+    box.appendChild(row);
+  });
+  applySidebarSearch();
+  renderHomeDMList();
+}
+function closeGroupDM(groupId){
+  if(!me||!groupId)return;
+  db.ref("prism/userGroupDMs/"+me.uid+"/"+groupId).remove().then(()=>{
+    if(view.type==="group"&&view.dmId===groupId)openHome();
+  }).catch(()=>toast("Couldn't remove this group from your sidebar."));
+}
+function openGroupDM(groupId,name,members){
+  homeView=false;discoverView=false;
+  updateHomeLayout();
+  if(chanListRef){chanListRef.off();chanListRef=null;}
+  unlisten();
+  view={type:"group",dmId:groupId,groupName:name||"Group message",members:members||{}};
+  renderRail();
+  document.querySelectorAll("#srv-channels .chan, #dm-list .chan, #group-dm-list .chan").forEach(el=>el.classList.remove("active"));
+  $("ch-hash").textContent="♧";
+  $("chname").textContent=view.groupName;
+  $("chtopic").textContent="Group conversation · "+Object.keys(view.members).length+" members";
+  $("chdel").classList.add("hidden");
+  $("inputbar").style.display="";
+  $("minput").placeholder="Message "+view.groupName;
+  markDMRead(groupId);
+  renderMessages("prism/dmMessages/"+groupId,"d_"+groupId);
+}
+async function createGroupDM(name,rawMembers){
+  const groupName=(name||"").trim().slice(0,40);
+  const usernames=[...new Set((rawMembers||"").split(/[;,\\s]+/).map(n=>n.trim().toLowerCase()).filter(Boolean))];
+  if(!groupName){toast("Choose a group name.");return;}
+  if(!usernames.length){toast("Enter at least one username.");return;}
+  const members={[me.uid]:true};
+  const names={};
+  names[me.uid]=me.name;
+  try{
+    for(const username of usernames){
+      if(!validName(username)){toast("Invalid username: "+username);return;}
+      if(username===me.name.toLowerCase())continue;
+      const user=await db.ref("prism/usernames/"+username).once("value");
+      if(!user.exists()){toast("No user named "+username+".");return;}
+      const uid=user.val();members[uid]=true;
+      const profile=await db.ref("prism/users/"+uid+"/name").once("value");
+      names[uid]=profile.val()||username;
+    }
+    if(Object.keys(members).length<2){toast("Add at least one other person.");return;}
+    const groupId=db.ref("prism/groupDMs").push().key;
+    const now=Date.now(),updates={};
+    updates["prism/groupDMs/"+groupId]={name:groupName,owner:me.uid,createdAt:now,members:members};
+    Object.keys(members).forEach(uid=>{
+      updates["prism/userGroupDMs/"+uid+"/"+groupId]={name:groupName,members:members,lastTs:now,owner:me.uid};
+    });
+    await db.ref().update(updates);
+    toast("Group message created.");
+    openGroupDM(groupId,groupName,members);
+  }catch(e){
+    toast("Couldn't create the group. The Firebase rules may need groupDMs/userGroupDMs access.");
+  }
+}
+$("group-dm-add").onclick=()=>{
+  openModal("New group message","Give this group a name.","Weekend plans","Next",name=>{
+    if(!name||!name.trim()){toast("Choose a group name.");return;}
+    openModal("Add people","Enter Prism usernames separated by commas.","username1, username2","Create group",members=>createGroupDM(name,members));
+  });
+};
 function closeDM(otherUid, dmId){
   stopDMWatcher(dmId);
   if(me){
@@ -2848,9 +2951,12 @@ function renderMessages(path, typeScope){
     normalizeMessageGroups();
     paintMsgRx(el, typeScope);
     $("msgs").scrollTop = $("msgs").scrollHeight;
-    if(typeScope.charAt(0) === "d" && view.type === "dm" && view.dmId && m.uid !== me.uid){
-      const w = dmWatch[view.dmId];
-      if(w && w.ready && (m.ts || 0) > w.readTs) markDMRead(view.dmId);
+    if(typeScope.charAt(0) === "d" && (view.type === "dm" || view.type === "group") && view.dmId && m.uid !== me.uid){
+      if(view.type === "group") markDMRead(view.dmId);
+      else {
+        const w = dmWatch[view.dmId];
+        if(w && w.ready && (m.ts || 0) > w.readTs) markDMRead(view.dmId);
+      }
     }
   });
   listen(mRef, "child_changed", snap => {
@@ -3080,6 +3186,14 @@ function send(){
     const now = Date.now();
     db.ref("prism/userDMs/" + me.uid + "/" + view.otherUid + "/lastTs").set(now).catch(() => {});
     db.ref("prism/userDMs/" + view.otherUid + "/" + me.uid + "/lastTs").set(now).catch(() => {});
+  }else if(view.type === "group"){
+    db.ref("prism/dmMessages/" + view.dmId).push(msg)
+      .catch(() => toast("Couldn't send — check your connection."));
+    db.ref("prism/typing/d_" + view.dmId + "/" + me.uid).remove().catch(() => {});
+    const now = Date.now();
+    Object.keys(view.members || {}).forEach(uid=>{
+      db.ref("prism/userGroupDMs/" + uid + "/" + view.dmId + "/lastTs").set(now).catch(()=>{});
+    });
   }else return;
   $("minput").value = ""; $("minput").style.height = "auto";
   clearReply();
