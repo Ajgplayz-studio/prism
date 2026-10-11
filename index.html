@@ -2302,7 +2302,12 @@ function renderDiscoverServers(){
     art.className = "discover-server-banner" + (sid === "official" ? " official" : "");
     const mark = document.createElement("span");
     mark.className = "discover-server-mark";
-    mark.textContent = server.icon || String(server.name || "?").trim().charAt(0).toUpperCase();
+    if(server.icon && /^(https:\/\/|data:image\/)/i.test(server.icon)){
+      const img=document.createElement("img");img.alt="";img.src=server.icon;
+      img.style.cssText="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block";
+      img.onerror=()=>{img.remove();mark.textContent=String(server.name||"?").trim().charAt(0).toUpperCase();};
+      mark.appendChild(img);
+    }else mark.textContent = server.icon || String(server.name || "?").trim().charAt(0).toUpperCase();
     art.appendChild(mark);
     const content = document.createElement("div");
     content.className = "discover-server-content";
@@ -2968,13 +2973,60 @@ function leaveServer(sid){
   toast("You left the server.");
 }
 function changeServerIcon(sid){
-  openModal("Server icon", "Pick an emoji for your server. Leave it empty to remove the icon.",
-    "🎮", "Save", v => {
-      const emo = Array.from(v.trim()).slice(0, 4).join("");
-      db.ref("prism/servers/" + sid + "/icon").set(emo || null)
-        .then(() => toast(emo ? "Server icon updated!" : "Server icon removed."))
-        .catch(() => toast("Couldn't save the icon."));
+  if(!me || !servers[sid] || (servers[sid].owner !== me.uid && !isAdmin())) return;
+  let draftIcon = "";
+  const safeIcon = value => typeof value === "string" && value.length <= 2100000 &&
+    (/^https:\/\/[^\s"'<>]+$/i.test(value) || /^data:image\/(?:gif|jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value));
+  ["server-icon-url","server-icon-file","server-icon-preview","server-icon-label"].forEach(id=>{
+    const old=document.getElementById(id);if(old)old.remove();
+  });
+  openModal("Server icon", "Upload a picture or GIF, paste an HTTPS image URL, or enter an emoji. Leave empty to remove the icon.",
+    "🎮 or https://example.com/icon.gif", "Save", async value => {
+      const entered=String(value||"").trim();
+      if(entered && (/^https:\/\//i.test(entered) || /^data:image\//i.test(entered)) && !safeIcon(entered)){
+        toast("Use a valid HTTPS image/GIF URL, or upload a PNG, JPG, WebP, or GIF under 1.5 MB.");
+        return;
+      }
+      const icon = safeIcon(entered) ? entered : (draftIcon || (entered ? Array.from(entered).slice(0,4).join("") : ""));
+      const updates={};
+      updates["prism/servers/"+sid+"/icon"]=icon||null;
+      if(servers[sid].discoverable===true) updates["prism/discoverableServers/"+sid+"/icon"]=icon||null;
+      try{
+        await db.ref().update(updates);
+        toast(icon ? "Server icon updated!" : "Server icon removed.");
+      }catch(e){toast("Couldn't save the icon. Check Firebase rules.");}
     });
+  const field=$("m-input");
+  const label=document.createElement("label");
+  label.id="server-icon-label";label.textContent="Icon image/GIF";label.style.cssText="display:block;margin-top:12px;font-size:12px";
+  const url=document.createElement("input");
+  url.id="server-icon-url";url.type="url";url.maxLength=2000;url.placeholder="HTTPS image/GIF URL (optional)";url.autocomplete="off";
+  url.style.cssText="display:block;width:100%;box-sizing:border-box;margin-top:6px";
+  const upload=document.createElement("input");
+  upload.id="server-icon-file";upload.type="file";upload.accept="image/png,image/jpeg,image/webp,image/gif";
+  upload.setAttribute("aria-label","Upload server icon");upload.style.cssText="display:block;max-width:100%;margin-top:8px;font-size:12px";
+  const preview=document.createElement("img");
+  preview.id="server-icon-preview";preview.alt="Icon preview";preview.style.cssText="display:none;width:56px;height:56px;object-fit:cover;border-radius:14px;margin-top:8px";
+  if(safeIcon(servers[sid].icon)){
+    preview.src=servers[sid].icon;preview.style.display="block";
+    if(/^https:\/\//i.test(servers[sid].icon))url.value=servers[sid].icon;else draftIcon=servers[sid].icon;
+  }
+  upload.onchange=()=>{
+    const file=upload.files&&upload.files[0];if(!file)return;
+    if(!/^image\/(?:gif|png|jpeg|webp)$/i.test(file.type)){toast("Choose a PNG, JPG, WebP, or GIF.");upload.value="";return;}
+    if(file.size>1500000){toast("Choose an icon smaller than 1.5 MB.");upload.value="";return;}
+    const reader=new FileReader();reader.onerror=()=>toast("Couldn't read that icon.");
+    reader.onload=()=>{
+      const data=String(reader.result||"");
+      if(!safeIcon(data)){toast("That icon format isn't supported.");return;}
+      draftIcon=data;preview.src=data;preview.style.display="block";url.value="";
+    };
+    reader.readAsDataURL(file);
+  };
+  field.insertAdjacentElement("afterend",label);
+  label.insertAdjacentElement("afterend",url);
+  url.insertAdjacentElement("afterend",upload);
+  upload.insertAdjacentElement("afterend",preview);
 }
 
 /* ---------------- DMs ---------------- */
