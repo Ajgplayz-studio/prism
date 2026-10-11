@@ -1110,6 +1110,51 @@
   .group-chan .dmav { border-radius:8px; }
   .group-chan.active .dmav { background:color-mix(in srgb,var(--accent) 25%,var(--side)); }
 
+
+  /* Admin center is embedded in Settings and hidden until the signed-in user is authorized. */
+  #admin-settings-section { margin:20px 0 4px; padding:17px; border:1px solid color-mix(in srgb,var(--accent) 30%,var(--text) 6%); border-radius:7px; background:color-mix(in srgb,var(--accent) 4%,var(--side)); }
+  #admin-settings-section.hidden { display:none!important; }
+  .admin-settings-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:13px; border-bottom:1px solid color-mix(in srgb,var(--text) 8%,transparent); }
+  .admin-settings-eyebrow { color:var(--accent2); font-size:9px; font-weight:800; letter-spacing:1.25px; margin-bottom:5px; }
+  .admin-settings-heading h3 { color:var(--text); font-size:17px; font-weight:700; letter-spacing:-.2px; }
+  .admin-settings-heading p { margin-top:4px; color:var(--dim); font-size:10px; }
+  .admin-role-badge { flex:none; border:1px solid color-mix(in srgb,var(--accent) 35%,transparent); border-radius:4px; background:color-mix(in srgb,var(--accent) 12%,var(--side)); padding:5px 7px; color:var(--accent2); font-size:9px; font-weight:750; text-transform:uppercase; letter-spacing:.35px; }
+  .admin-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:12px 0; }
+  .admin-summary>div { min-width:0; display:flex; flex-direction:column; gap:5px; padding:10px; border:1px solid color-mix(in srgb,var(--text) 7%,transparent); border-radius:5px; background:var(--side); }
+  .admin-summary span { color:var(--dim); font-size:9px; }
+  .admin-summary b { color:var(--text); font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; }
+  .admin-root-tools, .admin-section { margin-top:15px; }
+  .admin-root-tools.hidden { display:none!important; }
+  .admin-subhead { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .admin-subhead h4 { color:var(--text); font-size:12px; font-weight:700; }
+  .admin-subhead>span { color:var(--dim); font-size:9px; text-align:right; }
+  .admin-help { color:var(--dim); font-size:10px; line-height:1.55; margin:0 0 10px; }
+  .admin-grant-row { display:flex; align-items:center; gap:7px; }
+  #settings #admin-grant-username { flex:1; min-width:0; width:100%; height:34px; margin:0; background:var(--input); color:var(--text); font-size:12px; }
+  #admin-grant-button { min-height:34px; flex:none; border:0; border-radius:5px; padding:0 10px; background:var(--accent); color:#fff; font:inherit; font-size:10px; font-weight:700; cursor:pointer; }
+  #admin-grant-button:hover { filter:brightness(1.08); }
+  .admin-grant-status { min-height:16px; margin:5px 0; color:var(--dim); font-size:10px; line-height:1.4; }
+  .admin-list { display:flex; flex-direction:column; gap:3px; }
+  .admin-list-row, .admin-data-row { display:flex; align-items:center; gap:8px; justify-content:space-between; min-width:0; padding:8px; border-radius:5px; background:var(--side); border:1px solid color-mix(in srgb,var(--text) 6%,transparent); }
+  .admin-data-copy { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .admin-data-copy b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:11px; font-weight:650; }
+  .admin-data-copy span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--dim); font-size:9px; }
+  .admin-protected-tag { border-radius:3px; padding:4px 6px; background:color-mix(in srgb,#3aa879 13%,var(--side)); color:#3aa879; font-size:9px; font-weight:800; }
+  .admin-danger-button { flex:none; border:1px solid color-mix(in srgb,#d54a54 26%,transparent); border-radius:4px; padding:5px 8px; background:color-mix(in srgb,#d54a54 9%,var(--side)); color:#d54a54; font:inherit; font-size:9px; font-weight:700; cursor:pointer; }
+  .admin-danger-button:disabled { opacity:.45; cursor:default; color:var(--dim); border-color:color-mix(in srgb,var(--text) 8%,transparent); background:transparent; }
+  .admin-search { width:100%; height:32px; margin-bottom:7px; padding:0 9px; background:var(--input); border:1px solid color-mix(in srgb,var(--text) 8%,transparent); color:var(--text); border-radius:5px; font:inherit; font-size:11px; outline:0; }
+  .admin-search:focus { border-color:var(--accent); }
+  .admin-data-list { display:flex; flex-direction:column; gap:4px; max-height:230px; overflow-y:auto; }
+  .admin-loading { padding:10px 8px; color:var(--dim); font-size:10px; line-height:1.5; }
+  .admin-security-note { margin-top:13px; padding-top:10px; border-top:1px solid color-mix(in srgb,var(--text) 7%,transparent); color:var(--dim); font-size:9px; line-height:1.5; }
+  [data-theme="light"] #admin-settings-section { background:#f8f8fd; }
+  @media(max-width:460px) {
+    #admin-settings-section { padding:12px; margin-inline:-3px; }
+    .admin-summary b { font-size:17px; }
+    .admin-grant-row { align-items:stretch; flex-direction:column; }
+    #admin-grant-button { min-height:34px; }
+  }
+
 </style>
 </head>
 <body>
@@ -1364,6 +1409,45 @@
     </label>
     <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
     <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
+    <section id="admin-settings-section" class="hidden" aria-label="Admin panel">
+      <div class="admin-settings-heading">
+        <div>
+          <div class="admin-settings-eyebrow">PRISM STAFF</div>
+          <h3>Admin panel</h3>
+          <p>Moderation and account administration.</p>
+        </div>
+        <span id="admin-role-badge" class="admin-role-badge">Admin</span>
+      </div>
+      <div id="admin-summary" class="admin-summary">
+        <div><span>Accounts</span><b id="admin-count-users">—</b></div>
+        <div><span>Online</span><b id="admin-count-online">—</b></div>
+        <div><span>Servers</span><b id="admin-count-servers">—</b></div>
+      </div>
+      <div id="admin-root-tools" class="admin-root-tools hidden">
+        <div class="admin-subhead">
+          <h4>Administrator access</h4>
+          <span>Root admins only</span>
+        </div>
+        <p class="admin-help">Ajgplayz and Maplz_ are protected root admins. You can grant or revoke delegated admin access below.</p>
+        <div class="admin-grant-row">
+          <input id="admin-grant-username" type="text" maxlength="20" autocomplete="off" placeholder="Prism username">
+          <button id="admin-grant-button" type="button">Make admin</button>
+        </div>
+        <div id="admin-grant-status" class="admin-grant-status" aria-live="polite"></div>
+        <div id="admin-list" class="admin-list"></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subhead"><h4>Users</h4><span id="admin-users-label">Account moderation</span></div>
+        <input id="admin-users-search" class="admin-search" type="search" placeholder="Search usernames" autocomplete="off" aria-label="Search users">
+        <div id="admin-users-list" class="admin-data-list"><div class="admin-loading">Open the panel to load accounts.</div></div>
+      </div>
+      <div class="admin-section">
+        <div class="admin-subhead"><h4>Servers</h4><span id="admin-servers-label">Server moderation</span></div>
+        <input id="admin-servers-search" class="admin-search" type="search" placeholder="Search servers" autocomplete="off" aria-label="Search servers">
+        <div id="admin-servers-list" class="admin-data-list"><div class="admin-loading">Open the panel to load servers.</div></div>
+      </div>
+      <p class="admin-security-note">Admin actions also depend on Firebase Database Rules. This panel does not replace server-side authorization.</p>
+    </section>
     <div class="row">
       <button id="set-save">Save</button>
       <button id="set-cancel">Cancel</button>
@@ -1449,7 +1533,12 @@ const $ = id => document.getElementById(id);
 const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
+const ROOT_ADMIN_NAMES = new Set(["ajgplayz", "maplz", "maplz_"]);
+let delegatedAdminGrant = null;
+let adminPanelData = {users:{}, presence:{}, admins:{}};
+let adminPanelLoaded = false;
+const isRootAdmin = () => !!(me && ROOT_ADMIN_NAMES.has(String(me.name || "").trim().toLowerCase()));
+const isAdmin = () => isRootAdmin() || !!delegatedAdminGrant;
 const linkify = s => {
   const codeBlocks = [];
   const tick = String.fromCharCode(96);
@@ -1642,6 +1731,14 @@ auth.onAuthStateChanged(async user => {
 async function boot(){
   bootRefs.forEach(r => r.off()); bootRefs = [];
   stopAllDMWatchers();
+  delegatedAdminGrant=null;
+  syncAdminSectionAccess();
+  const ownAdminRef=db.ref("prism/admins/"+me.uid);
+  ownAdminRef.on("value",snap=>{
+    delegatedAdminGrant=snap.val()||null;
+    syncAdminSectionAccess();
+  });
+  bootRefs.push(ownAdminRef);
   $("uname").innerHTML = esc(me.name) + "<small>online</small>";
   renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
   goOnline();
@@ -1661,6 +1758,10 @@ async function boot(){
     servers = snap.val() || {};
     renderRail();
     renderDiscoverServers();
+    if(adminPanelLoaded && isAdmin() && !$("admin-settings-section").classList.contains("hidden")){
+      $("admin-count-servers").textContent=String(safeCount(servers));
+      renderAdminServers();
+    }
     if(view.type === "server" && !view.sid) openServer("official");
   });
   bootRefs.push(sRef);
@@ -3234,6 +3335,185 @@ async function loadSettings(){
 function refreshAvatarPreview(){
   renderProfileAvatar($("set-avatar-preview"), draftAvatar || "", me && me.name || "?");
 }
+function syncAdminSectionAccess(){
+  const section=$("admin-settings-section");
+  if(!section)return;
+  const allowed=isAdmin();
+  section.classList.toggle("hidden",!allowed);
+  $("admin-root-tools").classList.toggle("hidden",!isRootAdmin());
+  $("admin-role-badge").textContent=isRootAdmin()?"Root admin":"Admin";
+  if(allowed&&!section.classList.contains("hidden")) loadAdminPanel();
+}
+function safeCount(obj){return Object.keys(obj||{}).length;}
+function adminIsProtectedName(name){
+  return ROOT_ADMIN_NAMES.has(String(name||"").trim().toLowerCase());
+}
+async function loadAdminPanel(){
+  if(!isAdmin())return;
+  $("admin-users-list").innerHTML='<div class="admin-loading">Loading accounts…</div>';
+  $("admin-servers-list").innerHTML='<div class="admin-loading">Loading servers…</div>';
+  try{
+    const reads=[
+      db.ref("prism/users").once("value"),
+      db.ref("prism/presence").once("value")
+    ];
+    if(isRootAdmin())reads.push(db.ref("prism/admins").once("value"));
+    const snapshots=await Promise.all(reads);
+    adminPanelData.users=snapshots[0].val()||{};
+    adminPanelData.presence=snapshots[1].val()||{};
+    if(isRootAdmin())adminPanelData.admins=snapshots[2].val()||{};
+    adminPanelLoaded=true;
+    const now=Date.now();
+    const online=Object.values(adminPanelData.presence).filter(p=>p&&now-(p.ts||0)<120000).length;
+    $("admin-count-users").textContent=String(safeCount(adminPanelData.users));
+    $("admin-count-online").textContent=String(online);
+    $("admin-count-servers").textContent=String(safeCount(servers));
+    renderAdminUsers();
+    renderAdminServers();
+    if(isRootAdmin())renderAdminList();
+    $("admin-grant-status").textContent="";
+  }catch(error){
+    $("admin-users-list").innerHTML='<div class="admin-loading">Could not load accounts. Check Firebase read rules.</div>';
+    $("admin-servers-list").innerHTML='<div class="admin-loading">Could not load server data. Check Firebase read rules.</div>';
+    $("admin-grant-status").textContent="Admin data couldn't be read. Firebase rules may need to allow authorized admins access.";
+    toast("Admin panel couldn't load data. Check Firebase Database Rules.");
+  }
+}
+function renderAdminUsers(){
+  const box=$("admin-users-list");
+  if(!box)return;
+  box.innerHTML="";
+  const query=($("admin-users-search").value||"").trim().toLowerCase();
+  const records=Object.entries(adminPanelData.users||{}).map(([uid,data])=>({
+    uid,name:(data&&data.name)||((adminPanelData.presence[uid]||{}).u)||"Unknown user",
+    online:!!(adminPanelData.presence[uid]&&Date.now()-(adminPanelData.presence[uid].ts||0)<120000)
+  })).filter(row=>!query||row.name.toLowerCase().includes(query))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  $("admin-users-label").textContent=records.length+" account"+(records.length===1?"":"s");
+  if(!records.length){box.innerHTML='<div class="admin-loading">'+(query?"No matching accounts.":"No accounts found.")+'</div>';return;}
+  records.forEach(row=>{
+    const item=document.createElement("div");item.className="admin-data-row";
+    const copy=document.createElement("div");copy.className="admin-data-copy";
+    const name=document.createElement("b");name.textContent=row.name;
+    const meta=document.createElement("span");meta.textContent=row.uid===me.uid?"You · "+(row.online?"Online":"Offline"):(row.online?"Online":"Offline");
+    copy.append(name,meta);
+    const action=document.createElement("button");action.type="button";
+    const protectedUser=adminIsProtectedName(row.name);
+    action.className="admin-danger-button";
+    action.textContent=protectedUser?"Protected":(row.uid===me.uid?"You":"Delete");
+    action.disabled=protectedUser||row.uid===me.uid;
+    action.title=action.disabled?"Protected account":"Delete user account";
+    if(!action.disabled)action.onclick=()=>confirmDeleteUser(row.uid,row.name);
+    item.append(copy,action);box.appendChild(item);
+  });
+}
+function renderAdminServers(){
+  const box=$("admin-servers-list");
+  if(!box)return;
+  box.innerHTML="";
+  const query=($("admin-servers-search").value||"").trim().toLowerCase();
+  const records=Object.entries(servers||{}).map(([sid,server])=>({sid,server:server||{}}))
+    .filter(row=>!query||String(row.server.name||"").toLowerCase().includes(query))
+    .sort((a,b)=>String(a.server.name||"").localeCompare(String(b.server.name||"")));
+  $("admin-servers-label").textContent=records.length+" server"+(records.length===1?"":"s");
+  if(!records.length){box.innerHTML='<div class="admin-loading">No matching servers.</div>';return;}
+  records.forEach(row=>{
+    const item=document.createElement("div");item.className="admin-data-row";
+    const copy=document.createElement("div");copy.className="admin-data-copy";
+    const name=document.createElement("b");name.textContent=row.server.name||"Untitled server";
+    const meta=document.createElement("span");meta.textContent=row.sid==="official"?"Official server":"Owner: "+(row.server.owner||"Unknown");
+    copy.append(name,meta);
+    const action=document.createElement("button");action.type="button";action.className="admin-danger-button";
+    action.textContent=row.sid==="official"?"Protected":"Delete";
+    action.disabled=row.sid==="official";action.title=action.disabled?"The official server cannot be deleted.":"Delete server";
+    if(!action.disabled)action.onclick=()=>confirmDeleteServer(row.sid);
+    item.append(copy,action);box.appendChild(item);
+  });
+}
+function renderAdminList(){
+  const box=$("admin-list");
+  if(!box||!isRootAdmin())return;
+  box.innerHTML="";
+  const roots=document.createElement("div");roots.className="admin-root-records";
+  ["Ajgplayz","Maplz_"].forEach(name=>{
+    const item=document.createElement("div");item.className="admin-list-row";
+    const label=document.createElement("div");label.className="admin-data-copy";
+    const title=document.createElement("b");title.textContent=name;
+    const meta=document.createElement("span");meta.textContent="Protected root administrator";
+    label.append(title,meta);
+    const tag=document.createElement("span");tag.className="admin-protected-tag";tag.textContent="ROOT";
+    item.append(label,tag);roots.appendChild(item);
+  });
+  box.appendChild(roots);
+  const delegated=Object.entries(adminPanelData.admins||{}).filter(([uid])=>!isCurrentRootUid(uid));
+  if(!delegated.length){
+    const empty=document.createElement("div");empty.className="admin-loading";empty.textContent="No additional admins yet.";
+    box.appendChild(empty);return;
+  }
+  delegated.sort((a,b)=>String((a[1]||{}).name||"").localeCompare(String((b[1]||{}).name||"")));
+  delegated.forEach(([uid,record])=>{
+    const data=record||{};
+    const item=document.createElement("div");item.className="admin-list-row";
+    const label=document.createElement("div");label.className="admin-data-copy";
+    const title=document.createElement("b");title.textContent=data.name||"Prism user";
+    const meta=document.createElement("span");meta.textContent="Added by "+(data.grantedBy||"an admin");
+    label.append(title,meta);
+    const remove=document.createElement("button");remove.type="button";remove.className="admin-danger-button";remove.textContent="Revoke";
+    remove.onclick=()=>revokeAdmin(uid,data.name||"this user");
+    item.append(label,remove);box.appendChild(item);
+  });
+}
+function isCurrentRootUid(uid){
+  const record=(adminPanelData.users||{})[uid]||{};
+  return adminIsProtectedName(record.name);
+}
+async function grantAdminByUsername(){
+  if(!isRootAdmin()){toast("Only Ajgplayz and Maplz_ can grant admin access.");return;}
+  const input=$("admin-grant-username");
+  const username=(input.value||"").trim().toLowerCase();
+  if(!validName(username)){ $("admin-grant-status").textContent="Enter a valid Prism username.";return; }
+  if(adminIsProtectedName(username)){ $("admin-grant-status").textContent="That account is already a protected root admin.";return; }
+  try{
+    const userSnap=await db.ref("prism/usernames/"+username).once("value");
+    if(!userSnap.exists()){ $("admin-grant-status").textContent="No Prism account named "+username+".";return; }
+    const uid=userSnap.val();
+    if(uid===me.uid){ $("admin-grant-status").textContent="You are already an admin.";return; }
+    const exists=await db.ref("prism/admins/"+uid).once("value");
+    if(exists.exists()){ $("admin-grant-status").textContent=username+" is already an admin.";return; }
+    const profile=await db.ref("prism/users/"+uid+"/name").once("value");
+    const record={uid:uid,name:profile.val()||username,grantedBy:me.name,grantedByUid:me.uid,grantedAt:Date.now()};
+    await db.ref("prism/admins/"+uid).set(record);
+    adminPanelData.admins[uid]=record;
+    input.value="";
+    $("admin-grant-status").textContent=username+" is now an admin.";
+    renderAdminList();
+    toast("Admin access granted to "+username+".");
+  }catch(error){
+    $("admin-grant-status").textContent="Grant failed. Firebase rules must allow root admins to write prism/admins.";
+    toast("Couldn't grant admin access. Check Firebase Database Rules.");
+  }
+}
+function revokeAdmin(uid,name){
+  if(!isRootAdmin()){toast("Only Ajgplayz and Maplz_ can revoke admin access.");return;}
+  if(isCurrentRootUid(uid)){toast("Root admins are protected.");return;}
+  openModal("Revoke admin access","Remove administrator permissions from "+name+"?","", "Revoke",async()=>{
+    try{
+      await db.ref("prism/admins/"+uid).remove();
+      delete adminPanelData.admins[uid];
+      renderAdminList();
+      toast("Admin access revoked.");
+    }catch(error){
+      $("admin-grant-status").textContent="Revoke failed. Check Firebase Database Rules for prism/admins.";
+      toast("Couldn't revoke admin access.");
+    }
+  });
+  $("m-input").style.display="none";
+}
+$("admin-grant-button").onclick=grantAdminByUsername;
+$("admin-grant-username").addEventListener("keydown",event=>{if(event.key==="Enter")grantAdminByUsername();});
+$("admin-users-search").addEventListener("input",renderAdminUsers);
+$("admin-servers-search").addEventListener("input",renderAdminServers);
+
 function openSettings(){
   selTheme = settings.theme || "dark";
   draftAvatar = settings.avatar || "";
@@ -3246,6 +3526,7 @@ function openSettings(){
   $("set-status").value = settings.status || "";
   $("set-notifications").checked = settings.notifications === true;
   $("set-css").value = settings.css || "";
+  syncAdminSectionAccess();
   $("settings").classList.remove("hidden");
 }
 $("set-avatar-upload").onclick = () => $("set-avatar-file").click();
