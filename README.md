@@ -19,10 +19,11 @@
 - **Typing indicators** so you know who's writing
 
 ### 🏠 Servers
-- **Create your own servers** with custom emoji icons
-- **Invite-only by default** — every server gets a shareable invite link (`#invite=CODE`); nobody joins without it, not even the creator
-- **Official Prism server** is open to everyone — no invite needed
-- **Copy invite links** anytime from the server menu, and **leave** servers you no longer want
+- **Create your own servers** with emoji or image/GIF icons
+- **Discover is enabled by default** for new servers, so communities appear in the public Discover directory automatically
+- **Per-server Discover switch** — owners can enable or disable a listing from the server menu; the choice is saved for everyone
+- **Shareable invite links** are still available from the server menu (`#invite=CODE`)
+- **Official Prism server** is always listed and open to everyone
 
 ### 📩 Direct messages
 - DM anyone from the member list or the `+` button
@@ -36,6 +37,11 @@
 - **Custom CSS box** (Fluxer-style) — restyle anything
 - **🎨 Get themes button** — one click opens the official community themes server
 - **Custom status** shown in the member list
+
+### 🧭 Discovery
+- **Searchable public directory** with categories and server descriptions
+- **Existing servers** are listed when their owner next opens Prism, unless they have explicitly disabled discovery
+- **Only the owner** can change a server's public listing; turning it off removes it from Discover
 
 ### 👥 Community
 - **Online member list** with presence tracking

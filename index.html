@@ -1164,6 +1164,52 @@
   }
 
 </style>
+<style id="prism-fluxer-refresh">
+  :root {
+    --bg:#232329; --side:#1d1d23; --dark:#19191f; --darker:#15151b;
+    --text:#ededf3; --dim:#a5a5b5; --accent:#7868f7; --accent2:#a397ff;
+    --input:#292931; --hover:#30303a; --err:#ff5d68;
+  }
+  body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .005em; }
+  #rail { background:#16161b; border-right:1px solid #ffffff08; gap:9px; padding-top:14px; }
+  #rail .srv { border-radius:14px; background:#24242b; box-shadow:inset 0 0 0 1px #ffffff08; }
+  #rail .srv:hover, #rail .srv.active { border-radius:14px; background:var(--accent); box-shadow:0 4px 14px #7868f72b; }
+  #rail .srv.add { background:transparent; box-shadow:none; border:1px dashed #595968; }
+  #channels { background:#1d1d23; border-right:1px solid #ffffff08; }
+  #channels .srv-name { min-height:54px; background:#1d1d23; border-bottom:1px solid #ffffff0c; }
+  #channels .srv-name:hover { background:#26262e; }
+  #chan-list { padding:14px 9px; }
+  .chan { min-height:36px; margin:2px 0; border-radius:7px; transition:background .12s,color .12s; }
+  .chan.active { background:#7868f72a; color:#fff; box-shadow:inset 2px 0 var(--accent); }
+  .chan.active .hash { color:var(--accent2); }
+  #userbar { background:#17171c; border-top:1px solid #ffffff0a; min-height:62px; }
+  #main { background:var(--bg); }
+  #chead { min-height:54px; padding:12px 19px; border-bottom-color:#ffffff0b; background:#232329; }
+  #msgs { padding:20px 22px; }
+  #members { background:#1d1d23; border-left:1px solid #ffffff09; }
+  #minput, #inputbar textarea, #inputbar input { border-radius:9px; }
+  #inputbar { padding:0 18px 18px; }
+  button, input, textarea, select { font-family:inherit; }
+  button { transition:background-color .12s ease,border-color .12s ease,filter .12s ease; }
+  .home-primary, #set-save, .discover-join-button { border-radius:8px; }
+  .home-secondary, .typepick, #newpost, #fback { border-radius:8px; }
+  #settings .box, #pins .box, .discover-editor-box, #modal .box { border:1px solid #ffffff12; border-radius:14px; box-shadow:0 20px 70px #0007; }
+  #srvmenu { background:#202027; border-color:#ffffff13; border-radius:10px; box-shadow:0 16px 42px #0008; }
+  #srvmenu button { border-radius:7px; }
+  .fpost, .fdetail, .freply, .pinitem, .home-dm-card { border-color:#ffffff0d; border-radius:10px; }
+  .discover-search, .discover-filter, .discover-join-button { border-radius:8px; }
+  .discover-server-card { border-radius:11px; border-color:#ffffff12; }
+  .discover-server-card:hover { border-color:#7868f75e; box-shadow:0 8px 25px #0002; }
+  .discover-server-banner { background:linear-gradient(135deg,#2d2b3c,#25252d); }
+  .discover-server-card:not(:has(.discover-official-tag)) .discover-join-button { background:var(--accent); }
+  #discover-editor-public { accent-color:var(--accent); }
+  @media (max-width:720px) {
+    #channels { width:205px; }
+    #chead { padding-inline:13px; }
+    #msgs { padding:14px 12px; }
+    #members { display:none; }
+  }
+</style>
 </head>
 <body>
 
@@ -1611,6 +1657,7 @@ let servers = {};             // sid -> {name, owner}
 let myServers = {};           // sid -> true (servers I've joined)
 let discoveryListings = {};   // public catalog, independent from private server access
 let discoveryLoadError = false;
+const discoverySyncBusy = new Set();
 let view = {type:"server", sid:null, cid:null};
 let homeView = false;
 let discoverView = false;
@@ -1800,6 +1847,7 @@ async function boot(){
     servers = snap.val() || {};
     renderRail();
     renderDiscoverServers();
+    syncOwnedServersToDiscovery();
     if(adminPanelLoaded && isAdmin() && !$("admin-settings-section").classList.contains("hidden")){
       $("admin-count-servers").textContent=String(safeCount(servers));
       renderAdminServers();
@@ -1812,6 +1860,7 @@ async function boot(){
     discoveryListings = snap.val() || {};
     discoveryLoadError = false;
     renderDiscoverServers();
+    syncOwnedServersToDiscovery();
   }, error => {
     discoveryLoadError = true;
     console.warn("Prism Discover catalog could not be read:", error);
@@ -2248,16 +2297,98 @@ $("discover-editor-save").onclick = async () => {
     button.textContent = "Save listing";
   }
 };
+async function syncOwnedServersToDiscovery(){
+  if(!me) return;
+  for(const [sid, server] of Object.entries(servers || {})){
+    if(!sid || sid === "official" || !server || server.owner !== me.uid ||
+       server.discoverable === false || discoverySyncBusy.has(sid)) continue;
+    const existing = discoveryListings[sid];
+    if(server.discoverable === true && existing && existing.discoverable !== false) continue;
+    discoverySyncBusy.add(sid);
+    try{
+      const description = String(server.description || "").trim().slice(0,180);
+      const category = server.category || "Community";
+      const now = Date.now();
+      const listing = {
+        sid:sid, name:server.name || "Untitled server", description:description,
+        category:category, icon:server.icon || "", owner:server.owner,
+        discoverable:true, publishedAt:(existing && existing.publishedAt) || now, updatedAt:now
+      };
+      const updates = {};
+      updates["prism/servers/" + sid + "/discoverable"] = true;
+      updates["prism/servers/" + sid + "/description"] = description;
+      updates["prism/servers/" + sid + "/category"] = category;
+      updates["prism/discoverableServers/" + sid] = listing;
+      await db.ref().update(updates);
+      Object.assign(server,{discoverable:true,description:description,category:category});
+      discoveryListings[sid] = listing;
+    }catch(error){
+      console.warn("Couldn't automatically publish owned server in Discover:", sid, error);
+    }finally{
+      discoverySyncBusy.delete(sid);
+    }
+  }
+  renderDiscoverServers();
+}
+async function setServerDiscoverable(sid, enabled){
+  const server = servers[sid];
+  if(!me || !sid || !server || server.owner !== me.uid){
+    toast("Only the server owner can change its Discover setting.");
+    return;
+  }
+  if(sid === "official"){
+    toast("The Official Prism server is always listed in Discover.");
+    return;
+  }
+  const isPublic = !!enabled;
+  const description = String(server.description || "").trim().slice(0,180);
+  const category = server.category || "Community";
+  const updates = {};
+  updates["prism/servers/" + sid + "/discoverable"] = isPublic;
+  if(isPublic){
+    const now = Date.now();
+    const listing = {
+      sid:sid, name:server.name || "Untitled server", description:description,
+      category:category, icon:server.icon || "", owner:server.owner, discoverable:true,
+      publishedAt:(discoveryListings[sid] && discoveryListings[sid].publishedAt) || now,
+      updatedAt:now
+    };
+    updates["prism/servers/" + sid + "/description"] = description;
+    updates["prism/servers/" + sid + "/category"] = category;
+    updates["prism/discoverableServers/" + sid] = listing;
+    try{
+      await db.ref().update(updates);
+      Object.assign(server,{discoverable:true,description:description,category:category});
+      discoveryListings[sid] = listing;
+    }catch(error){
+      toast("Couldn't enable Discover. Check Firebase rules for prism/servers and prism/discoverableServers.");
+      return;
+    }
+  }else{
+    updates["prism/discoverableServers/" + sid] = null;
+    try{
+      await db.ref().update(updates);
+      server.discoverable = false;
+      delete discoveryListings[sid];
+    }catch(error){
+      toast("Couldn't disable Discover. Check Firebase rules for prism/servers and prism/discoverableServers.");
+      return;
+    }
+  }
+  renderDiscoverServers();
+  toast(isPublic ? "Server is now listed in Discover." : "Server removed from Discover.");
+}
 function isListedForDiscovery(sid, server){
+  if(sid === "official") return true;
+  if(server && server.discoverable === false) return false;
   const listing = discoveryListings && discoveryListings[sid];
-  return sid === "official" ||
-    (!!listing && listing.discoverable !== false) ||
+  return (!!listing && listing.discoverable !== false) ||
     !!(server && server.discoverable === true);
 }
 function discoveryRecordMap(){
   const records = Object.create(null);
   Object.entries(discoveryListings || {}).forEach(([sid, listing]) => {
-    if(!listing || listing.discoverable === false) return;
+    if(!listing || listing.discoverable === false || (servers[sid] && servers[sid].discoverable === false)) return;
     records[sid] = Object.assign({}, servers[sid] || {}, listing, {sid:sid});
   });
   Object.entries(servers || {}).forEach(([sid, server]) => {
@@ -2446,10 +2577,21 @@ $("srv-add").onclick = () => {
     const ref = db.ref("prism/servers").push();
     const sid = ref.key, code = makeInviteCode();
     try{
-      await ref.set({name:name.trim().slice(0,32),icon:safeIcon(icon)?icon:"",owner:me.uid,createdAt:TS,invite:code});
-      await db.ref("prism/invites/"+code).set(sid);
-      await db.ref("prism/serverChannels/"+sid+"/general").set({name:"general",topic:"The beginning."});
-      await db.ref("prism/myServers/"+me.uid+"/"+sid).set(true);
+      const serverRecord = {name:name.trim().slice(0,32),icon:safeIcon(icon)?icon:"",owner:me.uid,createdAt:TS,invite:code,discoverable:true,description:"",category:"Community"};
+      const publishedAt = Date.now();
+      const listingRecord = {sid:sid,name:serverRecord.name,description:"",category:"Community",icon:serverRecord.icon,owner:me.uid,discoverable:true,publishedAt:publishedAt,updatedAt:publishedAt};
+      const updates = {};
+      updates["prism/servers/"+sid] = serverRecord;
+      updates["prism/discoverableServers/"+sid] = listingRecord;
+      updates["prism/invites/"+code] = sid;
+      updates["prism/serverChannels/"+sid+"/general"] = {name:"general",topic:"The beginning."};
+      updates["prism/myServers/"+me.uid+"/"+sid] = true;
+      await db.ref().update(updates);
+      servers[sid] = serverRecord;
+      myServers[sid] = true;
+      discoveryListings[sid] = listingRecord;
+      renderRail();
+      renderDiscoverServers();
       const link=inviteLink(code);
       clearIconFields();
       openModal("Server created! 🎉","Here's your invite link. Everyone joins with this link — even you.","","Copy link",()=>copyText(link));
@@ -2949,6 +3091,12 @@ function toggleSrvMenu(e){
       listing.textContent = servers[sid].discoverable === true ? "🔎 Edit Discover listing" : "🌐 Publish in Discover";
       listing.onclick = () => { closeSrvMenu(); openDiscoveryEditor(sid); };
       m.appendChild(listing);
+      const discoveryToggle = document.createElement("button");
+      const currentlyListed = servers[sid].discoverable === true;
+      discoveryToggle.textContent = currentlyListed ? "🌐 Disable server discovery" : "🌐 Enable server discovery";
+      discoveryToggle.title = "Show or hide this server in the Discover directory";
+      discoveryToggle.onclick = () => { closeSrvMenu(); setServerDiscoverable(sid, !currentlyListed); };
+      m.appendChild(discoveryToggle);
       const ic = document.createElement("button");
       ic.textContent = "🖼️ Change server icon";
       ic.onclick = () => { closeSrvMenu(); changeServerIcon(sid); };

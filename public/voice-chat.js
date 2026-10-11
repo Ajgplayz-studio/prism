@@ -8,9 +8,9 @@ style.textContent += "\n#dm-call{display:inline-flex;align-items:center;gap:7px;
 document.head.appendChild(style);
 const callLayoutStyle=document.createElement("style");
 callLayoutStyle.textContent = `
-#voice-overlay.voice-minimized{inset:auto 16px 16px auto;width:min(360px,calc(100vw - 24px));height:auto;padding:0;display:flex;align-items:stretch;justify-content:stretch;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;opacity:1;pointer-events:none;transition:none}
+#voice-overlay.voice-minimized{inset:auto auto 16px 16px;width:min(360px,calc(100vw - 24px));height:auto;padding:0;display:flex;align-items:stretch;justify-content:stretch;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;opacity:1;pointer-events:none;transition:none}
 #voice-overlay.voice-minimized.hidden{display:none!important}
-#voice-overlay.voice-minimized #voice-window{pointer-events:auto;width:100%;height:auto;min-height:0;max-height:none;transform:none;border-radius:11px;box-shadow:0 12px 38px rgba(0,0,0,.42)}
+#voice-overlay.voice-minimized #voice-window{pointer-events:auto;width:360px;height:76px;min-width:280px;min-height:64px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;resize:both;transform:none;border-radius:11px;box-shadow:0 12px 38px rgba(0,0,0,.42);}
 #voice-overlay.voice-minimized #voice-stage,#voice-overlay.voice-minimized #voice-note{display:none}
 #voice-overlay.voice-minimized #voice-controls{min-height:56px;padding:8px;gap:7px}
 #voice-overlay.voice-minimized .voice-control{width:42px;height:42px}
@@ -106,8 +106,8 @@ function setMinimized(minimized){
  s.minimized=!!minimized;
  overlay.classList.toggle("voice-minimized",s.minimized);
  minimizeBtn.textContent=s.minimized?"□":"—";
- minimizeBtn.title=s.minimized?"Restore call window":"Minimize call window";
- minimizeBtn.setAttribute("aria-label",s.minimized?"Restore call window":"Minimize call window");
+ minimizeBtn.title=s.minimized?"Maximize call window":"Minimize call window";
+ minimizeBtn.setAttribute("aria-label",s.minimized?"Maximize call window":"Minimize call window");
  if(s.minimized){
    shareWindow.classList.add("voice-share-visible");
    sideShareBody.appendChild($("voice-local-share-wrap"));
@@ -116,7 +116,7 @@ function setMinimized(minimized){
    shareWindow.classList.remove("voice-share-visible");
    voiceStage.insertBefore(remoteShares,$("voice-participants"));
    voiceStage.insertBefore($("voice-local-share-wrap"),remoteShares);
-   callWindow.style.position="";callWindow.style.left="";callWindow.style.top="";callWindow.style.right="";callWindow.style.bottom="";callWindow.style.transform="";callWindow.style.margin="";callWindow.style.zIndex="";
+   callWindow.style.position="";callWindow.style.left="";callWindow.style.top="";callWindow.style.right="";callWindow.style.bottom="";callWindow.style.transform="";callWindow.style.margin="";callWindow.style.zIndex="";callWindow.style.width="";callWindow.style.height="";callWindow.style.maxWidth="";callWindow.style.maxHeight="";
  }
  refreshSideShareEmpty();
 }
