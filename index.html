@@ -228,6 +228,32 @@
   #srvmenu button.info{opacity:.55;cursor:default}
   #srvmenu button.info:hover{background:none}
 
+  /* ---------- forum channels ---------- */
+  #newpost{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;
+    font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;align-self:flex-start}
+  #newpost:hover{filter:brightness(1.15)}
+  .fpost{background:var(--side);border:1px solid var(--darker);border-radius:10px;padding:14px;
+    margin-bottom:10px;cursor:pointer}
+  .fpost:hover{border-color:var(--accent)}
+  .ftitle{font-weight:700;font-size:16px;margin-bottom:4px}
+  .ftitle.big{font-size:20px;margin-bottom:6px}
+  .fmeta{color:var(--dim);font-size:12px;margin-bottom:8px}
+  .fbody{color:var(--text);font-size:14px;white-space:pre-wrap;word-break:break-word}
+  .fempty{color:var(--dim);text-align:center;padding:40px 0;font-size:14px}
+  #fback{background:var(--input);border:none;color:var(--text);border-radius:8px;padding:8px 14px;
+    cursor:pointer;margin-bottom:12px;align-self:flex-start;font-size:14px}
+  #fback:hover{background:var(--hover)}
+  .fdetail{background:var(--side);border:1px solid var(--darker);border-radius:10px;padding:16px;margin-bottom:12px}
+  .freply{background:var(--side);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .freplies-h{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:1px;margin:4px 0 8px}
+
+  /* ---------- channel type picker ---------- */
+  .typepick{flex:1;background:var(--input);border:1px solid var(--darker);color:var(--text);
+    border-radius:10px;padding:14px 8px;cursor:pointer;display:flex;flex-direction:column;
+    gap:6px;align-items:center;font-size:14px;justify-content:center}
+  .typepick:hover{border-color:var(--accent)}
+  .typepick small{opacity:.6;font-size:12px}
+
   /* modal + toast */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
   #modal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
@@ -286,7 +312,7 @@
   <div id="channels">
     <div class="srv-name"><span id="srv-title">◈ Prism</span><span class="free">FREE · no nitro</span></div>
     <div id="chan-list">
-      <div class="cat">TEXT CHANNELS</div>
+      <div class="cat">TEXT CHANNELS <button id="ch-add" title="Create a channel">+</button></div>
       <div id="srv-channels"></div>
       <div class="cat" style="margin-top:12px">DIRECT MESSAGES <button id="dm-add" title="Start a DM">+</button></div>
       <div id="dm-list"></div>
@@ -546,7 +572,7 @@ function renderRail(){
     const d = document.createElement("div");
     d.className = "srv" + (view.type === "server" && view.sid === sid ? " active" : "");
     d.title = s.name;
-    d.innerHTML = "<span class='pill'></span>" + esc((s.name[0] || "?").toUpperCase());
+    d.innerHTML = "<span class='pill'></span>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase()));
     d.onclick = () => openServer(sid);
     rail.appendChild(d);
   });
@@ -607,28 +633,181 @@ function openServer(sid){
     const box = $("srv-channels"); box.innerHTML = "";
     Object.keys(chs).forEach(cid => {
       const c = chs[cid];
+      const ctype = c.type || "chat";
       const d = document.createElement("div");
       d.className = "chan" + (view.cid === cid ? " active" : "");
-      d.innerHTML = '<span class="hash">#</span>' + esc(c.name);
-      d.onclick = () => openChannel(sid, cid, c.name, c.topic || "");
+      d.innerHTML = '<span class="hash">' + (ctype === "forum" ? "📝" : "#") + "</span>" + esc(c.name);
+      d.onclick = () => openChannel(sid, cid, c.name, c.topic || "", ctype);
       box.appendChild(d);
     });
     if(view.type === "server" && view.sid === sid && (!view.cid || !chs[view.cid])){
       const first = chs.general ? "general" : Object.keys(chs)[0];
-      if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "");
+      if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "", chs[first].type || "chat");
     }
   });
 }
-function openChannel(sid, cid, cname, topic){
+function openChannel(sid, cid, cname, topic, ctype){
   unlisten();
-  view = {type: "server", sid: sid, cid: cid, cname: cname, topic: topic};
+  view = {type: "server", sid: sid, cid: cid, cname: cname, topic: topic, ctype: ctype || "chat", post: null};
   renderRail();
   document.querySelectorAll("#srv-channels .chan").forEach(el => el.classList.remove("active"));
-  $("ch-hash").textContent = "#";
+  $("ch-hash").textContent = (ctype === "forum") ? "📝" : "#";
   $("chname").textContent = cname;
   $("chtopic").textContent = topic;
-  $("minput").placeholder = "Message #" + cname;
-  renderMessages("prism/messages/" + sid + "/" + cid, "s_" + sid + "_" + cid);
+  if((ctype || "chat") === "forum"){
+    renderForum();
+  }else{
+    $("inputbar").style.display = "";
+    $("minput").placeholder = "Message #" + cname;
+    renderMessages("prism/messages/" + sid + "/" + cid, "s_" + sid + "_" + cid);
+  }
+}
+
+/* ---------------- channel creation ---------------- */
+$("ch-add").onclick = () => {
+  const sid = view.type === "server" ? view.sid : $("srv-title").dataset.sid;
+  if(!sid || !servers[sid]) return;
+  if(servers[sid].owner !== me.uid){ toast("Only the server owner can create channels."); return; }
+  openModal("Create channel", "What should the channel be called?", "announcements", "Next", name => {
+    if(!name.trim()) return;
+    pickChannelType(sid, name.trim().slice(0, 24).toLowerCase().replace(/\s+/g, "-"));
+  });
+};
+function pickChannelType(sid, cname){
+  modalCb = null;
+  $("m-title").textContent = "Channel type";
+  $("m-sub").textContent = "What kind of channel should #" + cname + " be?";
+  $("m-input").style.display = "none";
+  $("m-ok").style.display = "none";
+  $("m-cancel").style.display = "none";
+  const row = document.querySelector("#modal .row");
+  const mk = (emoji, label, desc, type) => {
+    const b = document.createElement("button");
+    b.className = "typepick";
+    b.innerHTML = "<span style='font-size:24px'>" + emoji + "</span><b>" + label + "</b><small>" + desc + "</small>";
+    b.onclick = () => { restoreModalButtons(); createChannel(sid, cname, type); };
+    row.appendChild(b);
+  };
+  mk("💬", "Chat", "A channel where you can chat", "chat");
+  mk("📝", "Forum", "Add posts and discuss them", "forum");
+  const c = document.createElement("button");
+  c.className = "typepick";
+  c.innerHTML = "<b>Cancel</b>";
+  c.onclick = restoreModalButtons;
+  row.appendChild(c);
+  $("modal").classList.remove("hidden");
+}
+function restoreModalButtons(){
+  document.querySelectorAll("#modal .row .typepick").forEach(b => b.remove());
+  $("m-ok").style.display = "";
+  $("m-cancel").style.display = "";
+  closeModal();
+}
+async function createChannel(sid, cname, type){
+  try{
+    const ref = db.ref("prism/serverChannels/" + sid).push();
+    await ref.set({name: cname, type: type, createdAt: TS});
+    openChannel(sid, ref.key, cname, "", type);
+    toast("Channel created!");
+  }catch(e){ toast("Couldn't create the channel."); }
+}
+
+/* ---------------- forum channels ---------------- */
+const ftime = ts => new Date(ts || Date.now())
+  .toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
+function renderForum(){
+  const box = $("msgs"); box.innerHTML = "";
+  $("typing").textContent = "";
+  $("pinbtn").classList.add("hidden");
+  $("inputbar").style.display = "none";
+  $("minput").value = "";
+  clearReply();
+  const np = document.createElement("button");
+  np.id = "newpost"; np.textContent = "＋ New post";
+  np.onclick = newForumPost;
+  box.appendChild(np);
+  const list = document.createElement("div");
+  box.appendChild(list);
+  listen(db.ref("prism/forum/" + view.sid + "/" + view.cid), "value", snap => {
+    if(view.type !== "server" || view.ctype !== "forum" || view.post) return;
+    const posts = snap.val() || {};
+    list.innerHTML = "";
+    const ids = Object.keys(posts).sort((a, b) => (posts[b].ts || 0) - (posts[a].ts || 0));
+    if(!ids.length){
+      list.innerHTML = "<div class='fempty'>No posts yet. Be the first! 📝</div>";
+      return;
+    }
+    ids.forEach(pid => {
+      const p = posts[pid]; if(!p) return;
+      const d = document.createElement("div");
+      d.className = "fpost";
+      const rc = p.replyCount ? " · 💬 " + p.replyCount + (p.replyCount === 1 ? " reply" : " replies") : "";
+      d.innerHTML = "<div class='ftitle'>" + esc(p.title || "(no title)") + "</div>" +
+        "<div class='fmeta'>posted by " + esc(p.u || "?") + " · " + ftime(p.ts) + rc + "</div>" +
+        "<div class='fbody'>" + esc((p.body || "").slice(0, 160)) + "</div>";
+      d.onclick = () => openForumPost(pid);
+      list.appendChild(d);
+    });
+  });
+}
+function newForumPost(){
+  const sid = view.sid, cid = view.cid;
+  openModal("New post", "Give your post a title.", "My awesome post", "Next", title => {
+    if(!title.trim()) return;
+    openModal("New post", "What's it about?", "Write something...", "Post", body => {
+      db.ref("prism/forum/" + sid + "/" + cid).push({
+        title: title.trim().slice(0, 80),
+        body: (body || "").trim().slice(0, 2000),
+        uid: me.uid, u: me.name, ts: TS, replyCount: 0
+      }).then(() => toast("Posted!")).catch(() => toast("Couldn't post."));
+    });
+  });
+}
+function openForumPost(pid){
+  view.post = pid;
+  const sid = view.sid, cid = view.cid;
+  const box = $("msgs"); box.innerHTML = "";
+  $("typing").textContent = "";
+  $("pinbtn").classList.add("hidden");
+  $("inputbar").style.display = "";
+  $("minput").placeholder = "Reply to this post...";
+  $("minput").value = "";
+  clearReply();
+  const back = document.createElement("button");
+  back.id = "fback"; back.textContent = "← All posts";
+  back.onclick = () => { view.post = null; openChannel(sid, cid, view.cname, view.topic, "forum"); };
+  box.appendChild(back);
+  db.ref("prism/forum/" + sid + "/" + cid + "/" + pid).once("value").then(snap => {
+    if(view.post !== pid) return;
+    const p = snap.val();
+    if(!p){ view.post = null; openChannel(sid, cid, view.cname, view.topic, "forum"); return; }
+    const head = document.createElement("div");
+    head.className = "fdetail";
+    head.innerHTML = "<div class='ftitle big'>" + esc(p.title || "(no title)") + "</div>" +
+      "<div class='fmeta'>posted by " + esc(p.u || "?") + " · " + ftime(p.ts) + "</div>" +
+      "<div class='fbody'>" + esc(p.body || "") + "</div>";
+    box.appendChild(head);
+    const h = document.createElement("div");
+    h.className = "freplies-h"; h.textContent = "REPLIES";
+    box.appendChild(h);
+    const rl = document.createElement("div");
+    box.appendChild(rl);
+    listen(db.ref("prism/forumReplies/" + sid + "/" + cid + "/" + pid), "value", rsnap => {
+      if(view.post !== pid) return;
+      const rs = rsnap.val() || {};
+      rl.innerHTML = "";
+      const ids = Object.keys(rs).sort((a, b) => (rs[a].ts || 0) - (rs[b].ts || 0));
+      if(!ids.length) rl.innerHTML = "<div class='fempty' style='padding:16px'>No replies yet.</div>";
+      ids.forEach(rid => {
+        const r = rs[rid]; if(!r || !r.u) return;
+        const d = document.createElement("div");
+        d.className = "freply";
+        d.innerHTML = "<div class='fmeta'>" + esc(r.u) + " · " + ftime(r.ts) + "</div>" +
+          "<div class='fbody'>" + esc(r.t || "") + "</div>";
+        rl.appendChild(d);
+      });
+    });
+  }).catch(() => { view.post = null; openChannel(sid, cid, view.cname, view.topic, "forum"); });
 }
 
 /* ---------------- invites ---------------- */
@@ -681,6 +860,12 @@ function toggleSrvMenu(e){
     inv.textContent = "📋 Copy invite link";
     inv.onclick = () => { closeSrvMenu(); copyText(inviteLink(servers[sid].invite)); };
     m.appendChild(inv);
+    if(servers[sid].owner === me.uid){
+      const ic = document.createElement("button");
+      ic.textContent = "🖼️ Change server icon";
+      ic.onclick = () => { closeSrvMenu(); changeServerIcon(sid); };
+      m.appendChild(ic);
+    }
     const lv = document.createElement("button");
     lv.textContent = "🚪 Leave server";
     lv.className = "danger";
@@ -709,6 +894,15 @@ function leaveServer(sid){
   renderRail();
   if(view.sid === sid) openServer("official");
   toast("You left the server.");
+}
+function changeServerIcon(sid){
+  openModal("Server icon", "Pick an emoji for your server. Leave it empty to remove the icon.",
+    "🎮", "Save", v => {
+      const emo = Array.from(v.trim()).slice(0, 4).join("");
+      db.ref("prism/servers/" + sid + "/icon").set(emo || null)
+        .then(() => toast(emo ? "Server icon updated!" : "Server icon removed."))
+        .catch(() => toast("Couldn't save the icon."));
+    });
 }
 
 /* ---------------- DMs ---------------- */
@@ -984,10 +1178,19 @@ function send(){
   const msg = {uid: me.uid, u: me.name, t: t.slice(0, 2000), ts: TS};
   if(replyTo) msg.reply = replyTo;
   if(view.type === "server" && view.cid){
-    const scope = "s_" + view.sid + "_" + view.cid;
-    db.ref("prism/messages/" + view.sid + "/" + view.cid).push(msg)
-      .catch(() => toast("Couldn't send — check your connection."));
-    db.ref("prism/typing/" + scope + "/" + me.uid).remove().catch(() => {});
+    if(view.ctype === "forum"){
+      if(!view.post) return;
+      const pid = view.post;
+      db.ref("prism/forumReplies/" + view.sid + "/" + view.cid + "/" + pid).push(msg)
+        .catch(() => toast("Couldn't send — check your connection."));
+      db.ref("prism/forum/" + view.sid + "/" + view.cid + "/" + pid + "/replyCount")
+        .transaction(c => (c || 0) + 1).catch(() => {});
+    }else{
+      const scope = "s_" + view.sid + "_" + view.cid;
+      db.ref("prism/messages/" + view.sid + "/" + view.cid).push(msg)
+        .catch(() => toast("Couldn't send — check your connection."));
+      db.ref("prism/typing/" + scope + "/" + me.uid).remove().catch(() => {});
+    }
   }else if(view.type === "dm"){
     db.ref("prism/dmMessages/" + view.dmId).push(msg)
       .catch(() => toast("Couldn't send — check your connection."));
