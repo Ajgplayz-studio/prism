@@ -1687,6 +1687,18 @@
         <div><span>Online</span><b id="admin-count-online">—</b></div>
         <div><span>Servers</span><b id="admin-count-servers">—</b></div>
       </div>
+      <div class="admin-section">
+        <div class="admin-subhead"><h4>Announcements</h4><span>Seen by everyone</span></div>
+        <p class="admin-help">Broadcast a message as a banner across the top of Prism for every user.</p>
+        <div class="admin-grant-row">
+          <input id="admin-announce-input" type="text" maxlength="200" autocomplete="off" placeholder="Announcement message">
+          <button id="admin-announce-send" type="button">Send</button>
+        </div>
+        <div class="admin-grant-row">
+          <button id="admin-announce-clear" type="button" class="admin-danger-button">Clear announcement</button>
+        </div>
+        <div id="admin-announce-status" class="admin-grant-status"></div>
+      </div>
       <div id="admin-root-tools" class="admin-root-tools hidden">
         <div class="admin-subhead">
           <h4>Administrator access</h4>
@@ -2064,6 +2076,7 @@ async function boot(){
   updateAccountPresenceLabel();
   renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
   goOnline();
+  initAnnounceBar();
   loadSettings();
   const banRef = db.ref("prism/banned/" + me.uid);
   banRef.on("value", snap => {
@@ -4483,6 +4496,9 @@ function revokeAdmin(uid,name){
   $("m-input").style.display="none";
 }
 $("admin-grant-button").onclick=grantAdminByUsername;
+$("admin-announce-send").onclick=sendAnnouncement;
+$("admin-announce-clear").onclick=clearAnnouncement;
+$("admin-announce-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendAnnouncement();});
 $("admin-grant-username").addEventListener("keydown",event=>{if(event.key==="Enter")grantAdminByUsername();});
 $("admin-users-search").addEventListener("input",renderAdminUsers);
 $("admin-servers-search").addEventListener("input",renderAdminServers);
@@ -5194,6 +5210,67 @@ $("m-input").addEventListener("keydown", e => {
   }
   check(); setInterval(check, POLL_MS);
 })();
+</script>
+
+<!-- Global announcements: admin broadcasts shown to every user -->
+<style>
+#announce-bar{position:fixed;top:0;left:0;right:0;z-index:45;display:flex;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(90deg,#5865F2,#7b5cf0);color:#fff;font-size:14px;box-shadow:0 2px 12px rgba(0,0,0,.35)}
+#announce-bar.hidden{display:none}
+#announce-bar .announce-icon{font-size:18px;flex:none}
+#announce-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#announce-dismiss{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;width:26px;height:26px;font-size:16px;cursor:pointer;line-height:1;flex:none}
+#announce-dismiss:hover{background:rgba(255,255,255,.35)}
+#settings #admin-announce-input{flex:1;min-width:0;width:100%;height:34px;margin:0;background:var(--input);color:var(--text);font-size:12px}
+#admin-announce-send{min-height:34px;flex:none;border:0;border-radius:5px;padding:0 12px;background:var(--accent);color:#fff;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
+#admin-announce-send:hover{filter:brightness(1.08)}
+</style>
+<div id="announce-bar" class="hidden"><span class="announce-icon">\U0001f4e2</span><span id="announce-text"></span><button id="announce-dismiss" type="button" aria-label="Dismiss announcement">\u00d7</button></div>
+<script>
+async function sendAnnouncement(){
+  if(!isAdmin())return;
+  const inp=$("admin-announce-input");
+  const text=(inp.value||"").trim();
+  if(!text){$("admin-announce-status").textContent="Type a message first.";return;}
+  try{
+    await db.ref("prism/announcement").set({text:text.slice(0,200),by:me.name,at:Date.now()});
+    inp.value="";
+    $("admin-announce-status").textContent="Announcement sent to everyone.";
+    toast("Announcement sent.");
+  }catch(e){
+    $("admin-announce-status").textContent="Couldn't send. Check Firebase Database Rules.";
+    toast("Couldn't send the announcement.");
+  }
+}
+async function clearAnnouncement(){
+  if(!isAdmin())return;
+  try{
+    await db.ref("prism/announcement").remove();
+    $("admin-announce-status").textContent="Announcement cleared.";
+  }catch(e){
+    $("admin-announce-status").textContent="Couldn't clear. Check Firebase Database Rules.";
+  }
+}
+function initAnnounceBar(){
+  const bar=$("announce-bar");
+  const ref=db.ref("prism/announcement");
+  ref.on("value",snap=>{
+    const a=snap.val();
+    if(a&&a.text&&localStorage.getItem("prism-announce-dismissed")!==String(a.at)){
+      $("announce-text").textContent=a.text;
+      bar.classList.remove("hidden");
+      return;
+    }
+    bar.classList.add("hidden");
+  });
+  bootRefs.push(ref);
+  $("announce-dismiss").onclick=()=>{
+    ref.once("value").then(s=>{
+      const a=s.val();
+      if(a&&a.at)localStorage.setItem("prism-announce-dismissed",String(a.at));
+    });
+    bar.classList.add("hidden");
+  };
+}
 </script>
 
 </body>
