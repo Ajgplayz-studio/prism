@@ -263,6 +263,10 @@
   .drow .dban{background:var(--err);color:#fff;border:none;border-radius:8px;padding:7px 14px;
     cursor:pointer;font-size:12px;font-weight:700;flex:none}
   .drow .dban:hover{filter:brightness(1.15)}
+  .dtag.vtag{background:var(--accent2);color:#fff}
+  .drow .dbtn{background:var(--hover);color:var(--text);border:none;border-radius:8px;padding:7px 14px;
+    cursor:pointer;font-size:12px;font-weight:700;flex:none}
+  .drow .dbtn:hover{background:var(--accent);color:#fff}
 
   /* ---------- discover ---------- */
   #srv-discover{font-size:22px;cursor:pointer}
@@ -510,7 +514,9 @@ const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f4
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const ADMINS = ["ajgplayz", "maplz_"];
+const OWNER = "ajgplayz";
 const isAdmin = () => me && me.name && ADMINS.includes(me.name.toLowerCase());
+const isOwner = () => me && me.name && me.name.toLowerCase() === OWNER;
 const isOfficialServer = sid => sid === "official" || !!(servers[sid] && servers[sid].official);
 const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 const emailOf = name => name.toLowerCase() + "@prism.chat";
@@ -692,6 +698,8 @@ async function boot(){
   sRef.on("value", snap => {
     servers = snap.val() || {};
     renderRail();
+    if(view.type === "server" && view.sid && servers[view.sid])
+      $("srv-title").textContent = "◈ " + servers[view.sid].name + (servers[view.sid].verified ? " ✓" : "");
     if(!$("admin").classList.contains("hidden")) renderAdminList();
     if(view.type === "server" && !view.sid) openServer("official");
   });
@@ -809,7 +817,7 @@ function openServer(sid){
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "server", sid: sid, cid: null};
-  $("srv-title").textContent = "◈ " + servers[sid].name;
+  $("srv-title").textContent = "◈ " + servers[sid].name + (servers[sid].verified ? " ✓" : "");
   $("srv-title").dataset.sid = sid;
   renderRail();
   chanListRef = db.ref("prism/serverChannels/" + sid);
@@ -1174,16 +1182,44 @@ function renderAdminList(){
     ids.forEach(sid => {
       const s = servers[sid]; if(!s) return;
       const official = isOfficialServer(sid);
+      const verified = !!s.verified;
+      const lockedOfficial = sid === "official";
       const d = document.createElement("div");
       d.className = "drow"; d.style.cursor = "default";
-      d.innerHTML = "<div class='dic'>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase())) + "</div>" +
+      let html = "<div class='dic'>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase())) + "</div>" +
         "<div class='dname'>" + esc(s.name) + "</div>" +
-        (official ? "<span class='dtag'>OFFICIAL</span>" : "<button class='dban'>Delete</button>");
-      const btn = d.querySelector(".dban");
-      if(btn) btn.onclick = () => confirmDeleteServer(sid);
+        (official ? "<span class='dtag'>OFFICIAL</span>" : "") +
+        (verified ? "<span class='dtag vtag'>✓ VERIFIED</span>" : "");
+      if(isOwner() && !lockedOfficial)
+        html += "<button class='dbtn' data-act='official'>" + (official ? "Unofficial" : "Official") + "</button>";
+      if(isOwner())
+        html += "<button class='dbtn' data-act='verify'>" + (verified ? "Unverify" : "Verify") + "</button>";
+      if(!official)
+        html += "<button class='dban' data-act='delete'>Delete</button>";
+      d.innerHTML = html;
+      d.querySelectorAll("button").forEach(b => {
+        b.onclick = () => {
+          const act = b.dataset.act;
+          if(act === "official") toggleOfficial(sid, official);
+          else if(act === "verify") toggleVerified(sid, verified);
+          else confirmDeleteServer(sid);
+        };
+      });
       list.appendChild(d);
     });
   }
+}
+function toggleOfficial(sid, isOff){
+  if(!isOwner() || sid === "official") return;
+  const ref = db.ref("prism/servers/" + sid + "/official");
+  const done = ok => { if(ok) toast(isOff ? "Server is no longer official." : "Server is now official."); };
+  (isOff ? ref.remove() : ref.set(true)).then(() => done(true)).catch(() => toast("Couldn't update server."));
+}
+function toggleVerified(sid, isVer){
+  if(!isOwner()) return;
+  const ref = db.ref("prism/servers/" + sid + "/verified");
+  const done = ok => { if(ok) toast(isVer ? "Server unverified." : "Server verified ✓"); };
+  (isVer ? ref.remove() : ref.set(true)).then(() => done(true)).catch(() => toast("Couldn't update server."));
 }
 
 /* ---------------- discover ---------------- */
@@ -1205,6 +1241,7 @@ function openDiscover(){
     d.className = "drow";
     d.innerHTML = "<div class='dic'>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase())) + "</div>" +
       "<div class='dname'>" + esc(s.name) + "</div>" +
+      (s.verified ? "<span class='dtag vtag'>✓</span>" : "") +
       (official ? "<span class='dtag'>OFFICIAL</span>" :
         (joined ? "<span class='dtag joined'>JOINED</span>" : ""));
     d.onclick = () => {
