@@ -12,15 +12,16 @@ head.appendChild(join);
 const overlay = document.createElement("div");
 overlay.id = "voice-overlay"; overlay.className = "hidden";
 overlay.setAttribute("role", "dialog"); overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", "Prism voice call");
-overlay.innerHTML = "\n  <section id=\"voice-window\">\n    <header id=\"voice-topbar\">\n      <span id=\"voice-brand-dot\"></span>\n      <div id=\"voice-header-copy\">\n        <div id=\"voice-kicker\">PRISM VOICE</div>\n        <div id=\"voice-title\">Voice call</div>\n        <div id=\"voice-status\">Not connected</div>\n      </div>\n      <button id=\"voice-close\" type=\"button\" aria-label=\"Close call window\" title=\"Close call window\">×</button>\n    </header>\n    <div id=\"voice-stage\">\n      <div id=\"voice-local-share-wrap\" class=\"hidden\">\n        <video id=\"voice-local-share\" autoplay muted playsinline></video>\n        <span id=\"voice-local-share-label\">You're sharing your screen</span>\n      </div>\n      <div id=\"voice-remote-shares\"></div>\n      <div id=\"voice-participants\"></div>\n    </div>\n    <div id=\"voice-note\">Your microphone is only used while connected.</div>\n    <footer id=\"voice-controls\">\n      <button class=\"voice-control\" id=\"voice-mute\" type=\"button\" aria-label=\"Mute microphone\" title=\"Mute microphone\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"/><path d=\"M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8\"/></svg><small>Mic</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-deafen\" type=\"button\" aria-label=\"Mute incoming audio\" title=\"Mute incoming audio\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 10v4a2 2 0 0 0 2 2h2l5 4V4l-5 4H5a2 2 0 0 0-2 2z\"/><path d=\"M16 9a5 5 0 0 1 0 6M18.5 6.5a9 9 0 0 1 0 11\"/></svg><small>Audio</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-share\" type=\"button\" aria-label=\"Share screen\" title=\"Share screen\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 22h8M12 17v5M12 13V8M9 11l3-3 3 3\"/></svg><small id=\"voice-share-label\">Share</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-hangup\" type=\"button\" aria-label=\"Leave voice call\" title=\"Leave voice call\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4.5 14.5a12 12 0 0 1 15 0l1.8 1.5a1.6 1.6 0 0 1 .3 2.1l-1.3 2a1.6 1.6 0 0 1-2 .6l-3.5-1.5a1.6 1.6 0 0 1-.9-1.8l.4-1.8a10 10 0 0 0-4.6 0l.4 1.8a1.6 1.6 0 0 1-.9 1.8L5.2 20.7a1.6 1.6 0 0 1-2-.6l-1.3-2a1.6 1.6 0 0 1 .3-2.1z\"/></svg>\n      </button>\n    </footer>\n  </section>";
+overlay.innerHTML = "\n  <section id=\"voice-window\">\n    <header id=\"voice-topbar\">\n      <span id=\"voice-brand-dot\"></span>\n      <div id=\"voice-header-copy\">\n        <div id=\"voice-kicker\">PRISM VOICE</div>\n        <div id=\"voice-title\">Voice call</div>\n        <div id=\"voice-status\">Not connected</div>\n      </div>\n      <button id=\"voice-close\" type=\"button\" aria-label=\"Close call window\" title=\"Close call window\">×</button>\n    </header>\n    <div id=\"voice-stage\">\n      <div id=\"voice-local-share-wrap\" class=\"hidden\">\n        <video id=\"voice-local-share\" autoplay muted playsinline></video>\n        <span id=\"voice-local-share-label\">You're sharing your screen</span>\n      </div>\n      <div id=\"voice-remote-shares\"></div>\n      <div id=\"voice-participants\"></div>\n    </div>\n    <div id=\"voice-note\">Your microphone is only used while connected.</div>\n    <footer id=\"voice-controls\">\n      <button class=\"voice-control\" id=\"voice-mute\" type=\"button\" aria-label=\"Mute microphone\" title=\"Mute microphone\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"/><path d=\"M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8\"/></svg><small>Mic</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-deafen\" type=\"button\" aria-label=\"Mute incoming audio\" title=\"Mute incoming audio\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 10v4a2 2 0 0 0 2 2h2l5 4V4l-5 4H5a2 2 0 0 0-2 2z\"/><path d=\"M16 9a5 5 0 0 1 0 6M18.5 6.5a9 9 0 0 1 0 11\"/></svg><small>Audio</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-camera\" type=\"button\" aria-label=\"Start camera\" title=\"Start camera\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"m15 10 6-3v10l-6-3\"/></svg><small id=\"voice-camera-label\">Camera</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-share\" type=\"button\" aria-label=\"Share screen\" title=\"Share screen\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 22h8M12 17v5M12 13V8M9 11l3-3 3 3\"/></svg><small id=\"voice-share-label\">Share</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-hangup\" type=\"button\" aria-label=\"Leave voice call\" title=\"Leave voice call\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4.5 14.5a12 12 0 0 1 15 0l1.8 1.5a1.6 1.6 0 0 1 .3 2.1l-1.3 2a1.6 1.6 0 0 1-2 .6l-3.5-1.5a1.6 1.6 0 0 1-.9-1.8l.4-1.8a10 10 0 0 0-4.6 0l.4 1.8a1.6 1.6 0 0 1-.9 1.8L5.2 20.7a1.6 1.6 0 0 1-2-.6l-1.3-2a1.6 1.6 0 0 1 .3-2.1z\"/></svg>\n      </button>\n    </footer>\n  </section>";
 document.body.appendChild(overlay);
 const $ = id => document.getElementById(id);
 const status = $("voice-status"), title = $("voice-title"), list = $("voice-participants");
 const note = $("voice-note"), mute = $("voice-mute"), deafen = $("voice-deafen");
 const shareBtn = $("voice-share"), shareLabel = $("voice-share-label"), hangup = $("voice-hangup");
-const localShareWrap = $("voice-local-share-wrap"), localShareVideo = $("voice-local-share");
+const cameraBtn = $("voice-camera"), cameraLabel = $("voice-camera-label");
+const localShareWrap = $("voice-local-share-wrap"), localShareVideo = $("voice-local-share"), localShareLabel = $("voice-local-share-label");
 const remoteShares = $("voice-remote-shares");
-const s = {room:null,session:null,stream:null,screenStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,ice:[{urls:"stun:stun.l.google.com:19302"}]};
+const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,ice:[{urls:"stun:stun.l.google.com:19302"}]};
 const valid = x => /^[A-Za-z0-9_-]{1,128}$/.test(String(x));
 const base = r => "prism/voiceRooms/" + r.sid + "/" + r.cid;
 function msg(t){if(typeof toast==="function")toast(t);else console.log(t);}
@@ -63,7 +64,11 @@ function render(){
  mute.classList.toggle("voice-muted",s.muted);mute.setAttribute("aria-label",s.muted?"Unmute microphone":"Mute microphone");mute.title=s.muted?"Unmute microphone":"Mute microphone";
  deafen.classList.toggle("voice-muted",s.deafened);deafen.setAttribute("aria-label",s.deafened?"Unmute incoming audio":"Mute incoming audio");deafen.title=s.deafened?"Unmute incoming audio":"Mute incoming audio";
  shareBtn.classList.toggle("voice-active",!!s.screenStream);shareBtn.setAttribute("aria-label",s.screenStream?"Stop sharing screen":"Share screen");shareBtn.title=s.screenStream?"Stop sharing screen":"Share screen";
- shareLabel.textContent=s.screenStream?"Stop":"Share";localShareWrap.classList.toggle("hidden",!s.screenStream);
+ shareLabel.textContent=s.screenStream?"Stop":"Share";
+ cameraBtn.classList.toggle("voice-active",!!s.cameraStream);cameraBtn.setAttribute("aria-label",s.cameraStream?"Stop camera":"Start camera");cameraBtn.title=s.cameraStream?"Stop camera":"Start camera";
+ cameraLabel.textContent=s.cameraStream?"Stop":"Camera";
+ localShareLabel.textContent=s.screenStream?"You're sharing your screen":"Your camera is on";
+ localShareWrap.classList.toggle("hidden",!s.screenStream&&!s.cameraStream);
  renderShares();
 }
 function renderShares(){
@@ -71,7 +76,7 @@ function renderShares(){
  s.peers.forEach(p=>{
   if(!p.video||!p.videoTrack||p.videoTrack.readyState==="ended")return;
   const tile=document.createElement("div");tile.className="voice-remote-tile";
-  const label=document.createElement("span");label.className="voice-remote-label";label.textContent=p.name+" · screen";
+  const label=document.createElement("span");label.className="voice-remote-label";label.textContent=p.name+" · video";
   tile.append(p.video,label);remoteShares.appendChild(tile);
  });
 }
@@ -97,17 +102,18 @@ function peer(uid,v){
  let p=s.peers.get(uid);if(p&&p.session===v.session)return p;if(p)removePeer(uid);
  const pc=new RTCPeerConnection({iceServers:s.ice}),a=document.createElement("audio");
  a.autoplay=true;a.playsInline=true;a.style.display="none";a.muted=s.deafened;document.body.appendChild(a);
- p={uid,session:v.session,name:v.name||"Prism user",pc,audio:a,video:null,videoTrack:null,shareSender:null,pending:[],remote:false,offered:false,needsRenegotiation:false};
+ p={uid,session:v.session,name:v.name||"Prism user",pc,audio:a,video:null,videoTrack:null,shareSender:null,cameraSender:null,pending:[],remote:false,offered:false,needsRenegotiation:false};
  s.peers.set(uid,p);
  if(s.stream)s.stream.getAudioTracks().forEach(t=>pc.addTrack(t,s.stream));
  if(s.screenStream){const track=s.screenStream.getVideoTracks()[0];if(track)p.shareSender=pc.addTrack(track,s.screenStream);}
+ if(s.cameraStream){const track=s.cameraStream.getVideoTracks()[0];if(track)p.cameraSender=pc.addTrack(track,s.cameraStream);}
  pc.onicecandidate=e=>{if(e.candidate)send(uid,p.session,"candidate",e.candidate.toJSON?e.candidate.toJSON():e.candidate);};
  pc.ontrack=e=>{
   const stream=e.streams&&e.streams[0]?e.streams[0]:new MediaStream([e.track]);
   if(e.track.kind==="audio"){a.srcObject=stream;a.play().catch(()=>note.textContent="Click the page once if audio playback is blocked.");}
   else if(e.track.kind==="video"){
    if(p.video)p.video.remove();
-   const el=document.createElement("video");el.autoplay=true;el.playsInline=true;el.controls=false;el.srcObject=stream;el.setAttribute("aria-label",p.name+" screen share");
+   const el=document.createElement("video");el.autoplay=true;el.playsInline=true;el.controls=false;el.srcObject=stream;el.setAttribute("aria-label",p.name+" video");
    p.video=el;p.videoTrack=e.track;
    e.track.onended=()=>{if(p.video){p.video.remove();p.video=null;}p.videoTrack=null;renderShares();};
    e.track.onmute=()=>{if(e.track.readyState==="ended"){if(p.video){p.video.remove();p.video=null;}p.videoTrack=null;renderShares();}};
@@ -154,6 +160,7 @@ function stopShare(renegotiatePeers=true){
  note.textContent="Screen sharing stopped.";render();
 }
 async function toggleShare(){
+ if(s.cameraStream)stopCamera(true);
  if(s.screenStream){stopShare(true);return;}
  if(!s.joined)return msg("Join voice before sharing your screen.");
  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return msg("Screen sharing isn't supported by this browser.");
@@ -166,11 +173,53 @@ async function toggleShare(){
   note.textContent="You're sharing your screen. Stop sharing anytime.";render();
  }catch(e){if(e&&e.name==="NotAllowedError")note.textContent="Screen sharing was cancelled.";else note.textContent="Couldn't start screen sharing: "+(e&&e.message||"browser error");}
 }
+function stopCamera(renegotiatePeers=true){
+ const stream=s.cameraStream;
+ if(!stream)return;
+ s.cameraStream=null;
+ stream.getTracks().forEach(track=>{try{track.onended=null;track.stop();}catch(_){}});
+ s.peers.forEach(p=>{
+  if(p.cameraSender){
+   try{p.pc.removeTrack(p.cameraSender);}catch(_){}
+   p.cameraSender=null;
+   if(renegotiatePeers)renegotiate(p);
+  }
+ });
+ if(s.screenStream){localShareVideo.srcObject=s.screenStream;localShareWrap.classList.remove("hidden");}
+ else {localShareVideo.srcObject=null;localShareWrap.classList.add("hidden");}
+ note.textContent="Camera turned off.";
+ render();
+}
+async function toggleCamera(){
+ if(s.cameraStream){stopCamera(true);return;}
+ if(!s.joined)return msg("Join voice before turning on your camera.");
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return msg("Camera access isn't supported by this browser.");
+ if(s.screenStream)stopShare(true);
+ try{
+  const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:24,max:30}},audio:false});
+  const track=stream.getVideoTracks()[0];
+  if(!track){stream.getTracks().forEach(t=>t.stop());return;}
+  s.cameraStream=stream;
+  localShareVideo.srcObject=stream;
+  localShareWrap.classList.remove("hidden");
+  track.onended=()=>{if(s.cameraStream===stream)stopCamera(true);};
+  s.peers.forEach(p=>{
+   try{p.cameraSender=p.pc.addTrack(track,stream);renegotiate(p);}
+   catch(e){console.warn("Unable to add camera to peer",e);}
+  });
+  note.textContent="Your camera is on. Camera video is peer-to-peer.";
+  render();
+ }catch(e){
+  if(e&&e.name==="NotAllowedError")note.textContent="Camera permission was denied.";
+  else note.textContent="Couldn't start your camera: "+(e&&e.message||"browser error");
+ }
+}
 async function stop(error){
  s.revision++;
  if(s.pr&&s.ph)s.pr.off("value",s.ph);if(s.inbox&&s.ih)s.inbox.off("child_added",s.ih);
  s.joined=false;s.joining=false;s.muted=false;s.deafened=false;
  if(s.screenStream)stopShare(false);
+ if(s.cameraStream)stopCamera(false);
  s.room=null;s.session=null;s.people={};Array.from(s.peers.keys()).forEach(removePeer);
  if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}
  if(s.ownRef){try{await s.ownRef.remove();}catch(_){}}
@@ -201,6 +250,7 @@ join.addEventListener("click",()=>{if(s.joined)showCall();else if(s.joining)stop
 mute.addEventListener("click",()=>{if(!s.stream)return;s.muted=!s.muted;s.stream.getAudioTracks().forEach(t=>t.enabled=!s.muted);render();});
 deafen.addEventListener("click",()=>{s.deafened=!s.deafened;s.peers.forEach(p=>{p.audio.muted=s.deafened;});render();});
 shareBtn.addEventListener("click",toggleShare);
+cameraBtn.addEventListener("click",toggleCamera);
 hangup.addEventListener("click",()=>stop());
 $("voice-close").addEventListener("click",()=>stop());
 overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.classList.remove("voice-visible");});
@@ -218,6 +268,6 @@ if(typeof openDM==="function"){
  openDM=function(){stop();const out=original.apply(this,arguments);refresh();return out;};
 }
 firebase.auth().onAuthStateChanged(user=>{if(!user)stop();});
-window.addEventListener("beforeunload",()=>{if(s.stream)s.stream.getTracks().forEach(t=>t.stop());if(s.screenStream)s.screenStream.getTracks().forEach(t=>t.stop());});
+window.addEventListener("beforeunload",()=>{if(s.stream)s.stream.getTracks().forEach(t=>t.stop());if(s.screenStream)s.screenStream.getTracks().forEach(t=>t.stop());if(s.cameraStream)s.cameraStream.getTracks().forEach(t=>t.stop());});
 refresh();render();
 })();
