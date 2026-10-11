@@ -1331,6 +1331,35 @@
   [data-theme="light"] .mention-token.mention-self { color:#262044; }
   html.mobile-layout #mention-suggestions { width:min(340px,calc(100vw - 28px)); max-height:34dvh; }
 </style>
+<style id="prism-free-themes-css">
+  [data-theme="discord"] {
+    --bg:#313338; --side:#2b2d31; --dark:#1e1f22; --darker:#17181b;
+    --text:#dbdee1; --dim:#949ba4; --accent:#5865f2; --accent2:#8b5cf6;
+    --input:#383a40; --hover:#35373c; --err:#f04747;
+  }
+  [data-theme="amoled"] {
+    --bg:#000000; --side:#08080a; --dark:#030304; --darker:#000000;
+    --text:#f2f3f5; --dim:#949ba4; --accent:#5865f2; --accent2:#9b8cff;
+    --input:#141418; --hover:#202027; --err:#ff5c65;
+  }
+  [data-theme="purple"] {
+    --bg:#211f2c; --side:#191722; --dark:#14121b; --darker:#0f0e14;
+    --text:#f4efff; --dim:#afa6c5; --accent:#a970ff; --accent2:#d4a6ff;
+    --input:#302a3b; --hover:#3a3049; --err:#ff5c84;
+  }
+  #theme-row { display:flex; flex-wrap:wrap; gap:7px; }
+  #theme-row button { flex:1 1 auto; min-width:105px; }
+  #theme-row button.sel { background:color-mix(in srgb,var(--accent) 22%,var(--input)); color:var(--text); border-color:var(--accent); }
+  .theme-setting-help { color:var(--dim); font-size:11px; line-height:1.5; margin:6px 0 10px; }
+  .theme-editor-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; }
+  .theme-editor-heading label { margin-bottom:0!important; }
+  .theme-editor-heading #get-themes { padding:4px 0 4px 6px; white-space:nowrap; }
+  .theme-editor-actions { display:flex; flex-wrap:wrap; gap:7px; margin:7px 0; }
+  .theme-editor-actions button { border:1px solid color-mix(in srgb,var(--text) 12%,transparent); border-radius:6px; background:var(--input); color:var(--text); padding:8px 10px; font-size:11px; cursor:pointer; }
+  .theme-editor-actions button:hover { border-color:var(--accent); background:var(--hover); }
+  #set-css { min-height:180px; font-family:ui-monospace,SFMono-Regular,Consolas,monospace!important; font-size:12px!important; line-height:1.55; tab-size:2; }
+  html.mobile-layout #set-css { min-height:150px; font-size:12px!important; }
+</style>
 </head>
 <body>
 
@@ -1593,11 +1622,15 @@
     <label for="set-bio">Profile description</label>
     <textarea id="set-bio" maxlength="180" rows="3" placeholder="Tell people a little about yourself."></textarea>
     <label>Theme</label>
-    <div class="trow" id="theme-row">
-      <button data-th="dark">🌙 Dark</button>
-      <button data-th="light">☀️ Light</button>
-      <button data-th="midnight">⬛ Midnight</button>
+    <div class="trow" id="theme-row" aria-label="Choose a theme">
+      <button type="button" data-th="dark">🌙 Prism Dark</button>
+      <button type="button" data-th="discord">💬 Discord</button>
+      <button type="button" data-th="light">☀️ Light</button>
+      <button type="button" data-th="midnight">⬛ Midnight</button>
+      <button type="button" data-th="amoled">🌑 AMOLED</button>
+      <button type="button" data-th="purple">💜 Purple</button>
     </div>
+    <p class="theme-setting-help">Pick a preset, then customize every color for free with Custom CSS below.</p>
     <label>Accent color</label>
     <div class="trow"><input type="color" id="set-accent" value="#5865f2"></div>
     <label for="set-presence-mode">Availability</label>
@@ -1622,8 +1655,16 @@
         <output id="call-sound-volume-value" for="call-sound-volume">65%</output>
       </div>
     </section>
-        <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
-    <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
+    <div class="theme-editor-heading">
+      <label for="set-css">Custom CSS</label>
+      <button id="get-themes" type="button">🎨 Get themes</button>
+    </div>
+    <p class="theme-setting-help">Like Discord theme CSS, but free. Paste CSS or change the variables below. The preview updates instantly; click Save to keep it on your account.</p>
+    <div class="theme-editor-actions">
+      <button id="use-theme-template" type="button">Insert theme template</button>
+      <button id="clear-theme-css" type="button">Clear CSS</button>
+    </div>
+    <textarea id="set-css" placeholder="Paste a theme's CSS here, or insert the Prism theme template." spellcheck="false" aria-label="Custom theme CSS"></textarea>
     <section id="admin-settings-section" class="hidden" aria-label="Admin panel">
       <div class="admin-settings-heading">
         <div>
@@ -3966,6 +4007,7 @@ function send(){
 /* ---------------- themes & settings ---------------- */
 let settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false, callSounds: {incoming:"default",waiting:"default",join:"default",leave:"default",volume:65}};
 let selTheme = "dark";
+const PRISM_THEME_TEMPLATE = "/* ================================================================\n   PRISM THEME TEMPLATE — fully free CSS themes\n   Edit any color below. You can also add normal CSS selectors.\n   Changes preview instantly while Settings is open; press Save to keep.\n   ================================================================ */\n\n:root {\n  --bg:     #313338;  /* main chat background */\n  --side:   #2b2d31;  /* sidebar + channel list */\n  --dark:   #1e1f22;  /* headers and user bar */\n  --darker: #17181b;  /* darkest panels and borders */\n  --text:   #dbdee1;  /* main text */\n  --dim:    #949ba4;  /* timestamps and hints */\n  --accent: #5865f2;  /* buttons and selected items */\n  --accent2:#8b5cf6;  /* secondary accent */\n  --input:  #383a40;  /* text inputs */\n  --hover:  #35373c;  /* hovered items */\n  --err:    #f04747;  /* delete/error colors */\n}\n\n/* Font and general page colors */\nbody {\n  background: var(--bg);\n  color: var(--text);\n  font-family: \"gg sans\", \"Segoe UI\", system-ui, sans-serif;\n}\n\n/* Optional example: round message rows/cards.\n   Remove this block or change the radius to customize it. */\n.msg { border-radius: 8px; }\n#inputwrap, .home-dm-card, .discover-server-card { border-radius: 10px; }\n\n/* Add your own CSS below. Example:\n#rail { background: #202127; }\n.msg .mu { font-weight: 700; }\n*/";
 const CALL_SOUND_TYPES = [
   {key:"incoming", title:"Incoming-call ringtone", hint:"Repeats while an incoming call is waiting."},
   {key:"waiting", title:"Waiting / ringback", hint:"Repeats while you wait for someone to answer or join your voice channel."},
@@ -4050,14 +4092,48 @@ function syncCallSoundSettingsUI(){
   $("call-sound-volume-value").textContent=sound.volume+"%";
 }
 buildCallSoundSettingsUI();
-function applySettings(){
+function applyThemeLook(theme, accent, customCSS){
   const root = document.documentElement;
-  if(settings.theme && settings.theme !== "dark") root.setAttribute("data-theme", settings.theme);
-  else root.removeAttribute("data-theme");
-  root.style.setProperty("--accent", settings.accent || "#5865f2");
+  const selected = ["light","midnight","discord","amoled","purple"].includes(theme) ? theme : "dark";
+  if(selected === "dark") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", selected);
+
+  // Add the custom CSS last so regular selectors and layout tweaks can override presets.
   let css = $("user-css");
   if(!css){ css = document.createElement("style"); css.id = "user-css"; document.head.appendChild(css); }
-  css.textContent = settings.css || "";
+  css.textContent = String(customCSS || "");
+
+  // Prism's starter template stores its palette in :root variables. Promote those
+  // declarations to a slightly more specific final rule so they can replace any preset.
+  let varsStyle = $("user-css-vars");
+  if(!varsStyle){ varsStyle = document.createElement("style"); varsStyle.id = "user-css-vars"; document.head.appendChild(varsStyle); }
+  const stripped = String(customCSS || "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const themeRule = /(?:^|})\s*(?::root|html(?:\s*\[[^\]]+\])?|\[data-theme(?:\s*=\s*["'][^"']+["'])?\])\s*\{([^}]*)\}/gi;
+  const customVars = new Map();
+  let rule;
+  while((rule = themeRule.exec(stripped))){
+    const declarations = rule[1];
+    const varPattern = /(--[a-zA-Z0-9_-]+)\s*:\s*([^;{}]+)\s*;?/g;
+    let declaration;
+    while((declaration = varPattern.exec(declarations))){
+      const name = declaration[1];
+      const value = declaration[2].trim();
+      if(value && value.length < 300) customVars.set(name, value);
+    }
+  }
+  const accentValue = /^#[\da-f]{3}(?:[\da-f]{3})?$/i.test(String(accent || "")) ? accent : "#5865f2";
+  // Preserve the color-picker value by default, but let a custom :root --accent
+  // declaration override it just like the rest of the user's CSS theme variables.
+  const declarations = [["--accent", accentValue], ...customVars.entries()];
+  varsStyle.textContent = "html[data-theme], html:not([data-theme]) {\n" +
+    declarations.map(([name,value]) => "  " + name + ": " + value + ";").join("\n") +
+    "\n}";
+}
+function previewThemeSettings(){
+  applyThemeLook(selTheme, $("set-accent")?.value || settings.accent || "#5865f2", $("set-css")?.value || "");
+}
+function applySettings(){
+  applyThemeLook(settings.theme, settings.accent, settings.css);
   if(me){
     profileAvatarCache[me.uid] = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
     avatarReadDone.add(me.uid);
@@ -4319,6 +4395,7 @@ function openSettings(){
   syncCallSoundSettingsUI();
   syncAdminSectionAccess();
   $("settings").classList.remove("hidden");
+  previewThemeSettings();
 }
 $("set-avatar-upload").onclick = () => $("set-avatar-file").click();
 $("set-avatar-file").onchange = async () => {
@@ -4432,14 +4509,34 @@ $("set-cancel").onclick = () => {
   $("settings").classList.add("hidden");
   draftAvatar = settings.avatar || "";
   draftBanner = settings.banner || "";
+  selTheme = settings.theme || "dark";
+  applySettings();
 };
 document.querySelectorAll("#theme-row button").forEach(b => {
   b.onclick = () => {
     selTheme = b.dataset.th;
     document.querySelectorAll("#theme-row button").forEach(x =>
       x.classList.toggle("sel", x === b));
+    previewThemeSettings();
   };
 });
+$("set-accent").addEventListener("input", previewThemeSettings);
+$("set-css").addEventListener("input", previewThemeSettings);
+$("use-theme-template").onclick = () => {
+  const editor = $("set-css");
+  if(editor.value.trim() && !window.confirm("Replace your current Custom CSS with the Prism theme template?")) return;
+  editor.value = PRISM_THEME_TEMPLATE;
+  previewThemeSettings();
+  editor.focus();
+  toast("Theme template inserted. Customize it, then press Save.");
+};
+$("clear-theme-css").onclick = () => {
+  const editor = $("set-css");
+  if(editor.value.trim() && !window.confirm("Clear all Custom CSS?")) return;
+  editor.value = "";
+  previewThemeSettings();
+  editor.focus();
+};
 $("set-save").onclick = async () => {
   const urlValue = $("set-avatar-url").value.trim();
   // An invalid optional avatar URL must not prevent saving unrelated settings.
