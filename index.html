@@ -2638,6 +2638,9 @@ function isListedForDiscovery(sid, server){
 function discoveryRecordMap(){
   const records = Object.create(null);
   Object.entries(discoveryListings || {}).forEach(([sid, listing]) => {
+    // Never show a public directory record for a server that no longer exists.
+    // This also hides stale catalog entries left behind by older delete flows.
+    if(sid !== "official" && !servers[sid]) return;
     if(!listing || listing.discoverable === false || listing.adminDiscoverHidden === true ||
        (servers[sid] && (servers[sid].discoverable === false || servers[sid].adminDiscoverHidden === true))) return;
     records[sid] = Object.assign({}, servers[sid] || {}, listing, {sid:sid});
@@ -3216,6 +3219,8 @@ async function deleteServer(sid){
   const paths = [];
   const s = servers[sid] || {};
   paths.push("prism/servers/" + sid);
+  // Remove the public Discover card in the same cleanup pass as the server.
+  paths.push("prism/discoverableServers/" + sid);
   if(s.invite) paths.push("prism/invites/" + s.invite);
   paths.push("prism/serverChannels/" + sid);
   paths.push("prism/messages/" + sid);
@@ -3240,10 +3245,14 @@ async function deleteServer(sid){
   let failed = 0;
   await Promise.all(paths.map(p => db.ref(p).remove().catch(() => { failed++; })));
   if(myServers) delete myServers[sid];
+  delete servers[sid];
+  if(discoveryListings) delete discoveryListings[sid];
   renderRail();
+  renderDiscoverServers();
+  if(adminPanelLoaded && isAdmin()) renderAdminServers();
   if(view.sid === sid) openServer("official");
   if(failed > 0) toast("Server deleted with " + failed + " item(s) left behind (check database rules).");
-  else toast("Server deleted.");
+  else toast("Server and Discover listing deleted.");
 }
 
 /* ---------------- invites ---------------- */
