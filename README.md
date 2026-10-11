@@ -88,8 +88,29 @@ Prism is a single static `index.html` — no frameworks, no build step.
 
 ## 🗺️ What's not here (yet)
 
-Some things need more than static hosting and aren't built: voice/video calls, GIF search, and file uploads.
+Voice chat is implemented on the `voice-chat` branch as a Hostless Node.js app. GIF search, video calls, and file uploads are still not included.
 
 ---
 
 Made with 💜 — free forever, no Nitro required.
+
+
+## 🎙️ Hostless voice-chat branch
+
+This branch adds authenticated, channel-based voice rooms using WebRTC audio and Socket.IO signaling. The GitHub Pages version on `main` is unchanged; use the Hostless App to run the voice-enabled version.
+
+1. In Hostless, create an **App** for this repository and select the **`voice-chat`** branch.
+2. Set the start command to **`npm start`** (Node.js 20 or newer). The server listens on Hostless's supplied `PORT`.
+3. In your Firebase project, open **Project settings → Service accounts** and generate a private key JSON for the project Prism already uses (`discord-prism`).
+4. Add the entire JSON file contents as the Hostless secret/environment variable **`FIREBASE_SERVICE_ACCOUNT_JSON`**. Never commit the key to GitHub or put it in frontend code.
+5. Add the Hostless domain in Firebase Authentication → Settings → Authorized domains.
+6. Deploy, sign in to Prism, open a server text channel and click **Join Voice**. Give the browser microphone permission.
+
+Optional environment variables:
+
+- `FIREBASE_DATABASE_URL` — defaults to the Prism Realtime Database URL.
+- `FIREBASE_PROJECT_ID` — defaults to the service account's project ID.
+- `MAX_VOICE_PEERS` — room size limit; defaults to 8 and is capped at 12.
+- `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` — optional TURN relay settings for restrictive networks.
+
+The server uses a public STUN server by default. Some networks—especially school or workplace networks—may require TURN credentials for audio to connect reliably. Voice requires HTTPS and browser microphone permission. Check `/healthz` for service status.
