@@ -206,6 +206,14 @@
   #settings textarea{min-height:90px;resize:vertical;font-family:monospace;font-size:12px}
   #settings input[type="color"]{width:52px;height:38px;border:none;border-radius:8px;background:var(--input);
     padding:4px;cursor:pointer}
+  #profile-icon-tools{display:flex;align-items:center;gap:13px;padding:12px;background:var(--input);border-radius:12px}
+  #set-avatar-preview{width:66px;height:66px;flex:none;border:2px solid var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:22px;overflow:hidden;background:#454956}
+  #profile-icon-actions{min-width:0;flex:1}
+  #profile-icon-actions .trow{margin-top:8px}
+  #profile-icon-actions .trow button{padding:8px;font-size:12px}
+  #set-avatar-help{display:block;margin-top:7px;color:var(--dim);font-size:11px;line-height:1.4}
+  #settings input[type="file"]{display:none}
+  .profile-avatar-img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
   #settings .row{display:flex;gap:10px;margin-top:18px}
   #settings .row button{flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px}
   #set-save{background:var(--accent);color:#fff}
@@ -368,6 +376,20 @@
 <div id="settings" class="hidden">
   <div class="box">
     <h2>Settings</h2>
+    <label>Profile icon</label>
+    <div id="profile-icon-tools">
+      <div id="set-avatar-preview" aria-label="Profile icon preview">?</div>
+      <div id="profile-icon-actions">
+        <div class="trow">
+          <button id="set-avatar-upload" type="button">Upload image</button>
+          <button id="set-avatar-reset" type="button">Use initials</button>
+        </div>
+        <span id="set-avatar-help">Choose an image from your device or paste an HTTPS image URL below. Your icon appears to other Prism users.</span>
+      </div>
+    </div>
+    <input type="file" id="set-avatar-file" accept="image/png,image/jpeg,image/webp">
+    <label for="set-avatar-url">Image URL (optional)</label>
+    <input type="text" id="set-avatar-url" maxlength="2000" placeholder="https://example.com/avatar.png" autocomplete="off">
     <label>Theme</label>
     <div class="trow" id="theme-row">
       <button data-th="dark">🌙 Dark</button>
@@ -437,6 +459,54 @@ let view = {type:"server", sid:null, cid:null};
 let liveRefs = [];            // message/typing refs to .off() on view change
 let chanListRef = null;       // channel-list ref for the open server
 let bootRefs = [];            // persistent boot listeners
+const profileAvatarCache = Object.create(null);
+const avatarReadPending = new Set();
+const avatarReadDone = new Set();
+let draftAvatar = "";
+
+function isSafeAvatarSource(value){
+  if(typeof value !== "string" || value.length > 260000) return false;
+  if(/^https:\/\/[^\s"'<>]+$/i.test(value)) return true;
+  return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value);
+}
+function renderProfileAvatar(el, source, name){
+  if(!el) return;
+  const dot = el.querySelector(".odot");
+  el.replaceChildren();
+  el.style.background = colorFor(name || "Prism");
+  if(isSafeAvatarSource(source)){
+    const image = document.createElement("img");
+    image.className = "profile-avatar-img";
+    image.alt = (name || "User") + " profile icon";
+    image.src = source;
+    image.draggable = false;
+    image.onerror = () => renderProfileAvatar(el, "", name);
+    el.appendChild(image);
+  }else{
+    el.textContent = (String(name || "?").trim()[0] || "?").toUpperCase();
+  }
+  if(dot) el.appendChild(dot);
+}
+function loadPublicAvatar(uid, el, name){
+  if(!uid || !el) return;
+  if(Object.prototype.hasOwnProperty.call(profileAvatarCache, uid)){
+    renderProfileAvatar(el, profileAvatarCache[uid], name);
+    return;
+  }
+  if(avatarReadDone.has(uid) || avatarReadPending.has(uid)) return;
+  avatarReadPending.add(uid);
+  db.ref("prism/users/" + uid + "/avatar").once("value").then(snap => {
+    const avatar = snap.val() || "";
+    profileAvatarCache[uid] = isSafeAvatarSource(avatar) ? avatar : "";
+    avatarReadDone.add(uid);
+    document.querySelectorAll("#dm-list .chan[data-other-uid]").forEach(row => {
+      if(row.dataset.otherUid === uid){
+        const avatarEl = row.querySelector(".dmav");
+        if(avatarEl) renderProfileAvatar(avatarEl, profileAvatarCache[uid], row.querySelector(".dname")?.textContent || name);
+      }
+    });
+  }).catch(() => {}).finally(() => avatarReadPending.delete(uid));
+}
 function unlisten(){ liveRefs.forEach(r => r.off()); liveRefs = []; }
 function listen(ref, ev, cb){ ref.on(ev, cb); liveRefs.push(ref); }
 
@@ -533,8 +603,7 @@ async function boot(){
   bootRefs.forEach(r => r.off()); bootRefs = [];
   stopAllDMWatchers();
   $("uname").innerHTML = esc(me.name) + "<small>online</small>";
-  $("avatar").textContent = me.name[0].toUpperCase();
-  $("avatar").style.background = colorFor(me.name);
+  renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
   goOnline();
   loadSettings();
   const banRef = db.ref("prism/banned/" + me.uid);
@@ -571,7 +640,7 @@ async function boot(){
 function goOnline(){
   if(!me) return;
   const r = db.ref("prism/presence/" + me.uid);
-  r.set({u: me.name, ts: TS});
+  r.set({u: me.name, ts: TS, status: settings.status || "", avatar: settings.avatar || ""});
   r.onDisconnect().remove();
 }
 async function seedOfficial(){
@@ -1153,12 +1222,15 @@ function renderDMs(snap){
     const el = document.createElement("div");
     el.className = "chan" + (view.type === "dm" && view.otherUid === otherUid ? " active" : "");
     el.setAttribute("data-dm", d.dmId);
+    el.dataset.otherUid = otherUid;
     el.innerHTML =
       '<div class="dmav" style="background:' + colorFor(dname) + '">' + esc(dname[0].toUpperCase()) +
       '<span class="odot"></span></div>' +
       '<span class="dname">' + esc(dname) + "</span>" +
       '<span class="badge hidden"></span>' +
       '<span class="dx" title="Close DM">\u00d7</span>';
+    renderProfileAvatar(el.querySelector(".dmav"), profileAvatarCache[otherUid] || "", dname);
+    if(!Object.prototype.hasOwnProperty.call(profileAvatarCache, otherUid)) loadPublicAvatar(otherUid, el.querySelector(".dmav"), dname);
     el.onclick = () => openDM(otherUid, dname, d.dmId);
     el.querySelector(".dx").onclick = e => { e.stopPropagation(); closeDM(otherUid, d.dmId); };
     box.appendChild(el);
@@ -1373,7 +1445,7 @@ function send(){
 }
 
 /* ---------------- themes & settings ---------------- */
-let settings = {theme: "dark", accent: "#5865f2", status: "", css: ""};
+let settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: ""};
 let selTheme = "dark";
 function applySettings(){
   const root = document.documentElement;
@@ -1383,18 +1455,36 @@ function applySettings(){
   let css = $("user-css");
   if(!css){ css = document.createElement("style"); css.id = "user-css"; document.head.appendChild(css); }
   css.textContent = settings.css || "";
+  if(me){
+    profileAvatarCache[me.uid] = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
+    avatarReadDone.add(me.uid);
+    renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
+  }
 }
 async function loadSettings(){
+  settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: ""};
   try{
-    const s = await db.ref("prism/users/" + me.uid + "/settings").once("value");
-    if(s.exists()) settings = Object.assign({}, settings, s.val());
+    const snap = await db.ref("prism/users/" + me.uid + "/settings").once("value");
+    if(snap.exists()) settings = Object.assign({}, settings, snap.val());
+    if(!settings.avatar){
+      const oldAvatar = await db.ref("prism/users/" + me.uid + "/avatar").once("value");
+      settings.avatar = oldAvatar.val() || "";
+    }
   }catch(e){}
+  settings.avatar = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
   selTheme = settings.theme || "dark";
   applySettings();
-  if(me) db.ref("prism/presence/" + me.uid).update({status: settings.status || ""}).catch(() => {});
+  if(me) db.ref("prism/presence/" + me.uid).update({status: settings.status || "", avatar: settings.avatar || ""}).catch(() => {});
+}
+function refreshAvatarPreview(){
+  renderProfileAvatar($("set-avatar-preview"), draftAvatar || "", me && me.name || "?");
 }
 function openSettings(){
   selTheme = settings.theme || "dark";
+  draftAvatar = settings.avatar || "";
+  $("set-avatar-url").value = /^https:\/\//i.test(draftAvatar) ? draftAvatar : "";
+  $("set-avatar-file").value = "";
+  refreshAvatarPreview();
   document.querySelectorAll("#theme-row button").forEach(b =>
     b.classList.toggle("sel", b.dataset.th === selTheme));
   $("set-accent").value = settings.accent || "#5865f2";
@@ -1402,9 +1492,77 @@ function openSettings(){
   $("set-css").value = settings.css || "";
   $("settings").classList.remove("hidden");
 }
+$("set-avatar-upload").onclick = () => $("set-avatar-file").click();
+$("set-avatar-file").onchange = async () => {
+  const file = $("set-avatar-file").files && $("set-avatar-file").files[0];
+  if(!file) return;
+  if(!/^image\/(?:png|jpeg|webp)$/i.test(file.type)){
+    toast("Choose a PNG, JPG, or WebP image.");
+    $("set-avatar-file").value = "";
+    return;
+  }
+  if(file.size > 5 * 1024 * 1024){
+    toast("Choose an image smaller than 5 MB.");
+    $("set-avatar-file").value = "";
+    return;
+  }
+  try{
+    const avatar = await resizeAvatarFile(file);
+    if(!isSafeAvatarSource(avatar)) throw new Error("Image is too large after resizing.");
+    draftAvatar = avatar;
+    $("set-avatar-url").value = "";
+    refreshAvatarPreview();
+    toast("Profile icon ready. Press Save to apply it.");
+  }catch(e){
+    toast(e && e.message || "Couldn't process that image.");
+  }finally{
+    $("set-avatar-file").value = "";
+  }
+};
+function resizeAvatarFile(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that image."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("That image file can't be opened."));
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 256;
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if(!ctx) return reject(new Error("Image processing isn't available."));
+        ctx.fillStyle = "#252833"; ctx.fillRect(0, 0, size, size);
+        const w = image.naturalWidth || image.width;
+        const h = image.naturalHeight || image.height;
+        const side = Math.min(w, h);
+        ctx.drawImage(image, (w - side) / 2, (h - side) / 2, side, side, 0, 0, size, size);
+        let result = canvas.toDataURL("image/jpeg", 0.82);
+        if(result.length > 200000) result = canvas.toDataURL("image/jpeg", 0.65);
+        if(result.length > 260000) return reject(new Error("That image couldn't be compressed enough."));
+        resolve(result);
+      };
+      image.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
+$("set-avatar-url").addEventListener("input", () => {
+  draftAvatar = $("set-avatar-url").value.trim();
+  refreshAvatarPreview();
+});
+$("set-avatar-reset").onclick = () => {
+  draftAvatar = "";
+  $("set-avatar-url").value = "";
+  $("set-avatar-file").value = "";
+  refreshAvatarPreview();
+};
 $("set-open").onclick = openSettings;
 $("get-themes").onclick = () => window.open("https://ajgplayz-studio.github.io/prism/#invite=oVUfWYCa", "_blank", "noopener");
-$("set-cancel").onclick = () => $("settings").classList.add("hidden");
+$("set-cancel").onclick = () => {
+  $("settings").classList.add("hidden");
+  draftAvatar = settings.avatar || "";
+};
 document.querySelectorAll("#theme-row button").forEach(b => {
   b.onclick = () => {
     selTheme = b.dataset.th;
@@ -1413,15 +1571,26 @@ document.querySelectorAll("#theme-row button").forEach(b => {
   };
 });
 $("set-save").onclick = async () => {
+  const urlValue = $("set-avatar-url").value.trim();
+  if(urlValue && !isSafeAvatarSource(urlValue)){
+    toast("Use a valid HTTPS image URL or upload an image.");
+    return;
+  }
+  if(urlValue) draftAvatar = urlValue;
   settings.theme = selTheme;
   settings.accent = $("set-accent").value || "#5865f2";
   settings.status = $("set-status").value.trim().slice(0, 60);
   settings.css = $("set-css").value;
+  settings.avatar = isSafeAvatarSource(draftAvatar) ? draftAvatar : "";
   applySettings();
   $("settings").classList.add("hidden");
   try{
     await db.ref("prism/users/" + me.uid + "/settings").set(settings);
-    await db.ref("prism/presence/" + me.uid).update({status: settings.status});
+    await db.ref("prism/presence/" + me.uid).update({status: settings.status, avatar: settings.avatar || ""});
+    db.ref("prism/users/" + me.uid + "/avatar").set(settings.avatar || "").catch(() => {});
+    profileAvatarCache[me.uid] = settings.avatar || "";
+    avatarReadDone.add(me.uid);
+    renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
     toast("Settings saved.");
   }catch(e){ toast("Couldn't save settings."); }
 };
@@ -1561,11 +1730,16 @@ function renderMembers(snap){
     if(!v || !v.u || seen[v.u]) return;
     if(now - (v.ts || 0) > 120000) return;
     seen[v.u] = 1;
+    if(v.avatar && isSafeAvatarSource(v.avatar)){
+      profileAvatarCache[c.key] = v.avatar;
+      avatarReadDone.add(c.key);
+    }
     const d = document.createElement("div");
     d.className = "mem";
     d.innerHTML = '<span class="dot"></span><div class="mav" style="background:' + colorFor(v.u) + '">' +
       esc(v.u[0].toUpperCase()) + '</div><div class="mtext"><div class="mname">' + esc(v.u) + "</div>" +
       (v.status ? '<div class="mstatus">' + esc(v.status) + "</div>" : "") + "</div>";
+    renderProfileAvatar(d.querySelector(".mav"), v.avatar || profileAvatarCache[c.key] || "", v.u);
     if(isAdmin() && c.key !== me.uid){
       const del = document.createElement("button");
       del.className = "mdel"; del.textContent = "🗑"; del.title = "Delete user";
