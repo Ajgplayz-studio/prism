@@ -4,10 +4,16 @@ const head = document.getElementById("chead");
 if (!head || !document.getElementById("main") || !document.getElementById("msgs") || !window.firebase || typeof db === "undefined") return;
 const style = document.createElement("style");
 style.textContent = "\n#voice-join{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:6px;padding:7px 11px;background:var(--accent,#5755d9);color:#fff;cursor:pointer;font-weight:650;font-size:13px;box-shadow:none}\n#voice-join.hidden{display:none!important}#voice-join:disabled{opacity:.6;cursor:wait}\n#voice-overlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,6,10,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .18s ease}\n#voice-overlay.hidden{display:none!important}#voice-overlay.voice-visible{opacity:1}\n#voice-window{position:relative;display:flex;flex-direction:column;width:min(700px,calc(100vw - 28px));height:min(440px,calc(100dvh - 28px));min-height:300px;overflow:hidden;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 9%,transparent);border-radius:12px;background:var(--side,#191a20);color:var(--text,#e5e5e9);box-shadow:0 20px 60px rgba(0,0,0,.45);transform:translateY(10px) scale(.985);transition:transform .18s ease}\n#voice-overlay.voice-visible #voice-window{transform:translateY(0) scale(1)}\n#voice-topbar{height:56px;min-height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid color-mix(in srgb,var(--text,#e5e5e9) 7%,transparent);background:var(--darker,#131419)}\n#voice-brand-dot{width:8px;height:8px;border-radius:50%;background:#3ba879;box-shadow:none}\n#voice-header-copy{min-width:0;flex:1}#voice-kicker{font-size:9px;letter-spacing:1.5px;font-weight:700;color:var(--dim,#a0a3ad)}#voice-title{font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}#voice-status{font-size:11px;color:var(--dim,#a0a3ad);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#voice-close{width:30px;height:30px;border-radius:5px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 10%,transparent);background:var(--input,#292b32);color:var(--text,#e5e5e9);font-size:20px;line-height:1;cursor:pointer}\n#voice-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:12px 16px;background:var(--bg,#202127)}\n#voice-participants{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;align-content:center;gap:20px;min-height:100px}\n.voice-person{width:112px;max-width:30%;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}\n.voice-avatar{width:72px;height:72px;max-width:100%;aspect-ratio:1;border:2px solid color-mix(in srgb,var(--text,#e5e5e9) 12%,transparent);border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;letter-spacing:-.5px;background:var(--accent,#5755d9);box-shadow:none;position:relative}\n.voice-person.voice-self .voice-avatar{border-color:#39b982;box-shadow:0 0 0 2px rgba(57,185,130,.12)}\n.voice-person.voice-speaking .voice-avatar{outline:2px solid #3fe594;outline-offset:3px}\n.voice-person-name{max-width:100%;font-size:12px;color:#f0f3fa;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.voice-person-sub{font-size:10px;color:#9eaac0;margin-top:-5px}\n#voice-local-share-wrap{width:min(100%,520px);height:170px;min-height:95px;border-radius:8px;overflow:hidden;position:relative;background:#08090d;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 12%,transparent);box-shadow:none}\n#voice-local-share-wrap.hidden{display:none!important}#voice-local-share{width:100%;height:100%;object-fit:contain;display:block}\n#voice-local-share-label{position:absolute;left:10px;bottom:9px;padding:5px 8px;border-radius:7px;background:rgba(0,0,0,.68);font-size:10px;color:#fff}\n#voice-remote-shares{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;max-height:132px;overflow:auto}\n#voice-remote-shares:empty{display:none}#voice-remote-shares .voice-remote-tile{width:min(46%,260px);height:116px;position:relative;background:#070a10;border:1px solid rgba(255,255,255,.13);border-radius:10px;overflow:hidden}\n.voice-remote-tile video{width:100%;height:100%;object-fit:contain;display:block}.voice-remote-label{position:absolute;left:7px;bottom:6px;background:#000b;padding:4px 6px;border-radius:5px;font-size:10px}\n#voice-note{font-size:10px;color:#929eb3;min-height:14px;text-align:center;padding:0 14px 8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#voice-controls{min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px 11px;border-top:1px solid color-mix(in srgb,var(--text,#e5e5e9) 7%,transparent);background:var(--darker,#131419)}\n.voice-control{position:relative;width:46px;height:46px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 9%,transparent);border-radius:8px;background:var(--input,#292b32);color:var(--text,#e5e5e9);cursor:pointer;transition:background .12s ease,border-color .12s ease}\n.voice-control:hover{background:var(--hover,#272930)}.voice-control:focus-visible{outline:2px solid #91a7ff;outline-offset:2px}\n.voice-control svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}\n.voice-control small{font-size:8px;color:#d0d7e4;line-height:1}\n.voice-control.voice-active{background:color-mix(in srgb,var(--accent,#5755d9) 24%,var(--input,#292b32));border-color:color-mix(in srgb,var(--accent,#5755d9) 55%,transparent)}\n.voice-control.voice-muted{background:rgba(233,67,80,.2);border-color:rgba(255,99,113,.55);color:#ffb7be}\n#voice-hangup{background:#fa3e49;border:0;border-radius:50%;width:52px;height:52px;margin-left:3px;box-shadow:0 4px 18px #fa3e493c}\n#voice-hangup:hover{background:#ff5962}#voice-hangup svg{width:23px;height:23px}\n@media(max-width:560px){#voice-overlay{padding:8px}#voice-window{width:calc(100vw - 16px);height:min(520px,calc(100dvh - 16px));border-radius:17px}#voice-topbar{height:56px;min-height:56px;padding:0 12px}#voice-stage{padding:8px}#voice-participants{gap:10px}.voice-person{width:84px}.voice-avatar{width:58px;font-size:18px}#voice-controls{gap:7px;padding:9px 8px 11px}.voice-control{width:42px;height:44px;border-radius:13px}#voice-hangup{width:49px;height:49px}#voice-local-share-wrap{height:135px}#voice-remote-shares .voice-remote-tile{height:90px}}\n@media(prefers-reduced-motion:reduce){#voice-overlay,#voice-window,.voice-control{transition:none}}\n";
+style.textContent += "\n#dm-call{display:inline-flex;align-items:center;gap:7px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 10%,transparent);border-radius:6px;padding:7px 11px;background:var(--input,#292b32);color:var(--text,#e5e5e9);cursor:pointer;font-weight:650;font-size:13px}\n#dm-call.hidden{display:none!important}#dm-call:disabled{opacity:.6;cursor:wait}\n";
 document.head.appendChild(style);
 const join = document.createElement("button");
 join.id = "voice-join"; join.type = "button"; join.className = "hidden";
 join.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 11.2 19a19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg><span>Join Voice</span>';
+const dmCall = document.createElement("button");
+dmCall.id = "dm-call"; dmCall.type = "button"; dmCall.className = "hidden";
+dmCall.textContent = "Call"; dmCall.title = "Call this user";
+dmCall.setAttribute("aria-label", "Start a direct call");
+head.appendChild(dmCall);
 head.appendChild(join);
 const overlay = document.createElement("div");
 overlay.id = "voice-overlay"; overlay.className = "hidden";
@@ -21,11 +27,23 @@ const shareBtn = $("voice-share"), shareLabel = $("voice-share-label"), hangup =
 const cameraBtn = $("voice-camera"), cameraLabel = $("voice-camera-label");
 const localShareWrap = $("voice-local-share-wrap"), localShareVideo = $("voice-local-share"), localShareLabel = $("voice-local-share-label");
 const remoteShares = $("voice-remote-shares");
-const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,ice:[{urls:"stun:stun.l.google.com:19302"}]};
+const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,directTarget:null,inviteStateRef:null,inviteStateHandler:null,ice:[{urls:"stun:stun.l.google.com:19302"}]};
+let incomingCallsRef = null;
+const seenIncomingCalls = new Set();
 const valid = x => /^[A-Za-z0-9_-]{1,128}$/.test(String(x));
 const base = r => "prism/voiceRooms/" + r.sid + "/" + r.cid;
 function msg(t){if(typeof toast==="function")toast(t);else console.log(t);}
+function directRoomFor(a,b){
+ const key = [String(a),String(b)].sort().join(":");
+ let hash = 2166136261;
+ for(let i=0;i<key.length;i++){hash^=key.charCodeAt(i);hash=Math.imul(hash,16777619);}
+ return {sid:"dm_"+(hash>>>0).toString(36),cid:"direct"};
+}
 function current(){
+ if(s.directTarget){
+  if(!valid(s.directTarget.roomSid)||!valid(s.directTarget.roomCid))return null;
+  return {sid:s.directTarget.roomSid,cid:s.directTarget.roomCid,name:"Direct call with "+String(s.directTarget.name||"user")};
+ }
  if(typeof view==="undefined"||!view||view.type!=="server"||!view.sid||!view.cid||!valid(view.sid)||!valid(view.cid))return null;
  return {sid:String(view.sid),cid:String(view.cid),name:$("chname").textContent||"channel"};
 }
@@ -34,10 +52,16 @@ function showCall(){
  requestAnimationFrame(()=>overlay.classList.add("voice-visible"));
 }
 function refresh(){
- const canJoin=!!current();
+ const canJoin=!!current()&&!s.directTarget;
  join.classList.toggle("hidden",!canJoin);join.disabled=s.joining;
  join.querySelector("span").textContent=s.joined?"Open Voice":s.joining?"Connecting...":"Join Voice";
  join.title=s.joined?"Open the voice call":"Join channel voice";
+ const isDM = typeof view!=="undefined"&&view&&view.type==="dm";
+ dmCall.classList.toggle("hidden",!isDM);
+ dmCall.disabled=s.joining;
+ const currentDMCall=!!(isDM&&s.directTarget&&s.directTarget.uid===view.otherUid&&(s.joined||s.joining));
+ dmCall.textContent=currentDMCall?"Open call":"Call";
+ dmCall.title=currentDMCall?"Open your direct call":"Call "+String(isDM?view.otherName||"user":"user");
 }
 function initials(name){
  const bits=String(name||"Prism user").trim().split(/\s+/).filter(Boolean);
@@ -59,7 +83,7 @@ function render(){
   const sub=document.createElement("div");sub.className="voice-person-sub";sub.textContent=person.self?(s.muted?"Mic muted":"You"):(s.peers.has(person.uid)?"Voice participant":"Connecting…");
   card.append(avatar,nm,sub);list.appendChild(card);
  });
- title.textContent=s.room?"#"+s.room.name+" voice":"Voice call";
+ title.textContent=s.room?(s.directTarget?"Call with "+String(s.directTarget.name||"user"):"#"+s.room.name+" voice"):"Voice call";
  status.textContent=s.joining?"Connecting to microphone…":s.joined?"Connected · "+people.length+" participant"+(people.length===1?"":"s"):"Not connected";
  mute.classList.toggle("voice-muted",s.muted);mute.setAttribute("aria-label",s.muted?"Unmute microphone":"Mute microphone");mute.title=s.muted?"Unmute microphone":"Mute microphone";
  deafen.classList.toggle("voice-muted",s.deafened);deafen.setAttribute("aria-label",s.deafened?"Unmute incoming audio":"Mute incoming audio");deafen.title=s.deafened?"Unmute incoming audio":"Mute incoming audio";
@@ -216,29 +240,35 @@ async function toggleCamera(){
 }
 async function stop(error){
  s.revision++;
+ const direct = s.directTarget;
  if(s.pr&&s.ph)s.pr.off("value",s.ph);if(s.inbox&&s.ih)s.inbox.off("child_added",s.ih);
+ if(s.inviteStateRef&&s.inviteStateHandler)s.inviteStateRef.off("value",s.inviteStateHandler);
+ s.inviteStateRef=null;s.inviteStateHandler=null;
  s.joined=false;s.joining=false;s.muted=false;s.deafened=false;
  if(s.screenStream)stopShare(false);
  if(s.cameraStream)stopCamera(false);
  s.room=null;s.session=null;s.people={};Array.from(s.peers.keys()).forEach(removePeer);
  if(s.stream){s.stream.getTracks().forEach(t=>t.stop());s.stream=null;}
  if(s.ownRef){try{await s.ownRef.remove();}catch(_){}}
- s.pr=null;s.ownRef=null;s.inbox=null;s.ph=null;s.ih=null;
+ if(direct&&direct.invitePath)db.ref(direct.invitePath).remove().catch(()=>{});
+ s.pr=null;s.ownRef=null;s.inbox=null;s.ph=null;s.ih=null;s.directTarget=null;
  overlay.classList.remove("voice-visible");overlay.classList.add("hidden");
  mute.classList.remove("voice-muted");deafen.classList.remove("voice-muted");note.textContent="Your microphone is only used while connected.";
  refresh();render();if(error)msg(error);
 }
 async function start(){
- const r=current();if(!r)return msg("Open a server text channel first.");
+ const runRevision=++s.revision;
+ const r=current();if(!r)return msg("Open a server text channel or direct message first.");
  if(!me||!me.uid||!firebase.auth().currentUser)return msg("Log in to Prism first.");
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.RTCPeerConnection)return msg("Voice requires HTTPS, a microphone, and WebRTC support.");
  s.joining=true;s.room=r;showCall();refresh();render();note.textContent="Requesting microphone permission…";
  try{
   s.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+  if(runRevision!==s.revision){if(s.stream)s.stream.getTracks().forEach(t=>t.stop());s.stream=null;return;}
   s.session=window.crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,""):Date.now().toString(36)+Math.random().toString(36).slice(2);
   s.pr=db.ref(base(r)+"/participants");s.ownRef=s.pr.child(me.uid);s.inbox=db.ref(base(r)+"/signals/"+me.uid);
   await s.ownRef.onDisconnect().remove();await s.ownRef.set({name:String(me.name||"Prism user").slice(0,20),avatar:avatarSourceOk(ownAvatar())?ownAvatar():"",session:s.session,joinedAt:Date.now()});
-  s.joined=true;s.joining=false;note.textContent="Voice is peer-to-peer. Screen sharing is optional; headphones reduce echo.";
+  s.joined=true;s.joining=false;note.textContent=s.directTarget?"Private call is connected through peer-to-peer voice.":"Voice is peer-to-peer. Screen sharing is optional; headphones reduce echo.";
   s.ph=x=>peopleChanged(x);s.ih=x=>gotSignal(x);s.pr.on("value",s.ph);s.inbox.on("child_added",s.ih);
   refresh();render();
  }catch(e){
@@ -247,6 +277,11 @@ async function start(){
  }
 }
 join.addEventListener("click",()=>{if(s.joined)showCall();else if(s.joining)stop();else start();});
+dmCall.addEventListener("click",()=>{
+ if(typeof view==="undefined"||!view||view.type!=="dm"||!view.otherUid)return;
+ if(s.joined&&s.directTarget&&s.directTarget.uid===view.otherUid){showCall();return;}
+ callUser(view.otherUid,view.otherName||"user");
+});
 mute.addEventListener("click",()=>{if(!s.stream)return;s.muted=!s.muted;s.stream.getAudioTracks().forEach(t=>t.enabled=!s.muted);render();});
 deafen.addEventListener("click",()=>{s.deafened=!s.deafened;s.peers.forEach(p=>{p.audio.muted=s.deafened;});render();});
 shareBtn.addEventListener("click",toggleShare);
@@ -267,7 +302,74 @@ if(typeof openDM==="function"){
  const original=openDM;
  openDM=function(){stop();const out=original.apply(this,arguments);refresh();return out;};
 }
-firebase.auth().onAuthStateChanged(user=>{if(!user)stop();});
+async function handleIncomingCall(snap){
+ const invite=snap.val();
+ if(!me||!invite||invite.status!=="ringing"||!invite.fromUid||invite.fromUid===me.uid)return;
+ if(Date.now()-(Number(invite.createdAt)||0)>60000){snap.ref.remove().catch(()=>{});return;}
+ if(!valid(invite.roomSid)||!valid(invite.roomCid))return;
+ const inviteId=String(me.uid)+":"+String(snap.key);
+ if(seenIncomingCalls.has(inviteId))return;
+ seenIncomingCalls.add(inviteId);
+ const callerName=String(invite.fromName||"Prism user").slice(0,40);
+ let answer=false;
+ try{answer=window.confirm(callerName+" is calling you on Prism. Answer the call?");}catch(_){}
+ const latest=await snap.ref.once("value").catch(()=>null);
+ const live=latest&&latest.val();
+ if(!live||live.status!=="ringing")return;
+ if(!answer){
+  await snap.ref.update({status:"declined",declinedAt:Date.now()}).catch(()=>{});
+  return;
+ }
+ if(s.joined||s.joining)await stop();
+ await snap.ref.update({status:"accepted",acceptedAt:Date.now()}).catch(e=>{throw e;});
+ s.directTarget={uid:invite.fromUid,name:callerName,roomSid:invite.roomSid,roomCid:invite.roomCid,invitePath:"prism/dmCallInvites/"+me.uid+"/"+snap.key,callId:snap.key,incoming:true};
+ await start();
+}
+function watchIncomingCalls(user){
+ if(incomingCallsRef){incomingCallsRef.off("child_added",handleIncomingCall);incomingCallsRef=null;}
+ if(!user)return;
+ incomingCallsRef=db.ref("prism/dmCallInvites/"+user.uid);
+ incomingCallsRef.on("child_added",handleIncomingCall,error=>msg("Couldn't listen for direct calls. Firebase rules may need dmCallInvites read access."));
+}
+async function callUser(uid,name){
+ if(!me||!uid||uid===me.uid)return msg("You can't call your own account.");
+ if(s.joined&&s.directTarget&&s.directTarget.uid===uid){showCall();return;}
+ if(s.joined||s.joining)await stop();
+ const targetName=String(name||"Prism user").slice(0,40);
+ const room=directRoomFor(me.uid,uid);
+ const inviteRef=db.ref("prism/dmCallInvites/"+uid).push();
+ const callId=inviteRef.key;
+ const invitePath="prism/dmCallInvites/"+uid+"/"+callId;
+ s.directTarget={uid:uid,name:targetName,roomSid:room.sid,roomCid:room.cid,invitePath:invitePath,callId:callId,outgoing:true};
+ s.inviteStateRef=inviteRef;
+ s.inviteStateHandler=snap=>{
+  const value=snap.val();
+  if(!value||!s.directTarget||s.directTarget.callId!==callId)return;
+  if(value.status==="accepted"){note.textContent=targetName+" answered. Connecting…";}
+  if(value.status==="declined"){stop(targetName+" declined the call.");}
+  if(value.status==="missed"){stop("No answer from "+targetName+".");}
+ };
+ inviteRef.on("value",s.inviteStateHandler);
+ try{
+  await inviteRef.set({fromUid:me.uid,fromName:me.name,roomSid:room.sid,roomCid:room.cid,status:"ringing",createdAt:Date.now()});
+  await start();
+  window.setTimeout(async()=>{
+   if(!s.directTarget||s.directTarget.callId!==callId)return;
+   const latest=await inviteRef.once("value").catch(()=>null);
+   if(latest&&latest.exists()&&latest.val().status==="ringing"){
+    await inviteRef.update({status:"missed"}).catch(()=>{});
+    if(s.directTarget&&s.directTarget.callId===callId)await stop("No answer from "+targetName+".");
+   }
+  },45000);
+ }catch(e){
+  await stop("Couldn't start the direct call. Check microphone permissions and Firebase rules for dmCallInvites/voiceRooms.");
+ }
+}
+window.PrismVoice=Object.assign(window.PrismVoice||{},{callUser:callUser,openCall:showCall,hangup:stop});
+firebase.auth().onAuthStateChanged(user=>{
+ if(!user)stop();
+ watchIncomingCalls(user);
+});
 window.addEventListener("beforeunload",()=>{if(s.stream)s.stream.getTracks().forEach(t=>t.stop());if(s.screenStream)s.screenStream.getTracks().forEach(t=>t.stop());if(s.cameraStream)s.cameraStream.getTracks().forEach(t=>t.stop());});
 refresh();render();
 })();
