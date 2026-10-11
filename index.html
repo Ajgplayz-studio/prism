@@ -1918,6 +1918,14 @@ function renderProfileAvatar(el, source, name){
   }
   if(dot) el.appendChild(dot);
 }
+function refreshMessageAvatars(uid, name, source){
+  if(!uid) return;
+  document.querySelectorAll("#msgs .msg").forEach(message => {
+    if(message.dataset.author !== String(uid)) return;
+    const avatar = message.querySelector(".ma");
+    if(avatar) renderProfileAvatar(avatar, source, message.dataset.authorLabel || name);
+  });
+}
 function loadPublicAvatar(uid, el, name){
   if(!uid || !el) return;
   if(Object.prototype.hasOwnProperty.call(profileAvatarCache, uid)){
@@ -1936,6 +1944,9 @@ function loadPublicAvatar(uid, el, name){
         if(avatarEl) renderProfileAvatar(avatarEl, profileAvatarCache[uid], row.querySelector(".dname")?.textContent || name);
       }
     });
+    // Update every visible message from this sender, including older messages
+    // rendered while the profile picture was still being fetched.
+    refreshMessageAvatars(uid, name, profileAvatarCache[uid]);
   }).catch(() => {}).finally(() => avatarReadPending.delete(uid));
 }
 function unlisten(){ liveRefs.forEach(r => r.off()); liveRefs = []; }
@@ -3774,6 +3785,14 @@ function buildMsgEl(key, m, typeScope, path){
     ((mine || isAdmin()) ? '<button data-act="del" title="Delete" aria-label="Delete message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button>' : "") +
     "</div>";
   el.innerHTML = html;
+  const messageAvatar = el.querySelector(".ma");
+  const cachedAvatar = m.uid === me.uid
+    ? ((settings && settings.avatar) || profileAvatarCache[m.uid] || "")
+    : ((presenceCache[m.uid] && presenceCache[m.uid].avatar) || profileAvatarCache[m.uid] || "");
+  renderProfileAvatar(messageAvatar, cachedAvatar, m.u);
+  if(m.uid && !Object.prototype.hasOwnProperty.call(profileAvatarCache, m.uid)){
+    loadPublicAvatar(m.uid, messageAvatar, m.u);
+  }
   const authorButton = el.querySelector(".mu");
   if(authorButton){
     authorButton.tabIndex = 0;
@@ -4138,6 +4157,7 @@ function applySettings(){
     profileAvatarCache[me.uid] = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
     avatarReadDone.add(me.uid);
     renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
+    refreshMessageAvatars(me.uid, me.name, profileAvatarCache[me.uid]);
   }
 }
 async function updateAccountPresenceLabel(){
@@ -4934,9 +4954,10 @@ function renderMembers(snap){
     seen[v.u] = 1;
     const mode = v.mode || "online";
     presenceCache[c.key] = {uid:c.key, name:v.u, status:v.status || "", avatar:v.avatar || "", banner:v.banner || "", bio:v.bio || "", mode:mode, online:mode !== "offline"};
-    if(v.avatar && isSafeAvatarSource(v.avatar)){
-      profileAvatarCache[c.key] = v.avatar;
+    if(Object.prototype.hasOwnProperty.call(v, "avatar")){
+      profileAvatarCache[c.key] = isSafeAvatarSource(v.avatar) ? v.avatar : "";
       avatarReadDone.add(c.key);
+      refreshMessageAvatars(c.key, v.u, profileAvatarCache[c.key]);
     }
     if(mode === "offline") return;
     const d = document.createElement("div");
