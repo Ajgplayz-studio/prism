@@ -178,6 +178,14 @@
   #pinbtn{margin-left:auto;background:var(--input);border:none;color:var(--dim);cursor:pointer;
     font-size:13px;padding:5px 10px;border-radius:8px;font-weight:600}
   #pinbtn:hover{color:var(--text);background:var(--hover)}
+  #chdel{margin-left:8px;background:var(--input);border:none;color:var(--dim);cursor:pointer;
+    border-radius:8px;padding:6px 10px;font-size:14px}
+  #chdel:hover{color:var(--err);background:var(--hover)}
+  .fdel{background:none;border:none;cursor:pointer;opacity:.55;font-size:12px;padding:0 0 0 6px}
+  .fdel:hover{opacity:1}
+  #fdelpost{margin-top:12px;background:var(--input);border:none;color:var(--err);border-radius:8px;
+    padding:8px 14px;cursor:pointer;font-size:14px}
+  #fdelpost:hover{background:var(--hover)}
 
   /* ---------- settings + pins overlays ---------- */
   #settings,#pins{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;
@@ -326,7 +334,7 @@
   </div>
 
   <div id="main">
-    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span><button id="pinbtn" class="hidden" title="Pinned messages">📌 <span id="pincount">0</span></button></div>
+    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span><button id="pinbtn" class="hidden" title="Pinned messages">📌 <span id="pincount">0</span></button><button id="chdel" class="hidden" title="Delete channel">🗑</button></div>
     <div id="msgs"></div>
     <div id="typing"></div>
     <div id="inputbar"><div id="replybar" class="hidden"><span>↩ Replying to <b id="reply-u"></b></span><span id="reply-t"></span><span class="rx" id="reply-x" title="Cancel reply">✕</span></div><div id="inputwrap">
@@ -408,6 +416,7 @@ const $ = id => document.getElementById(id);
 const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
 const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 const emailOf = name => name.toLowerCase() + "@prism.chat";
 const validName = n => /^[a-zA-Z0-9_]{3,20}$/.test(n);
@@ -654,6 +663,7 @@ function openChannel(sid, cid, cname, topic, ctype){
   $("ch-hash").textContent = (ctype === "forum") ? "📝" : "#";
   $("chname").textContent = cname;
   $("chtopic").textContent = topic;
+  $("chdel").classList.toggle("hidden", !isAdmin());
   if((ctype || "chat") === "forum"){
     renderForum();
   }else{
@@ -710,6 +720,29 @@ async function createChannel(sid, cname, type){
     openChannel(sid, ref.key, cname, "", type);
     toast("Channel created!");
   }catch(e){ toast("Couldn't create the channel."); }
+}
+$("chdel").onclick = () => {
+  if(view.type !== "server" || !view.cid || !isAdmin()) return;
+  const sid = view.sid, cid = view.cid, ctype = view.ctype, cname = view.cname;
+  openModal("Delete channel", "Really delete #" + cname + "? This removes the channel and everything in it. This can't be undone.",
+    "", "Delete", () => deleteChannel(sid, cid, ctype));
+  $("m-input").style.display = "none";
+};
+async function deleteChannel(sid, cid, ctype){
+  try{
+    await db.ref("prism/serverChannels/" + sid + "/" + cid).remove();
+    if(ctype === "forum"){
+      await db.ref("prism/forum/" + sid + "/" + cid).remove().catch(() => {});
+      await db.ref("prism/forumReplies/" + sid + "/" + cid).remove().catch(() => {});
+    }else{
+      await db.ref("prism/messages/" + sid + "/" + cid).remove().catch(() => {});
+    }
+    await db.ref("prism/reactions/s_" + sid + "_" + cid).remove().catch(() => {});
+    await db.ref("prism/pins/s_" + sid + "_" + cid).remove().catch(() => {});
+    await db.ref("prism/typing/s_" + sid + "_" + cid).remove().catch(() => {});
+    openServer(sid);
+    toast("Channel deleted.");
+  }catch(e){ toast("Couldn't delete the channel."); }
 }
 
 /* ---------------- forum channels ---------------- */
@@ -787,6 +820,24 @@ function openForumPost(pid){
       "<div class='fmeta'>posted by " + esc(p.u || "?") + " · " + ftime(p.ts) + "</div>" +
       "<div class='fbody'>" + esc(p.body || "") + "</div>";
     box.appendChild(head);
+    if(isAdmin()){
+      const delp = document.createElement("button");
+      delp.id = "fdelpost"; delp.textContent = "🗑️ Delete post";
+      delp.onclick = () => {
+        openModal("Delete post", "Really delete this post and all its replies? This can't be undone.",
+          "", "Delete", async () => {
+            try{
+              await db.ref("prism/forum/" + sid + "/" + cid + "/" + pid).remove();
+              await db.ref("prism/forumReplies/" + sid + "/" + cid + "/" + pid).remove().catch(() => {});
+              view.post = null;
+              openChannel(sid, cid, view.cname, view.topic, "forum");
+              toast("Post deleted.");
+            }catch(e){ toast("Couldn't delete the post."); }
+          });
+        $("m-input").style.display = "none";
+      };
+      box.appendChild(delp);
+    }
     const h = document.createElement("div");
     h.className = "freplies-h"; h.textContent = "REPLIES";
     box.appendChild(h);
@@ -802,8 +853,18 @@ function openForumPost(pid){
         const r = rs[rid]; if(!r || !r.u) return;
         const d = document.createElement("div");
         d.className = "freply";
-        d.innerHTML = "<div class='fmeta'>" + esc(r.u) + " · " + ftime(r.ts) + "</div>" +
+        d.innerHTML = "<div class='fmeta'>" + esc(r.u) + " · " + ftime(r.ts) +
+          (isAdmin() ? "<button class='fdel' title='Delete reply'>🗑</button>" : "") + "</div>" +
           "<div class='fbody'>" + esc(r.t || "") + "</div>";
+        const fdel = d.querySelector(".fdel");
+        if(fdel) fdel.onclick = async e => {
+          e.stopPropagation();
+          try{
+            await db.ref("prism/forumReplies/" + sid + "/" + cid + "/" + pid + "/" + rid).remove();
+            db.ref("prism/forum/" + sid + "/" + cid + "/" + pid + "/replyCount")
+              .transaction(c => Math.max(0, (c || 0) - 1)).catch(() => {});
+          }catch(err){ toast("Couldn't delete the reply."); }
+        };
         rl.appendChild(d);
       });
     });
@@ -1042,6 +1103,7 @@ function openDM(otherUid, otherName, dmId){
   $("ch-hash").textContent = "@";
   $("chname").textContent = otherName;
   $("chtopic").textContent = "Direct message";
+  $("chdel").classList.add("hidden");
   $("minput").placeholder = "Message " + otherName;
   markDMRead(dmId);
   renderMessages("prism/dmMessages/" + dmId, "d_" + dmId);
@@ -1126,7 +1188,8 @@ function buildMsgEl(key, m, typeScope, path){
     '<button data-act="react" title="Add reaction">😊</button>' +
     '<button data-act="reply" title="Reply">↩</button>' +
     '<button data-act="pin" title="Pin message">📌</button>' +
-    (mine ? '<button data-act="edit" title="Edit">✎</button><button data-act="del" title="Delete">🗑</button>' : "") +
+    (mine ? '<button data-act="edit" title="Edit">✎</button>' : "") +
+    ((mine || isAdmin()) ? '<button data-act="del" title="Delete">🗑</button>' : "") +
     "</div>";
   el.innerHTML = html;
   el.querySelector('[data-act="react"]').onclick = e => {
