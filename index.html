@@ -1210,6 +1210,27 @@
     #members { display:none; }
   }
 </style>
+<style id="prism-call-sound-settings-css">
+  #call-sound-settings { margin:20px 0 8px; padding:15px; border:1px solid color-mix(in srgb,var(--text) 10%,transparent); border-radius:10px; background:color-mix(in srgb,var(--side) 86%,var(--bg)); }
+  #call-sound-settings h3 { font-size:14px; font-weight:700; margin-bottom:5px; }
+  .call-sound-description { color:var(--dim); font-size:11px; line-height:1.5; margin-bottom:13px; }
+  .call-sound-row { padding:12px 0; border-top:1px solid color-mix(in srgb,var(--text) 8%,transparent); }
+  .call-sound-row:first-child { border-top:0; }
+  .call-sound-row-title { font-size:12px; font-weight:650; }
+  .call-sound-row-hint { margin:4px 0 8px; color:var(--dim); font-size:10px; line-height:1.4; }
+  .call-sound-controls { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .call-sound-controls select { min-width:130px; flex:1; padding:7px 8px; background:var(--input); color:var(--text); border:1px solid color-mix(in srgb,var(--text) 12%,transparent); border-radius:6px; font-size:11px; }
+  .call-sound-controls button { padding:7px 9px; border-radius:6px; border:1px solid color-mix(in srgb,var(--text) 12%,transparent); background:var(--input); color:var(--text); font-size:11px; cursor:pointer; }
+  .call-sound-controls button:hover { background:var(--hover); }
+  .call-sound-status { display:block; width:100%; min-height:13px; margin-top:6px; color:var(--dim); font-size:10px; overflow-wrap:anywhere; }
+  .call-sound-status.has-file { color:#45bd86; }
+  .call-sound-file { display:none!important; }
+  .call-sound-volume-row { display:grid; grid-template-columns:1fr 1.25fr auto; gap:9px; align-items:center; margin-top:8px; padding-top:13px; border-top:1px solid color-mix(in srgb,var(--text) 8%,transparent); }
+  .call-sound-volume-row label { margin:0!important; text-transform:none!important; color:var(--text)!important; font-size:12px!important; }
+  .call-sound-volume-row input { min-width:0; width:100%; accent-color:var(--accent); }
+  .call-sound-volume-row output { color:var(--dim); font-size:11px; min-width:30px; text-align:right; }
+  @media(max-width:420px){ .call-sound-volume-row { grid-template-columns:1fr auto; } .call-sound-volume-row input { grid-column:1/-1; grid-row:2; } }
+</style>
 </head>
 <body>
 
@@ -1486,7 +1507,17 @@
       <input type="checkbox" id="set-notifications">
       <span><b>Desktop notifications</b><small>Show a notification when a new message arrives while Prism is in the background.</small></span>
     </label>
-    <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
+    <section id="call-sound-settings" aria-label="Call and voice sounds">
+      <h3>Call &amp; voice sounds</h3>
+      <p class="call-sound-description">Choose a sound for each event, upload your own audio, and preview it before saving. Uploaded audio stays in this browser.</p>
+      <div id="call-sound-rows"></div>
+      <div class="call-sound-volume-row">
+        <label for="call-sound-volume">Sound volume</label>
+        <input type="range" id="call-sound-volume" min="0" max="100" step="5" value="65">
+        <output id="call-sound-volume-value" for="call-sound-volume">65%</output>
+      </div>
+    </section>
+        <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
     <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
     <section id="admin-settings-section" class="hidden" aria-label="Admin panel">
       <div class="admin-settings-heading">
@@ -3741,8 +3772,92 @@ function send(){
 }
 
 /* ---------------- themes & settings ---------------- */
-let settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false};
+let settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false, callSounds: {incoming:"default",waiting:"default",join:"default",leave:"default",volume:65}};
 let selTheme = "dark";
+const CALL_SOUND_TYPES = [
+  {key:"incoming", title:"Incoming-call ringtone", hint:"Repeats while an incoming call is waiting."},
+  {key:"waiting", title:"Waiting / ringback", hint:"Repeats while you wait for someone to answer or join your voice channel."},
+  {key:"join", title:"Someone joins a call", hint:"Plays when another person joins your voice channel."},
+  {key:"leave", title:"Someone leaves a call", hint:"Plays when another person leaves your voice channel."}
+];
+function normalizeCallSoundSettings(value){
+  const raw = value && typeof value === "object" ? value : {};
+  const mode = key => ["default","custom","off"].includes(raw[key]) ? raw[key] : "default";
+  const vol = Number(raw.volume);
+  return {incoming:mode("incoming"),waiting:mode("waiting"),join:mode("join"),leave:mode("leave"),volume:Number.isFinite(vol)?Math.max(0,Math.min(100,vol)):65};
+}
+function readCallSoundSettingsUI(){
+  return normalizeCallSoundSettings({
+    incoming:$("call-sound-mode-incoming")?.value,
+    waiting:$("call-sound-mode-waiting")?.value,
+    join:$("call-sound-mode-join")?.value,
+    leave:$("call-sound-mode-leave")?.value,
+    volume:$("call-sound-volume")?.value
+  });
+}
+function updateCallSoundStatus(key, text, hasFile){
+  const el=$("call-sound-status-"+key);
+  if(!el)return;
+  el.textContent=text;
+  el.classList.toggle("has-file",!!hasFile);
+}
+function buildCallSoundSettingsUI(){
+  const host=$("call-sound-rows");
+  if(!host)return;
+  host.replaceChildren();
+  CALL_SOUND_TYPES.forEach(item=>{
+    const row=document.createElement("div"); row.className="call-sound-row";
+    const title=document.createElement("div"); title.className="call-sound-row-title"; title.textContent=item.title;
+    const hint=document.createElement("div"); hint.className="call-sound-row-hint"; hint.textContent=item.hint;
+    const controls=document.createElement("div"); controls.className="call-sound-controls";
+    const select=document.createElement("select"); select.id="call-sound-mode-"+item.key; select.setAttribute("aria-label",item.title+" sound");
+    [["default","Prism default"],["custom","Your uploaded sound"],["off","Off"]].forEach(([value,label])=>{const op=document.createElement("option");op.value=value;op.textContent=label;select.appendChild(op);});
+    const file=document.createElement("input");file.type="file";file.accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.webm,.flac";file.id="call-sound-file-"+item.key;file.className="call-sound-file";file.setAttribute("aria-label","Upload "+item.title);
+    const upload=document.createElement("button");upload.type="button";upload.textContent="Upload audio";upload.onclick=()=>file.click();
+    const preview=document.createElement("button");preview.type="button";preview.textContent="Preview";preview.onclick=()=>{if(window.PrismVoiceSounds)window.PrismVoiceSounds.preview(item.key,readCallSoundSettingsUI());else toast("Call sounds aren't ready yet.");};
+    const status=document.createElement("small");status.className="call-sound-status";status.id="call-sound-status-"+item.key;status.textContent="Using Prism's built-in sound.";
+    select.onchange=()=>{if(select.value==="off")updateCallSoundStatus(item.key,"This sound is disabled.",false);else if(select.value==="default")updateCallSoundStatus(item.key,"Using Prism's built-in sound.",false);else refreshCallSoundFileStatus(item.key);};
+    file.onchange=async()=>{
+      const picked=file.files&&file.files[0]; if(!picked)return;
+      if(!window.PrismVoiceSounds){toast("Call sounds aren't ready yet.");file.value="";return;}
+      try{
+        const saved=await window.PrismVoiceSounds.saveCustomSound(item.key,picked);
+        select.value="custom";
+        updateCallSoundStatus(item.key,"Uploaded: "+saved.name+" · saved in this browser",true);
+        toast("Custom "+item.title.toLowerCase()+" uploaded. Press Save to keep this sound choice.");
+      }catch(error){
+        toast(error&&error.message||"Couldn't save that audio file.");
+      }finally{file.value="";}
+    };
+    controls.append(select,upload,preview,file);
+    row.append(title,hint,controls,status);
+    host.appendChild(row);
+  });
+  $("call-sound-volume").addEventListener("input",()=>{
+    $("call-sound-volume-value").textContent=$("call-sound-volume").value+"%";
+  });
+}
+async function refreshCallSoundFileStatus(key){
+  const select=$("call-sound-mode-"+key);
+  if(!select||select.value!=="custom")return;
+  try{
+    const info=window.PrismVoiceSounds&&await window.PrismVoiceSounds.customSoundInfo(key);
+    updateCallSoundStatus(key,info&&info.name?"Uploaded: "+info.name+" · saved in this browser":"No custom file found in this browser; the built-in sound will play.",!!(info&&info.name));
+  }catch(_){updateCallSoundStatus(key,"Couldn't read custom audio in this browser.",false);}
+}
+function syncCallSoundSettingsUI(){
+  const sound=normalizeCallSoundSettings(settings.callSounds);
+  if(!$("call-sound-rows").childElementCount)buildCallSoundSettingsUI();
+  CALL_SOUND_TYPES.forEach(item=>{
+    const select=$("call-sound-mode-"+item.key);
+    if(select)select.value=sound[item.key];
+    if(sound[item.key]==="custom")refreshCallSoundFileStatus(item.key);
+    else updateCallSoundStatus(item.key,sound[item.key]==="off"?"This sound is disabled.":"Using Prism's built-in sound.",false);
+  });
+  $("call-sound-volume").value=String(sound.volume);
+  $("call-sound-volume-value").textContent=sound.volume+"%";
+}
+buildCallSoundSettingsUI();
 function applySettings(){
   const root = document.documentElement;
   if(settings.theme && settings.theme !== "dark") root.setAttribute("data-theme", settings.theme);
@@ -3775,6 +3890,7 @@ async function loadSettings(){
   }catch(e){}
   settings.avatar = isSafeAvatarSource(settings.avatar) ? settings.avatar : "";
   settings.banner = isSafeBannerSource(settings.banner) ? settings.banner : "";
+  settings.callSounds = normalizeCallSoundSettings(settings.callSounds);
   settings.bio = String(settings.bio || "").slice(0,180);
   settings.presenceMode = ["online","dnd","offline"].includes(settings.presenceMode) ? settings.presenceMode : "online";
   updateAccountPresenceLabel();
@@ -4008,6 +4124,7 @@ function openSettings(){
   $("set-status").value = settings.status || "";
   $("set-notifications").checked = settings.notifications === true;
   $("set-css").value = settings.css || "";
+  syncCallSoundSettingsUI();
   syncAdminSectionAccess();
   $("settings").classList.remove("hidden");
 }
@@ -4152,6 +4269,7 @@ $("set-save").onclick = async () => {
   settings.banner = isSafeBannerSource(draftBanner) ? draftBanner : "";
   settings.notifications = $("set-notifications").checked;
   settings.css = $("set-css").value;
+  settings.callSounds = readCallSoundSettingsUI();
   if(settings.notifications && "Notification" in window && Notification.permission === "default"){
     try { await Notification.requestPermission(); } catch(e) {}
   }

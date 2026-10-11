@@ -102,6 +102,13 @@ Voice chat is added on the `voice-chat-static` branch. Video calls, GIF search, 
 
 Open a server text channel and click **Join Voice**. Allow microphone access to join, use **Mute mic** to mute yourself, and **Leave voice** to disconnect. Audio is peer-to-peer; Firebase Realtime Database carries room presence and WebRTC signaling, not the audio stream.
 
+### 🔔 Call & voice sounds
+- Incoming-call ringtone and outgoing waiting/ringback repeat until the call is answered, declined, or ends.
+- Short join/leave chimes play when another participant enters or leaves a voice room.
+- Open **Settings → Call & voice sounds** to preview the built-in tones, turn individual sounds off, and adjust volume.
+- Upload a separate MP3, WAV, OGG, M4A, AAC, WebM, or FLAC sound for each event (up to 5 MB per file). Custom audio clips are stored in IndexedDB in the current browser; the sound preferences sync with the Prism account, but uploaded files must be uploaded again on another browser/device.
+- Browsers may require at least one user interaction before playing sound.
+
 This branch uses the original `discord-prism` Firebase project to keep the same accounts and messages as the original Prism. The owner of that Firebase project must authorize `michaelmb110b12-wq.github.io` under **Authentication → Settings → Authorized domains** and merge the voice rules in [VOICE_CHAT_RULES.md](./VOICE_CHAT_RULES.md) into the existing database rules. Do not replace the existing rules with only that fragment. Some restrictive networks need a TURN relay for audio to connect.
 
 Made with 💜 — free forever, no Nitro required.

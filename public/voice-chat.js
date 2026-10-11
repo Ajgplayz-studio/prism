@@ -48,6 +48,7 @@ callLayoutStyle.textContent = `
  #voice-remote-shares .voice-remote-tile{height:min(300px,38vh);min-height:170px;flex-basis:100%}
 }
 `;
+callLayoutStyle.textContent += "\n#voice-incoming-prompt{position:fixed;inset:0;z-index:2147483100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(5,6,10,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}\n#voice-incoming-prompt.visible{display:flex}\n.voice-incoming-card{width:min(360px,calc(100vw - 32px));padding:28px 24px 22px;border:1px solid #ffffff18;border-radius:18px;background:var(--side,#191a20);color:var(--text,#ededf3);box-shadow:0 28px 90px #000a;text-align:center}\n.voice-incoming-icon{display:grid;place-items:center;width:58px;height:58px;margin:0 auto 16px;border-radius:17px;background:color-mix(in srgb,var(--accent,#7868f7) 20%,var(--input,#292b32));color:var(--accent2,#a397ff);font-size:28px}\n.voice-incoming-eyebrow{font-size:10px;letter-spacing:1.7px;font-weight:800;color:var(--dim,#a5a5b5)}\n#voice-incoming-name{margin:7px 0;font-size:22px;overflow-wrap:anywhere}\n.voice-incoming-card p{color:var(--dim,#a5a5b5);font-size:12px;margin:0 0 22px}\n.voice-incoming-actions{display:flex;gap:10px}\n.voice-incoming-actions button{flex:1;min-height:42px;border:0;border-radius:9px;color:white;font-size:13px;font-weight:700;cursor:pointer}\n#voice-incoming-decline{background:#e44855}#voice-incoming-decline:hover{background:#f05a67}\n#voice-incoming-answer{background:#299866}#voice-incoming-answer:hover{background:#31ad77}";
 document.head.appendChild(callLayoutStyle);
 const join = document.createElement("button");
 join.id = "voice-join"; join.type = "button"; join.className = "hidden";
@@ -67,6 +68,13 @@ const shareWindow=document.createElement("aside");
 shareWindow.id="voice-share-window";
 shareWindow.innerHTML='<div id="voice-share-window-head"><span>Live screenshare / camera</span></div><div id="voice-share-window-body"><div id="voice-share-empty">Minimize the call window to keep chatting while video stays here.</div></div>';
 document.body.appendChild(shareWindow);
+const incomingCallPrompt=document.createElement("div");
+incomingCallPrompt.id="voice-incoming-prompt";
+incomingCallPrompt.setAttribute("role","dialog");
+incomingCallPrompt.setAttribute("aria-modal","true");
+incomingCallPrompt.setAttribute("aria-label","Incoming call");
+incomingCallPrompt.innerHTML='<section class="voice-incoming-card"><div class="voice-incoming-icon">☎</div><div class="voice-incoming-eyebrow">INCOMING CALL</div><h2 id="voice-incoming-name">Prism user</h2><p>Someone is calling you.</p><div class="voice-incoming-actions"><button type="button" id="voice-incoming-decline">Decline</button><button type="button" id="voice-incoming-answer">Answer</button></div></section>';
+document.body.appendChild(incomingCallPrompt);
 const $ = id => document.getElementById(id);
 const status = $("voice-status"), title = $("voice-title"), list = $("voice-participants");
 const note = $("voice-note"), mute = $("voice-mute"), deafen = $("voice-deafen");
@@ -77,9 +85,202 @@ const remoteShares = $("voice-remote-shares");
 const voiceStage=$("voice-stage"), callWindow=$("voice-window"), callTopbar=$("voice-topbar");
 const sideShareBody=$("voice-share-window-body"), sideShareEmpty=$("voice-share-empty");
 const localFullscreen=$("voice-local-fullscreen"), minimizeBtn=$("voice-minimize");
-const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,directTarget:null,inviteStateRef:null,inviteStateHandler:null,minimized:false,ice:[{urls:"stun:stun.l.google.com:19302"}]};
+const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peopleReady:false,peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,directTarget:null,inviteStateRef:null,inviteStateHandler:null,minimized:false,ice:[{urls:"stun:stun.l.google.com:19302"}]};
 let incomingCallsRef = null;
 const seenIncomingCalls = new Set();
+const callSoundLoops = Object.create(null);
+const activeCallSoundPlayback = new Map();
+const callSoundTokens = Object.create(null);
+let callAudioContext = null;
+let soundDatabasePromise = null;
+let incomingPromptResolver = null;
+let incomingPromptTimeout = null;
+const CALL_SOUND_KEYS = new Set(["incoming","waiting","join","leave"]);
+function getCallSoundPrefs(){
+ let value={};
+ try{if(typeof settings!=="undefined"&&settings.callSounds)value=settings.callSounds;}catch(_){}
+ const mode=key=>["default","custom","off"].includes(value[key])?value[key]:"default";
+ const vol=Number(value.volume);
+ return {incoming:mode("incoming"),waiting:mode("waiting"),join:mode("join"),leave:mode("leave"),volume:Number.isFinite(vol)?Math.max(0,Math.min(100,vol)):65};
+}
+function callSoundDb(){
+ if(soundDatabasePromise)return soundDatabasePromise;
+ soundDatabasePromise=new Promise((resolve,reject)=>{
+  if(!window.indexedDB)return reject(new Error("This browser doesn't support local sound uploads."));
+  const req=indexedDB.open("prism-call-sounds-v1",1);
+  req.onupgradeneeded=()=>{const database=req.result;if(!database.objectStoreNames.contains("clips"))database.createObjectStore("clips",{keyPath:"id"});};
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error||new Error("Couldn't open local sound storage."));
+ });
+ return soundDatabasePromise;
+}
+function soundClipId(type){return String(me&&me.uid||"guest")+":"+type;}
+async function saveCustomCallSound(type,file){
+ if(!CALL_SOUND_KEYS.has(type))throw new Error("Unknown call sound.");
+ if(!file||!file.size)throw new Error("Choose an audio file first.");
+ if(file.size>5*1024*1024)throw new Error("Choose an audio file smaller than 5 MB.");
+ const audioType=String(file.type||"").toLowerCase();
+ const audioExtension=/\.(mp3|wav|ogg|oga|m4a|aac|opus|webm|flac)$/i.test(String(file.name||""));
+ if(!audioType.startsWith("audio/")&&!audioExtension)throw new Error("Choose an audio file such as MP3, WAV, OGG, M4A, or WebM.");
+ if(!me||!me.uid)throw new Error("Log in before uploading custom call sounds.");
+ const database=await callSoundDb();
+ await new Promise((resolve,reject)=>{
+  const tx=database.transaction("clips","readwrite");
+  tx.objectStore("clips").put({id:soundClipId(type),uid:String(me.uid),type:type,name:String(file.name||"custom audio").slice(0,140),mime:audioType,blob:file,updatedAt:Date.now()});
+  tx.oncomplete=resolve;
+  tx.onerror=()=>reject(tx.error||new Error("Couldn't save that audio file locally."));
+  tx.onabort=()=>reject(tx.error||new Error("Audio upload was cancelled."));
+ });
+ return {name:String(file.name||"custom audio"),size:file.size};
+}
+async function getCustomCallSound(type){
+ if(!CALL_SOUND_KEYS.has(type)||!me||!me.uid)return null;
+ const database=await callSoundDb();
+ return new Promise((resolve,reject)=>{
+  const tx=database.transaction("clips","readonly"),req=tx.objectStore("clips").get(soundClipId(type));
+  req.onsuccess=()=>resolve(req.result||null);
+  req.onerror=()=>reject(req.error||new Error("Couldn't read that audio file."));
+ });
+}
+async function getCustomCallSoundInfo(type){
+ const row=await getCustomCallSound(type);
+ return row?{name:row.name,size:row.blob&&row.blob.size||0}:null;
+}
+async function clearCustomCallSound(type){
+ if(!CALL_SOUND_KEYS.has(type)||!me||!me.uid)return;
+ const database=await callSoundDb();
+ await new Promise((resolve,reject)=>{
+  const tx=database.transaction("clips","readwrite");
+  tx.objectStore("clips").delete(soundClipId(type));
+  tx.oncomplete=resolve;
+  tx.onerror=()=>reject(tx.error||new Error("Couldn't remove that custom sound."));
+ });
+ stopCallSoundPlayback(type);
+}
+function getCallAudioContext(){
+ if(!callAudioContext){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return null;
+  callAudioContext=new AudioCtx();
+ }
+ if(callAudioContext.state==="suspended")callAudioContext.resume().catch(()=>{});
+ return callAudioContext;
+}
+function stopCallSoundPlayback(type){
+ callSoundTokens[type]=(callSoundTokens[type]||0)+1;
+ const current=activeCallSoundPlayback.get(type);
+ if(!current)return;
+ if(current.audio){try{current.audio.pause();current.audio.currentTime=0;}catch(_){}}
+ if(current.url){try{URL.revokeObjectURL(current.url);}catch(_){}}
+ (current.oscillators||[]).forEach(osc=>{try{osc.stop();}catch(_){}});
+ activeCallSoundPlayback.delete(type);
+}
+function playDefaultCallTones(type,volume){
+ const ctx=getCallAudioContext();
+ if(!ctx)return;
+ const patterns={
+  incoming:[[523,.18,0],[659,.18,.21],[784,.24,.44],[0,.12,.72],[523,.18,.88],[659,.18,1.09],[784,.24,1.32]],
+  waiting:[[440,.18,0],[523,.18,.23]],
+  join:[[660,.12,0],[880,.16,.14]],
+  leave:[[660,.15,0],[440,.19,.18]]
+ };
+ const pattern=patterns[type]||patterns.join;
+ const playback={oscillators:[]};activeCallSoundPlayback.set(type,playback);
+ pattern.forEach(([frequency,duration,offset])=>{
+  if(!frequency)return;
+  const start=ctx.currentTime+.018+offset;
+  const osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type="sine";osc.frequency.setValueAtTime(frequency,start);
+  gain.gain.setValueAtTime(.0001,start);
+  gain.gain.linearRampToValueAtTime(Math.max(.0001,volume*.16),start+.018);
+  gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+  osc.connect(gain);gain.connect(ctx.destination);playback.oscillators.push(osc);
+  osc.onended=()=>{try{osc.disconnect();gain.disconnect();}catch(_){}};
+  osc.start(start);osc.stop(start+duration+.025);
+ });
+}
+async function playCallSound(type,overridePrefs){
+ if(!CALL_SOUND_KEYS.has(type))return;
+ const prefs=overridePrefs?Object.assign({volume:65,incoming:"default",waiting:"default",join:"default",leave:"default"},overridePrefs):getCallSoundPrefs();
+ const mode=["default","custom","off"].includes(prefs[type])?prefs[type]:"default";
+ const volume=Math.max(0,Math.min(100,Number(prefs.volume)||0))/100;
+ stopCallSoundPlayback(type);
+ const playbackToken=callSoundTokens[type];
+ if(mode==="off"||volume<=0)return;
+ if(mode==="custom"){
+  try{
+   const row=await getCustomCallSound(type);
+   if(playbackToken!==callSoundTokens[type])return;
+   if(row&&row.blob){
+    const url=URL.createObjectURL(row.blob);
+    const audio=new Audio(url);audio.preload="auto";audio.volume=volume;
+    const playback={audio:audio,url:url,oscillators:[]};activeCallSoundPlayback.set(type,playback);
+    audio.onended=()=>{if(activeCallSoundPlayback.get(type)===playback){activeCallSoundPlayback.delete(type);try{URL.revokeObjectURL(url);}catch(_){}}};
+    await audio.play().catch(error=>{if(activeCallSoundPlayback.get(type)===playback){activeCallSoundPlayback.delete(type);try{URL.revokeObjectURL(url);}catch(_){}}throw error;});
+    return;
+   }
+  }catch(error){
+   if(playbackToken!==callSoundTokens[type])return;
+   console.warn("Custom call sound unavailable; using the built-in sound.",error);
+  }
+ }
+ if(playbackToken!==callSoundTokens[type])return;
+ playDefaultCallTones(type,volume);
+}
+function startRepeatingCallSound(type){
+ if(!CALL_SOUND_KEYS.has(type)||callSoundLoops[type])return;
+ const cadence=type==="incoming"?2600:2500;
+ const repeat=()=>{
+  if(!callSoundLoops[type])return;
+  playCallSound(type);
+  callSoundLoops[type]=window.setTimeout(repeat,cadence);
+ };
+ callSoundLoops[type]=true;repeat();
+}
+function stopRepeatingCallSound(type){
+ if(callSoundLoops[type]&&typeof callSoundLoops[type]==="number")window.clearTimeout(callSoundLoops[type]);
+ delete callSoundLoops[type];stopCallSoundPlayback(type);
+}
+function stopAllCallSounds(){
+ Object.keys(callSoundLoops).forEach(stopRepeatingCallSound);
+ ["incoming","waiting","join","leave"].forEach(stopCallSoundPlayback);
+}
+function syncWaitingCallSound(){
+ const otherIds=Object.keys(s.people||{}).filter(uid=>uid!==(me&&me.uid));
+ if(s.joined&&otherIds.length===0)startRepeatingCallSound("waiting");
+ else stopRepeatingCallSound("waiting");
+}
+function unlockCallSounds(){
+ const ctx=getCallAudioContext();
+ if(ctx&&ctx.state==="suspended")ctx.resume().catch(()=>{});
+}
+document.addEventListener("pointerdown",unlockCallSounds,true);
+document.addEventListener("keydown",unlockCallSounds,true);
+window.PrismVoiceSounds=Object.assign(window.PrismVoiceSounds||{},{
+ saveCustomSound:saveCustomCallSound,
+ customSoundInfo:getCustomCallSoundInfo,
+ clearCustomSound:clearCustomCallSound,
+ preview:(type,prefs)=>playCallSound(type,prefs)
+});
+function resolveIncomingPrompt(answer){
+ if(!incomingPromptResolver)return;
+ const resolve=incomingPromptResolver;incomingPromptResolver=null;
+ if(incomingPromptTimeout)window.clearTimeout(incomingPromptTimeout);
+ incomingPromptTimeout=null;
+ incomingCallPrompt.classList.remove("visible");
+ resolve(!!answer);
+}
+function showIncomingPrompt(callerName){
+ if(incomingPromptResolver)resolveIncomingPrompt(false);
+ $("voice-incoming-name").textContent=callerName;
+ incomingCallPrompt.classList.add("visible");
+ return new Promise(resolve=>{
+  incomingPromptResolver=resolve;
+  incomingPromptTimeout=window.setTimeout(()=>resolveIncomingPrompt(false),45000);
+ });
+}
+$("voice-incoming-answer").addEventListener("click",()=>resolveIncomingPrompt(true));
+$("voice-incoming-decline").addEventListener("click",()=>resolveIncomingPrompt(false));
 const valid = x => /^[A-Za-z0-9_-]{1,128}$/.test(String(x));
 const base = r => "prism/voiceRooms/" + r.sid + "/" + r.cid;
 function msg(t){if(typeof toast==="function")toast(t);else console.log(t);}
@@ -243,7 +444,17 @@ async function offer(uid,v){
 }
 async function peopleChanged(snap){
  if(!s.joined)return;
- const d=snap.val()||{};s.people=d;
+ const previous=s.people||{};
+ const hadPrevious=s.peopleReady===true;
+ const d=snap.val()||{};
+ s.people=d;s.peopleReady=true;
+ if(hadPrevious){
+  const added=Object.keys(d).some(uid=>uid!==(me&&me.uid)&&(!previous[uid]||previous[uid].session!==d[uid].session));
+  const removed=Object.keys(previous).some(uid=>uid!==(me&&me.uid)&&(!d[uid]||d[uid].session!==previous[uid].session));
+  if(added)playCallSound("join");
+  if(removed)playCallSound("leave");
+ }
+ syncWaitingCallSound();
  Array.from(s.peers.keys()).forEach(uid=>{if(!d[uid]||d[uid].session!==s.peers.get(uid).session)removePeer(uid);});
  Object.keys(d).forEach(uid=>{if(uid===me.uid)return;peer(uid,d[uid]);offer(uid,d[uid]);});
  render();
@@ -326,6 +537,9 @@ async function toggleCamera(){
 }
 async function stop(error){
  s.revision++;
+ stopAllCallSounds();
+ resolveIncomingPrompt(false);
+ s.peopleReady=false;
  const direct = s.directTarget;
  if(s.minimized)setMinimized(false);
  if(s.pr&&s.ph)s.pr.off("value",s.ph);if(s.inbox&&s.ih)s.inbox.off("child_added",s.ih);
@@ -345,6 +559,7 @@ async function stop(error){
 }
 async function start(){
  const runRevision=++s.revision;
+ s.peopleReady=false;
  const r=current();if(!r)return msg("Open a server text channel or direct message first.");
  if(!me||!me.uid||!firebase.auth().currentUser)return msg("Log in to Prism first.");
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.RTCPeerConnection)return msg("Voice requires HTTPS, a microphone, and WebRTC support.");
@@ -423,8 +638,10 @@ async function handleIncomingCall(snap){
  if(seenIncomingCalls.has(inviteId))return;
  seenIncomingCalls.add(inviteId);
  const callerName=String(invite.fromName||"Prism user").slice(0,40);
+ startRepeatingCallSound("incoming");
  let answer=false;
- try{answer=window.confirm(callerName+" is calling you on Prism. Answer the call?");}catch(_){}
+ try{answer=await showIncomingPrompt(callerName);}catch(_){}
+ stopRepeatingCallSound("incoming");
  const latest=await snap.ref.once("value").catch(()=>null);
  const live=latest&&latest.val();
  if(!live||live.status!=="ringing")return;
@@ -457,13 +674,14 @@ async function callUser(uid,name){
  s.inviteStateHandler=snap=>{
   const value=snap.val();
   if(!value||!s.directTarget||s.directTarget.callId!==callId)return;
-  if(value.status==="accepted"){note.textContent=targetName+" answered. Connecting…";}
-  if(value.status==="declined"){stop(targetName+" declined the call.");}
-  if(value.status==="missed"){stop("No answer from "+targetName+".");}
+  if(value.status==="accepted"){stopRepeatingCallSound("waiting");note.textContent=targetName+" answered. Connecting…";}
+  if(value.status==="declined"){stopRepeatingCallSound("waiting");stop(targetName+" declined the call.");}
+  if(value.status==="missed"){stopRepeatingCallSound("waiting");stop("No answer from "+targetName+".");}
  };
  inviteRef.on("value",s.inviteStateHandler);
  try{
   await inviteRef.set({fromUid:me.uid,fromName:me.name,roomSid:room.sid,roomCid:room.cid,status:"ringing",createdAt:Date.now()});
+  startRepeatingCallSound("waiting");
   await start();
   window.setTimeout(async()=>{
    if(!s.directTarget||s.directTarget.callId!==callId)return;
