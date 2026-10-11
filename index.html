@@ -2059,7 +2059,7 @@ $("set-avatar-reset").onclick = () => {
   refreshAvatarPreview();
 };
 $("set-open").onclick = openSettings;
-$("get-themes").onclick = () => window.open("https://ajgplayz-studio.github.io/prism/#invite=oVUfWYCa", "_blank", "noopener");
+$("get-themes").onclick = () => { window.open("https://ajgplayz-studio.github.io/prism/ct/#invite=oVUfWYCa", "_blank", "noopener,noreferrer"); };
 $("set-cancel").onclick = () => {
   $("settings").classList.add("hidden");
   draftAvatar = settings.avatar || "";
