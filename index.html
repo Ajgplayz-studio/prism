@@ -1775,7 +1775,7 @@ async function boot(){
     syncAdminSectionAccess();
   });
   bootRefs.push(ownAdminRef);
-  $("uname").innerHTML = esc(me.name) + "<small>online</small>";
+  updateAccountPresenceLabel();
   renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
   goOnline();
   loadSettings();
@@ -3505,6 +3505,12 @@ function applySettings(){
     renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
   }
 }
+async function updateAccountPresenceLabel(){
+  if(!me || !$("uname")) return;
+  const mode = settings.presenceMode || "online";
+  const label = mode === "dnd" ? "do not disturb" : mode === "offline" ? "offline" : "online";
+  $("uname").innerHTML = esc(me.name) + "<small>" + label + "</small>";
+}
 async function loadSettings(){
   settings = {theme: "dark", accent: "#5865f2", status: "", presenceMode: "online", bio: "", banner: "", css: "", avatar: "", notifications: false};
   try{
@@ -3519,6 +3525,7 @@ async function loadSettings(){
   settings.banner = isSafeBannerSource(settings.banner) ? settings.banner : "";
   settings.bio = String(settings.bio || "").slice(0,180);
   settings.presenceMode = ["online","dnd","offline"].includes(settings.presenceMode) ? settings.presenceMode : "online";
+  updateAccountPresenceLabel();
   selTheme = settings.theme || "dark";
   draftBanner = settings.banner;
   applySettings();
@@ -3874,6 +3881,7 @@ $("set-save").onclick = async () => {
   settings.accent = $("set-accent").value || "#5865f2";
   settings.status = $("set-status").value.trim().slice(0, 60);
   settings.presenceMode = ["online","dnd","offline"].includes($("set-presence-mode").value) ? $("set-presence-mode").value : "online";
+  updateAccountPresenceLabel();
   settings.bio = $("set-bio").value.trim().slice(0, 180);
   settings.banner = isSafeBannerSource(draftBanner) ? draftBanner : "";
   settings.notifications = $("set-notifications").checked;
@@ -4074,7 +4082,7 @@ function openUserProfile(uid, name, status, avatar, online){
       updateProfileCardDetails(uid, {
         bio: live.bio || v.bio || "",
         banner: live.banner || v.banner || "",
-        presenceMode: live.mode || v.presenceMode || (online ? "online" : "offline"),
+        presenceMode: live.mode || (online ? (v.presenceMode || "online") : "offline"),
         status: live.status || v.status || status || ""
       });
     }).catch(()=>{});
