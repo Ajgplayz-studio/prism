@@ -1297,6 +1297,40 @@
   }
 
 </style>
+<style id="prism-mentions-css">
+  #inputwrap { position:relative; }
+  #mention-suggestions {
+    position:absolute; left:0; bottom:calc(100% + 7px); z-index:150;
+    width:min(340px,calc(100vw - 30px)); max-height:min(280px,45vh); overflow-y:auto;
+    padding:5px; border:1px solid color-mix(in srgb,var(--text) 12%,transparent);
+    border-radius:10px; background:var(--side); color:var(--text);
+    box-shadow:0 14px 38px rgba(0,0,0,.38); overscroll-behavior:contain;
+  }
+  #mention-suggestions.hidden { display:none!important; }
+  .mention-suggestion {
+    width:100%; display:flex; align-items:center; gap:10px; text-align:left;
+    padding:9px 10px; border:0; border-radius:7px; background:transparent;
+    color:var(--text); cursor:pointer; min-height:42px;
+  }
+  .mention-suggestion:hover,.mention-suggestion.active { background:color-mix(in srgb,var(--accent) 17%,var(--side)); }
+  .mention-suggestion-avatar {
+    flex:none; width:29px; height:29px; display:grid; place-items:center;
+    border-radius:50%; background:color-mix(in srgb,var(--accent) 28%,var(--input));
+    color:var(--text); font-size:12px; font-weight:750;
+  }
+  .mention-suggestion-copy { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .mention-suggestion-name { font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mention-suggestion-detail { font-size:10px; color:var(--dim); }
+  .mention-token {
+    display:inline; border-radius:4px; padding:1px 3px;
+    color:var(--accent2,var(--accent)); background:color-mix(in srgb,var(--accent) 15%,transparent);
+    font-weight:650;
+  }
+  .mention-token.mention-everyone { color:#e7b64b; background:rgba(231,182,75,.15); }
+  .mention-token.mention-self { color:#fff; background:color-mix(in srgb,var(--accent) 50%,transparent); }
+  [data-theme="light"] .mention-token.mention-self { color:#262044; }
+  html.mobile-layout #mention-suggestions { width:min(340px,calc(100vw - 28px)); max-height:34dvh; }
+</style>
 </head>
 <body>
 
@@ -1501,7 +1535,8 @@
         <button type="button" data-format="quote" title="Quote" aria-label="Quote">❞</button>
         <button type="button" data-format="link" title="Insert link" aria-label="Insert link">↗</button>
       </div>
-      <textarea id="minput" rows="1" placeholder="Message"></textarea>
+      <div id="mention-suggestions" class="hidden" role="listbox" aria-label="Mention suggestions"></div>
+      <textarea id="minput" rows="1" placeholder="Message" aria-autocomplete="list" aria-controls="mention-suggestions"></textarea>
     </div></div>
   </div>
 
@@ -1730,12 +1765,24 @@ const linkify = s => {
     codeBlocks.push("<pre><code>" + code + "</code></pre>");
     return marker;
   });
+  // Keep @names inside inline code literal instead of treating them as mentions.
+  const inlineCode = new RegExp(tick + "([^" + tick + "\\n]+)" + tick, "g");
+  out = out.replace(inlineCode, (match, code) => {
+    const marker = "PRISMCODEBLOCK" + codeBlocks.length + "END";
+    codeBlocks.push("<code>" + code + "</code>");
+    return marker;
+  });
+  out = out.replace(/(^|[\s(])(@everyone|@[a-zA-Z0-9_]{3,20})(?=$|[\s.,!?;:)])/gi, (full, prefix, token) => {
+    const everyone = token.toLowerCase() === "@everyone";
+    const mine = !everyone && typeof me !== "undefined" && me &&
+      token.slice(1).toLowerCase() === String(me.name || "").toLowerCase();
+    const cls = everyone ? "mention-everyone" : mine ? "mention-self" : "mention-user";
+    return prefix + '<span class="mention-token ' + cls + '">' + token + '</span>';
+  });
   out = out.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/~~(.+?)~~/g, "<del>$1</del>");
   out = out.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
-  const inlineCode = new RegExp(tick + "([^" + tick + "\\n]+)" + tick, "g");
-  out = out.replace(inlineCode, "<code>$1</code>");
   out = out.replace(/(^|\n)&gt;\s?([^\n]+)/g, "$1<blockquote>$2</blockquote>");
   out = out.replace(/\n/g, "<br>");
   out = out.replace(/<a href="(https?:\/\/[^"]+\.(?:png|jpe?g|gif|webp|avif)(?:[?#][^"]*)?)" target="_blank" rel="noopener noreferrer">([^<]+)<\/a>/gi,
@@ -3582,7 +3629,9 @@ function notifyIncomingMessage(message, typeScope){
   if(document.visibilityState === "visible") return;
   const when = Number(message.ts) || Date.now();
   if(Date.now() - when > 15000) return;
-  const title = String(message.u || "New message").slice(0, 80);
+  const mentionKind = messageMentionKind(message,typeScope);
+  const title = (mentionKind === "everyone" ? "@everyone · " : mentionKind === "user" ? "Mentioned you · " : "") +
+    String(message.u || "New message").slice(0, 80);
   const body = String(message.t || "Sent an attachment").slice(0, 180);
   try {
     const notice = new Notification(title, {body: body, tag: "prism-" + typeScope, renotify: false});
@@ -3609,6 +3658,8 @@ function renderMessages(path, typeScope){
   let lastDay = "";
   listen(mRef, "child_added", snap => {
     const m = snap.val(); if(!m || !m.u) return;
+    rememberMentionUser(m.uid, m.u);
+    notifyMentionInApp(m, typeScope, snap.key);
     notifyIncomingMessage(m, typeScope);
     const d = new Date(m.ts || Date.now());
     const day = d.toLocaleDateString(undefined, {weekday: "long", month: "long", day: "numeric"});
@@ -3822,8 +3873,34 @@ function wireInput(){
     }
     minput.style.height = "auto";
     minput.style.height = Math.min(minput.scrollHeight, 120) + "px";
+    updateMentionSuggestions();
+  });
+  const mentionBox = $("mention-suggestions");
+  mentionBox.addEventListener("pointerdown", event => {
+    if(event.target.closest("[data-mention-index]")) event.preventDefault();
+  });
+  mentionBox.addEventListener("click", event => {
+    const button = event.target.closest("[data-mention-index]");
+    if(button) chooseMention(Number(button.dataset.mentionIndex));
   });
   minput.addEventListener("keydown", e => {
+    if(!mentionBox.classList.contains("hidden") && mentionOptions.length){
+      if(e.key === "ArrowDown" || e.key === "ArrowUp"){
+        e.preventDefault();
+        const step = e.key === "ArrowDown" ? 1 : -1;
+        activeMentionIndex = (activeMentionIndex + step + mentionOptions.length) % mentionOptions.length;
+        updateMentionSuggestions();
+        const active = mentionBox.querySelector('[data-mention-index="' + activeMentionIndex + '"]');
+        if(active) active.scrollIntoView({block:"nearest"});
+        return;
+      }
+      if(e.key === "Escape"){ e.preventDefault(); hideMentionSuggestions(); return; }
+      if((e.key === "Enter" && !e.shiftKey) || e.key === "Tab"){
+        e.preventDefault();
+        chooseMention(activeMentionIndex);
+        return;
+      }
+    }
     if((e.ctrlKey || e.metaKey) && ["b","i"].includes(e.key.toLowerCase())){
       e.preventDefault();
       formatComposer(e.key.toLowerCase()==="b"?"bold":"italic");
@@ -3836,6 +3913,20 @@ function send(){
   const t = $("minput").value.trim();
   if(!t || !me) return;
   const msg = {uid: me.uid, u: me.name, t: t.slice(0, 2000), ts: TS};
+  const mentionedUids = [];
+  const knownMentionUsers = collectMentionUsers();
+  const mentionPattern = /(^|[^a-zA-Z0-9_])@([a-zA-Z0-9_]{3,20})(?=$|[^a-zA-Z0-9_])/g;
+  let mentionMatch, mentionsEveryone = false;
+  while((mentionMatch = mentionPattern.exec(t))){
+    const mentionedName = mentionMatch[2];
+    if(mentionedName.toLowerCase() === "everyone"){
+      if(view.type === "server" && view.cid && view.ctype !== "forum") mentionsEveryone = true;
+      continue;
+    }
+    const user = knownMentionUsers.find(item => item.name.toLowerCase() === mentionedName.toLowerCase());
+    if(user && user.uid !== me.uid && !mentionedUids.includes(user.uid)) mentionedUids.push(user.uid);
+  }
+  if(mentionsEveryone || mentionedUids.length) msg.mentions = {everyone:mentionsEveryone,uids:mentionedUids};
   if(replyTo) msg.reply = replyTo;
   if(view.type === "server" && view.cid){
     if(view.ctype === "forum"){
@@ -3868,6 +3959,7 @@ function send(){
     });
   }else return;
   $("minput").value = ""; $("minput").style.height = "auto";
+  hideMentionSuggestions();
   clearReply();
 }
 
@@ -4601,6 +4693,139 @@ $("profile-card-call").onclick = () => {
   else toast("Calling is still loading. Try again in a moment.");
 };
 const presenceCache = Object.create(null);
+const mentionDirectory = new Map();
+const seenMentionAlerts = new Set();
+function rememberMentionUser(uid, name){
+  const userId = String(uid || "");
+  const userName = String(name || "").trim();
+  if(!userId || !userName || !validName(userName)) return;
+  mentionDirectory.set(userId, {uid:userId, name:userName});
+}
+function collectMentionUsers(){
+  const users = new Map();
+  if(me) users.set(me.uid, {uid:me.uid, name:me.name});
+  Object.entries(presenceCache).forEach(([uid, profile]) => {
+    if(profile && profile.name) users.set(uid, {uid:uid, name:profile.name});
+  });
+  mentionDirectory.forEach((profile, uid) => users.set(uid, profile));
+  document.querySelectorAll("#msgs .msg").forEach(el => {
+    const uid = el.dataset.author;
+    const name = el.dataset.authorLabel;
+    if(uid && name) users.set(uid, {uid:uid, name:name});
+  });
+  return [...users.values()].sort((a,b) => {
+    const ao = !!(presenceCache[a.uid] && presenceCache[a.uid].online);
+    const bo = !!(presenceCache[b.uid] && presenceCache[b.uid].online);
+    return Number(bo)-Number(ao) || a.name.localeCompare(b.name);
+  });
+}
+function currentMentionAtCursor(){
+  const input = $("minput");
+  if(!input || input.selectionStart == null) return null;
+  const before = input.value.slice(0, input.selectionStart);
+  const match = before.match(/(^|\s)@([a-zA-Z0-9_]{0,20})$/);
+  if(!match) return null;
+  return {query:match[2].toLowerCase(), start:input.selectionStart-match[2].length-1, end:input.selectionStart};
+}
+let mentionOptions = [];
+let activeMentionIndex = 0;
+function hideMentionSuggestions(){
+  const box = $("mention-suggestions");
+  if(!box) return;
+  box.classList.add("hidden");
+  box.replaceChildren();
+  mentionOptions = [];
+  activeMentionIndex = 0;
+  $("minput")?.setAttribute("aria-expanded","false");
+}
+function updateMentionSuggestions(){
+  const box = $("mention-suggestions");
+  const input = $("minput");
+  if(!box || !input || !me || document.activeElement !== input){
+    hideMentionSuggestions();
+    return;
+  }
+  const target = currentMentionAtCursor();
+  if(!target){ hideMentionSuggestions(); return; }
+  const options = [];
+  const isServerTextChannel = view && view.type === "server" && view.cid && view.ctype !== "forum";
+  if(isServerTextChannel && "everyone".startsWith(target.query)){
+    options.push({kind:"everyone", uid:"", name:"@everyone", detail:"Notify everyone in this channel"});
+  }
+  collectMentionUsers().forEach(user => {
+    if(user.name.toLowerCase().startsWith(target.query)){
+      options.push({
+        kind:"user", uid:user.uid, name:"@"+user.name,
+        detail:(presenceCache[user.uid] && presenceCache[user.uid].online) ? "Online · mention member" : "Mention member"
+      });
+    }
+  });
+  mentionOptions = options.slice(0,8);
+  activeMentionIndex = Math.max(0, Math.min(activeMentionIndex, mentionOptions.length-1));
+  box.replaceChildren();
+  if(!mentionOptions.length){ hideMentionSuggestions(); return; }
+  mentionOptions.forEach((option,index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mention-suggestion" + (index === activeMentionIndex ? " active" : "");
+    button.setAttribute("role","option");
+    button.setAttribute("aria-selected",index === activeMentionIndex ? "true" : "false");
+    button.dataset.mentionIndex = String(index);
+    const avatar = document.createElement("span");
+    avatar.className = "mention-suggestion-avatar";
+    avatar.textContent = option.kind === "everyone" ? "@" : (option.name.slice(1,2).toUpperCase() || "?");
+    const copy = document.createElement("span");
+    copy.className = "mention-suggestion-copy";
+    const name = document.createElement("span");
+    name.className = "mention-suggestion-name";
+    name.textContent = option.name;
+    const detail = document.createElement("span");
+    detail.className = "mention-suggestion-detail";
+    detail.textContent = option.detail;
+    copy.append(name,detail);
+    button.append(avatar,copy);
+    box.appendChild(button);
+  });
+  box.classList.remove("hidden");
+  input.setAttribute("aria-expanded","true");
+}
+function chooseMention(index){
+  const option = mentionOptions[index];
+  const target = currentMentionAtCursor();
+  if(!option || !target) return false;
+  const input = $("minput");
+  const token = option.kind === "everyone" ? "@everyone " : option.name + " ";
+  input.setRangeText(token,target.start,target.end,"end");
+  hideMentionSuggestions();
+  input.focus();
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+  return true;
+}
+function messageMentionKind(message,typeScope){
+  if(!message || !me) return "";
+  const text = String(message.t || "");
+  const mentionData = message.mentions || {};
+  const everyoneInChannel = String(typeScope || "").startsWith("s_") &&
+    (mentionData.everyone === true || /(^|[^a-zA-Z0-9_])@everyone(?=$|[^a-zA-Z0-9_])/i.test(text));
+  if(everyoneInChannel) return "everyone";
+  if(Array.isArray(mentionData.uids) && mentionData.uids.includes(me.uid)) return "user";
+  const escapedName = String(me.name || "").replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+  const ownMention = new RegExp("(^|[^a-zA-Z0-9_])@" + escapedName + "(?=$|[^a-zA-Z0-9_])","i");
+  return ownMention.test(text) ? "user" : "";
+}
+function notifyMentionInApp(message,typeScope,messageKey){
+  if(!message || !me || message.uid === me.uid || !messageMentionKind(message,typeScope)) return;
+  const timestamp = Number(message.ts) || 0;
+  if(!timestamp || Date.now()-timestamp > 15000 || timestamp > Date.now()+5000) return;
+  const key = String(typeScope) + "/" + String(messageKey || timestamp);
+  if(seenMentionAlerts.has(key)) return;
+  seenMentionAlerts.add(key);
+  if(seenMentionAlerts.size > 300) seenMentionAlerts.delete(seenMentionAlerts.values().next().value);
+  if(document.visibilityState === "visible"){
+    const kind = messageMentionKind(message,typeScope);
+    toast(kind === "everyone" ? (message.u || "Someone") + " mentioned everyone." : (message.u || "Someone") + " mentioned you.");
+  }
+}
 function renderMembers(snap){
   const box = $("memlist"); box.innerHTML = "";
   Object.keys(presenceCache).forEach(key => delete presenceCache[key]);
