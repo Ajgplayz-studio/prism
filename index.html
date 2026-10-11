@@ -2074,7 +2074,7 @@ $("discover-reset").onclick = () => {
   document.querySelectorAll(".discover-filter").forEach(b => b.classList.toggle("active", b.dataset.category === "All"));
   renderDiscoverServers();
 };
-$("home-new-dm").onclick = () => $("dm-add").click();
+$("home-new-dm").onclick = () => homeTab === "friends" ? promptAddFriend() : $("dm-add").click();
 $("home-empty-new").onclick = () => $("dm-add").click();
 $("sidebar-search-input").addEventListener("input", () => {
   $("home-search").value = $("sidebar-search-input").value;
