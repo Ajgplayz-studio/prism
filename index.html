@@ -4133,16 +4133,15 @@ document.querySelectorAll("#theme-row button").forEach(b => {
 });
 $("set-save").onclick = async () => {
   const urlValue = $("set-avatar-url").value.trim();
-  if(urlValue && !isSafeAvatarSource(urlValue)){
-    toast("Use a valid HTTPS image URL or upload an image.");
-    return;
-  }
+  // An invalid optional avatar URL must not prevent saving unrelated settings.
+  // Only replace the current avatar when the entered URL passes the safe-source check.
+  const usableAvatarUrl = urlValue && isSafeAvatarSource(urlValue) ? urlValue : "";
   const bannerUrlValue = $("set-banner-url").value.trim();
   if(bannerUrlValue && !isSafeBannerSource(bannerUrlValue)){
     toast("Use a valid HTTPS image/GIF URL or upload a banner.");
     return;
   }
-  if(urlValue) draftAvatar = urlValue;
+  if(usableAvatarUrl) draftAvatar = usableAvatarUrl;
   if(bannerUrlValue) draftBanner = bannerUrlValue;
   settings.theme = selTheme;
   settings.accent = $("set-accent").value || "#5865f2";
