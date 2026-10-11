@@ -2758,7 +2758,12 @@ async function deleteUser(uid, uname){
   if(!isAdmin() || uid === me.uid || adminIsProtectedName(uname)) return;
   try{
     await db.ref("prism/banned/" + uid).set({u: uname, ts: Date.now()});
-    const updates = {};
+  }catch(e){
+    toast("Couldn't ban the user.");
+    return;
+  }
+  const paths = [];
+  try{
     const dmIds = new Set();
     const dmSnap = await db.ref("prism/userDMs").once("value");
     const allDMs = dmSnap.val() || {};
@@ -2767,28 +2772,34 @@ async function deleteUser(uid, uname){
       Object.keys(m).forEach(other => {
         if(other === uid || ouid === uid){
           if(m[other] && m[other].dmId) dmIds.add(m[other].dmId);
-          updates["prism/userDMs/" + ouid + "/" + other] = null;
+          paths.push("prism/userDMs/" + ouid + "/" + other);
         }
       });
     });
-    const readSnap = await db.ref("prism/dmRead").once("value");
-    const allRead = readSnap.val() || {};
-    Object.keys(allRead).forEach(ouid => {
-      const m = allRead[ouid] || {};
-      Object.keys(m).forEach(dmId => {
-        if(dmIds.has(dmId)) updates["prism/dmRead/" + ouid + "/" + dmId] = null;
+    try{
+      const readSnap = await db.ref("prism/dmRead").once("value");
+      const allRead = readSnap.val() || {};
+      Object.keys(allRead).forEach(ouid => {
+        const m = allRead[ouid] || {};
+        Object.keys(m).forEach(dmId => {
+          if(dmIds.has(dmId)) paths.push("prism/dmRead/" + ouid + "/" + dmId);
+        });
       });
-    });
-    dmIds.forEach(id => { updates["prism/dmMessages/" + id] = null; });
-    updates["prism/users/" + uid] = null;
-    updates["prism/admins/" + uid] = null;
-    updates["prism/usernames/" + String(uname).toLowerCase()] = null;
-    updates["prism/presence/" + uid] = null;
-    updates["prism/myServers/" + uid] = null;
-    updates["prism/dmRead/" + uid] = null;
-    await db.ref().update(updates);
-    toast("User deleted.");
-  }catch(e){ toast("Couldn't delete the user."); }
+    }catch(e){}
+    dmIds.forEach(id => paths.push("prism/dmMessages/" + id));
+  }catch(e){}
+  paths.push(
+    "prism/users/" + uid,
+    "prism/admins/" + uid,
+    "prism/usernames/" + String(uname).toLowerCase(),
+    "prism/presence/" + uid,
+    "prism/myServers/" + uid,
+    "prism/dmRead/" + uid
+  );
+  let failed = 0;
+  await Promise.all(paths.map(p => db.ref(p).remove().catch(() => { failed++; })));
+  if(failed > 0) toast("User banned, but " + failed + " item(s) couldn't be removed (check database rules).");
+  else toast("User deleted.");
 }
 function confirmDeleteServer(sid){
   if(!isAdmin() || sid === "official" || (servers[sid] && servers[sid].officialMark === true)){
@@ -2806,33 +2817,37 @@ async function deleteServer(sid){
     toast("Official servers cannot be deleted. Ajgplayz must remove the Official mark first.");
     return;
   }
+  const paths = [];
+  const s = servers[sid] || {};
+  paths.push("prism/servers/" + sid);
+  if(s.invite) paths.push("prism/invites/" + s.invite);
+  paths.push("prism/serverChannels/" + sid);
+  paths.push("prism/messages/" + sid);
+  paths.push("prism/forum/" + sid);
+  paths.push("prism/forumReplies/" + sid);
   try{
-    const s = servers[sid] || {};
-    const updates = {};
-    updates["prism/servers/" + sid] = null;
-    if(s.invite) updates["prism/invites/" + s.invite] = null;
-    updates["prism/serverChannels/" + sid] = null;
-    updates["prism/messages/" + sid] = null;
-    updates["prism/forum/" + sid] = null;
-    updates["prism/forumReplies/" + sid] = null;
     const msnap = await db.ref("prism/myServers").once("value");
     const ms = msnap.val() || {};
     Object.keys(ms).forEach(uid => {
-      if(ms[uid] && ms[uid][sid]) updates["prism/myServers/" + uid + "/" + sid] = null;
+      if(ms[uid] && ms[uid][sid]) paths.push("prism/myServers/" + uid + "/" + sid);
     });
-    for(const p of ["prism/reactions", "prism/pins", "prism/typing"]){
-      const psnap = await db.ref(p).once("value").catch(() => null);
+  }catch(e){}
+  for(const p of ["prism/reactions", "prism/pins", "prism/typing"]){
+    try{
+      const psnap = await db.ref(p).once("value");
       const pv = (psnap && psnap.val()) || {};
       Object.keys(pv).forEach(scope => {
-        if(scope.indexOf("s_" + sid + "_") === 0) updates[p + "/" + scope] = null;
+        if(scope.indexOf("s_" + sid + "_") === 0) paths.push(p + "/" + scope);
       });
-    }
-    await db.ref().update(updates);
-    if(myServers) delete myServers[sid];
-    renderRail();
-    if(view.sid === sid) openServer("official");
-    toast("Server deleted.");
-  }catch(e){ toast("Couldn't delete the server."); }
+    }catch(e){}
+  }
+  let failed = 0;
+  await Promise.all(paths.map(p => db.ref(p).remove().catch(() => { failed++; })));
+  if(myServers) delete myServers[sid];
+  renderRail();
+  if(view.sid === sid) openServer("official");
+  if(failed > 0) toast("Server deleted with " + failed + " item(s) left behind (check database rules).");
+  else toast("Server deleted.");
 }
 
 /* ---------------- invites ---------------- */
