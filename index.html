@@ -2982,7 +2982,7 @@ function changeServerIcon(sid){
   let draftIcon = "";
   const safeIcon = value => typeof value === "string" && value.length <= 2100000 &&
     (/^https:\/\/[^\s"'<>]+$/i.test(value) || /^data:image\/(?:gif|jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value));
-  ["server-icon-url","server-icon-file","server-icon-preview","server-icon-label"].forEach(id=>{
+  ["server-icon-url","server-icon-file","server-icon-preview","server-icon-label","server-icon-clear"].forEach(id=>{
     const old=document.getElementById(id);if(old)old.remove();
   });
   openModal("Server icon", "Upload a picture or GIF, paste an HTTPS image URL, or enter an emoji. Leave empty to remove the icon.",
@@ -2992,7 +2992,7 @@ function changeServerIcon(sid){
         toast("Use a valid HTTPS image/GIF URL, or upload a PNG, JPG, WebP, or GIF under 1.5 MB.");
         return;
       }
-      const icon = safeIcon(entered) ? entered : (draftIcon || (entered ? Array.from(entered).slice(0,4).join("") : ""));
+      const icon = safeIcon(entered) ? entered : (entered ? Array.from(entered).slice(0,4).join("") : draftIcon);
       const updates={};
       updates["prism/servers/"+sid+"/icon"]=icon||null;
       if(servers[sid].discoverable===true) updates["prism/discoverableServers/"+sid+"/icon"]=icon||null;
@@ -3012,6 +3012,8 @@ function changeServerIcon(sid){
   upload.setAttribute("aria-label","Upload server icon");upload.style.cssText="display:block;max-width:100%;margin-top:8px;font-size:12px";
   const preview=document.createElement("img");
   preview.id="server-icon-preview";preview.alt="Icon preview";preview.style.cssText="display:none;width:56px;height:56px;object-fit:cover;border-radius:14px;margin-top:8px";
+  const clear=document.createElement("button");clear.id="server-icon-clear";clear.type="button";clear.textContent="Remove icon";clear.className="home-secondary";clear.style.cssText="display:block;margin-top:8px;padding:7px 10px;font-size:12px";
+  clear.onclick=()=>{draftIcon="";url.value="";preview.removeAttribute("src");preview.style.display="none";};
   if(safeIcon(servers[sid].icon)){
     preview.src=servers[sid].icon;preview.style.display="block";
     if(/^https:\/\//i.test(servers[sid].icon))url.value=servers[sid].icon;else draftIcon=servers[sid].icon;
@@ -3032,6 +3034,7 @@ function changeServerIcon(sid){
   label.insertAdjacentElement("afterend",url);
   url.insertAdjacentElement("afterend",upload);
   upload.insertAdjacentElement("afterend",preview);
+  preview.insertAdjacentElement("afterend",clear);
 }
 
 /* ---------------- DMs ---------------- */
