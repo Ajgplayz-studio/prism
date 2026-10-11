@@ -213,6 +213,18 @@
   #set-open{background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:6px;border-radius:6px}
   #set-open:hover{background:var(--hover);color:var(--text)}
 
+  /* ---------- server menu ---------- */
+  #channels .srv-name{cursor:pointer}
+  #channels .srv-name:hover{background:var(--hover)}
+  #srvmenu{position:fixed;z-index:70;background:var(--side);border:1px solid var(--darker);
+    border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:210px}
+  #srvmenu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);
+    padding:10px 12px;border-radius:6px;cursor:pointer;font-size:14px}
+  #srvmenu button:hover{background:var(--hover)}
+  #srvmenu button.danger{color:var(--err)}
+  #srvmenu button.info{opacity:.55;cursor:default}
+  #srvmenu button.info:hover{background:none}
+
   /* modal + toast */
   #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
   #modal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
@@ -311,6 +323,7 @@
 
 <div id="toast"></div>
 <div id="epick" class="hidden"></div>
+<div id="srvmenu" class="hidden"></div>
 
 <!-- settings -->
 <div id="settings" class="hidden">
@@ -379,6 +392,7 @@ function toast(msg){
 /* ---------------- state ---------------- */
 let me = null;                 // {uid, name}
 let servers = {};             // sid -> {name, owner}
+let myServers = {};           // sid -> true (servers I've joined)
 let view = {type:"server", sid:null, cid:null};
 let liveRefs = [];            // message/typing refs to .off() on view change
 let chanListRef = null;       // channel-list ref for the open server
@@ -449,6 +463,11 @@ auth.onAuthStateChanged(async user => {
     $("auth").classList.add("hidden");
     $("app").classList.remove("hidden");
     boot();
+    if(pendingInvite){
+      const code = pendingInvite;
+      pendingInvite = null;
+      setTimeout(() => handleInvite(code), 800);
+    }
   }else{
     me = null;
     unlisten();
@@ -476,12 +495,15 @@ async function boot(){
   sRef.on("value", snap => {
     servers = snap.val() || {};
     renderRail();
-    if(view.type === "server" && !view.sid){
-      const first = servers.official ? "official" : Object.keys(servers)[0];
-      if(first) openServer(first);
-    }
+    if(view.type === "server" && !view.sid) openServer("official");
   });
   bootRefs.push(sRef);
+  const msRef = db.ref("prism/myServers/" + me.uid);
+  msRef.on("value", snap => {
+    myServers = snap.val() || {};
+    renderRail();
+  });
+  bootRefs.push(msRef);
   const pRef = db.ref("prism/presence");
   pRef.on("value", renderMembers);
   bootRefs.push(pRef);
@@ -514,7 +536,8 @@ async function seedOfficial(){
 /* ---------------- servers ---------------- */
 function renderRail(){
   const rail = $("rail-servers"); rail.innerHTML = "";
-  const ids = Object.keys(servers).sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
+  const ids = Object.keys(servers).filter(sid => sid === "official" || (myServers && myServers[sid]));
+  ids.sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
   ids.forEach(sid => {
     const s = servers[sid]; if(!s) return;
     const d = document.createElement("div");
@@ -526,25 +549,54 @@ function renderRail(){
   });
 }
 $("srv-add").onclick = () => {
-  openModal("Create a server", "Give your server a name. Your friends will see it in the list.",
+  openModal("Create a server", "Give your server a name. Only people with your invite link can join — including you.",
     "My cool server", "Create", async name => {
       if(!name.trim()) return;
       const ref = db.ref("prism/servers").push();
       const sid = ref.key;
+      const code = makeInviteCode();
       try{
-        await ref.set({name: name.trim().slice(0, 32), owner: me.uid, createdAt: TS});
+        await ref.set({name: name.trim().slice(0, 32), owner: me.uid, createdAt: TS, invite: code});
+        await db.ref("prism/invites/" + code).set(sid);
         await db.ref("prism/serverChannels/" + sid + "/general")
           .set({name: "general", topic: "The beginning."});
-        openServer(sid);
+        const link = inviteLink(code);
+        openModal("Server created! 🎉",
+          "Here's your invite link. Everyone joins with this link — even you.",
+          "", "Copy link", () => copyText(link));
+        $("m-input").value = link;
+        $("m-input").readOnly = true;
+        $("m-input").select();
       }catch(e){ toast("Couldn't create the server."); }
     });
 };
+function makeInviteCode(){
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let s = "";
+  for(let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+function inviteLink(code){
+  return location.origin + location.pathname + "#invite=" + code;
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t)
+      .then(() => toast("Invite link copied!"))
+      .catch(() => toast("Couldn't copy — long-press the link to copy it."));
+  }else toast("Couldn't copy — long-press the link to copy it.");
+}
 function openServer(sid){
   if(!servers[sid]) return;
+  if(sid !== "official" && !(myServers && myServers[sid])){
+    toast("You need an invite link to join that server.");
+    return;
+  }
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "server", sid: sid, cid: null};
   $("srv-title").textContent = "◈ " + servers[sid].name;
+  $("srv-title").dataset.sid = sid;
   renderRail();
   chanListRef = db.ref("prism/serverChannels/" + sid);
   chanListRef.on("value", snap => {
@@ -574,6 +626,86 @@ function openChannel(sid, cid, cname, topic){
   $("chtopic").textContent = topic;
   $("minput").placeholder = "Message #" + cname;
   renderMessages("prism/messages/" + sid + "/" + cid, "s_" + sid + "_" + cid);
+}
+
+/* ---------------- invites ---------------- */
+let pendingInvite = null;
+function parseInviteHash(){
+  const m = location.hash.match(/^#invite=([A-Za-z0-9]+)/);
+  return m ? m[1] : null;
+}
+async function handleInvite(code){
+  history.replaceState(null, "", location.pathname);
+  if(!me) return;
+  try{
+    const inv = await db.ref("prism/invites/" + code).once("value");
+    if(!inv.exists()){ toast("That invite link is invalid or expired."); return; }
+    const sid = inv.val();
+    const sSnap = await db.ref("prism/servers/" + sid).once("value");
+    if(!sSnap.exists()){ toast("That server doesn't exist anymore."); return; }
+    servers[sid] = sSnap.val();
+    const name = sSnap.val().name || "a server";
+    const mem = await db.ref("prism/myServers/" + me.uid + "/" + sid).once("value");
+    if(mem.exists()){ openServer(sid); return; }
+    openModal("Join \"" + name + "\"?", "You've been invited to join this server.", "", "Join", async () => {
+      try{
+        await db.ref("prism/myServers/" + me.uid + "/" + sid).set(true);
+        myServers[sid] = true;
+        renderRail();
+        openServer(sid);
+        toast("Welcome to " + name + "!");
+      }catch(e){ toast("Couldn't join the server."); }
+    });
+    $("m-input").style.display = "none";
+  }catch(e){ toast("Couldn't open that invite."); }
+}
+function toggleSrvMenu(e){
+  if(e) e.stopPropagation();
+  const sid = $("srv-title").dataset.sid;
+  if(!sid || !servers[sid]) return;
+  const m = $("srvmenu");
+  const wasHidden = m.classList.contains("hidden");
+  closeSrvMenu();
+  if(!wasHidden) return;
+  m.innerHTML = "";
+  if(sid === "official"){
+    const d = document.createElement("button");
+    d.className = "info";
+    d.textContent = "◈ Official server — open to everyone";
+    m.appendChild(d);
+  }else{
+    const inv = document.createElement("button");
+    inv.textContent = "📋 Copy invite link";
+    inv.onclick = () => { closeSrvMenu(); copyText(inviteLink(servers[sid].invite)); };
+    m.appendChild(inv);
+    const lv = document.createElement("button");
+    lv.textContent = "🚪 Leave server";
+    lv.className = "danger";
+    lv.onclick = () => { closeSrvMenu(); leaveServer(sid); };
+    m.appendChild(lv);
+  }
+  const r = $("srv-title").getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 230)) + "px";
+  m.style.top = (r.bottom + 6) + "px";
+  m.classList.remove("hidden");
+  setTimeout(() => document.addEventListener("click", srvMenuOutside), 0);
+}
+function srvMenuOutside(e){
+  const m = $("srvmenu");
+  if(m && !m.classList.contains("hidden") && !m.contains(e.target)) closeSrvMenu();
+}
+function closeSrvMenu(){
+  const m = $("srvmenu");
+  if(m) m.classList.add("hidden");
+  document.removeEventListener("click", srvMenuOutside);
+}
+function leaveServer(sid){
+  if(!me || sid === "official") return;
+  db.ref("prism/myServers/" + me.uid + "/" + sid).remove().catch(() => {});
+  if(myServers) delete myServers[sid];
+  renderRail();
+  if(view.sid === sid) openServer("official");
+  toast("You left the server.");
 }
 
 /* ---------------- DMs ---------------- */
@@ -1068,6 +1200,8 @@ function openModal(title, sub, placeholder, okLabel, cb){
   $("m-title").textContent = title;
   $("m-sub").textContent = sub;
   $("m-input").value = "";
+  $("m-input").readOnly = false;
+  $("m-input").style.display = "";
   $("m-input").placeholder = placeholder;
   $("m-ok").textContent = okLabel;
   modalCb = cb;
@@ -1079,6 +1213,14 @@ $("m-cancel").onclick = closeModal;
 $("pinbtn").onclick = openPins;
 $("pins-close").onclick = closePins;
 $("reply-x").onclick = clearReply;
+$("srv-title").parentElement.style.cursor = "pointer";
+$("srv-title").parentElement.onclick = toggleSrvMenu;
+pendingInvite = parseInviteHash();
+window.addEventListener("hashchange", () => {
+  const code = parseInviteHash();
+  if(code && me) handleInvite(code);
+  else if(code) pendingInvite = code;
+});
 $("m-ok").onclick = () => { const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); };
 $("m-input").addEventListener("keydown", e => {
   if(e.key === "Enter"){ const v = $("m-input").value; const cb = modalCb; closeModal(); if(cb) cb(v); }
