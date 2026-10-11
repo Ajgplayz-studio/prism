@@ -987,6 +987,36 @@
   .discover-editor-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:21px; }
   .discover-editor-actions button { min-width:100px; }
 
+
+  /* User profile popover and browser notification preference */
+  .notification-setting {
+    display:flex; align-items:flex-start; gap:10px; padding:11px 12px;
+    border:1px solid color-mix(in srgb,var(--text) 8%,transparent);
+    border-radius:5px; background:var(--input); cursor:pointer;
+  }
+  .notification-setting input { margin:3px 0 0; accent-color:var(--accent); flex:none; }
+  .notification-setting span { display:flex; flex-direction:column; gap:4px; }
+  .notification-setting b { color:var(--text); font-size:12px; font-weight:650; }
+  .notification-setting small { color:var(--dim); font-size:10px; line-height:1.45; text-transform:none; letter-spacing:0; font-weight:400; }
+  #profile-card { position:fixed; inset:0; z-index:130; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.58); backdrop-filter:blur(2px); }
+  #profile-card.hidden { display:none!important; }
+  .profile-card-box { position:relative; width:min(340px,92vw); overflow:hidden; border:1px solid color-mix(in srgb,var(--text) 10%,transparent); border-radius:8px; background:var(--side); color:var(--text); box-shadow:0 18px 50px rgba(0,0,0,.38); }
+  .profile-card-banner { height:88px; background:linear-gradient(110deg,color-mix(in srgb,var(--accent) 44%,var(--side)),var(--side)); border-bottom:1px solid color-mix(in srgb,var(--text) 7%,transparent); }
+  #profile-card-close { position:absolute; top:10px; right:10px; width:28px; height:28px; border:1px solid color-mix(in srgb,#fff 12%,transparent); border-radius:5px; background:rgba(10,10,14,.25); color:var(--text); font-size:20px; cursor:pointer; }
+  #profile-card-avatar { width:76px; height:76px; margin:-39px 0 0 18px; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden; border-radius:50%; border:5px solid var(--side); background:var(--accent); color:#fff; font-size:24px; font-weight:700; }
+  #profile-card-avatar img { width:100%; height:100%; object-fit:cover; }
+  .profile-card-content { padding:10px 18px 18px; }
+  .profile-card-content h2 { font-size:18px; font-weight:700; line-height:1.25; overflow-wrap:anywhere; }
+  #profile-card-presence { display:flex; align-items:center; gap:6px; margin-top:7px; color:var(--dim); font-size:11px; }
+  .profile-presence-dot { width:8px; height:8px; background:#3bb981; border-radius:50%; }
+  #profile-card-presence.offline .profile-presence-dot { background:#888b94; }
+  #profile-card-note { min-height:8px; margin-top:10px; color:var(--dim); font-size:11px; line-height:1.45; }
+  .profile-card-actions { display:flex; gap:8px; margin-top:15px; }
+  .profile-card-actions button { flex:1; justify-content:center; }
+  .msg .mu, .mem[role="button"] { cursor:pointer; }
+  .msg .mu:hover { text-decoration:underline; }
+  .mem[role="button"]:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+
 </style>
 </head>
 <body>
@@ -1192,11 +1222,33 @@
     <div class="trow"><input type="color" id="set-accent" value="#5865f2"></div>
     <label>Status</label>
     <input type="text" id="set-status" maxlength="60" placeholder="What's on your mind?" autocomplete="off">
+    <label class="notification-setting">
+      <input type="checkbox" id="set-notifications">
+      <span><b>Desktop notifications</b><small>Show a notification when a new message arrives while Prism is in the background.</small></span>
+    </label>
     <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
     <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
     <div class="row">
       <button id="set-save">Save</button>
       <button id="set-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- User profile card -->
+<div id="profile-card" class="hidden" role="dialog" aria-modal="true" aria-label="User profile">
+  <div class="profile-card-box">
+    <div class="profile-card-banner"></div>
+    <button type="button" id="profile-card-close" aria-label="Close profile">×</button>
+    <div id="profile-card-avatar">?</div>
+    <div class="profile-card-content">
+      <h2 id="profile-card-name">User</h2>
+      <div id="profile-card-presence"><span class="profile-presence-dot"></span><span id="profile-card-status">Online</span></div>
+      <p id="profile-card-note"></p>
+      <div class="profile-card-actions">
+        <button id="profile-card-message" class="home-primary" type="button">Message</button>
+        <button id="profile-card-copy" class="home-secondary" type="button">Copy username</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2403,6 +2455,22 @@ function openDM(otherUid, otherName, dmId){
 let msgScope = "", msgPath = "";
 let rxnData = {}, pinData = {};
 let replyTo = null;
+function notifyIncomingMessage(message, typeScope){
+  if(!settings || settings.notifications !== true || !message || message.uid === (me && me.uid)) return;
+  if(!("Notification" in window) || Notification.permission !== "granted") return;
+  if(document.visibilityState === "visible") return;
+  const when = Number(message.ts) || Date.now();
+  if(Date.now() - when > 15000) return;
+  const title = String(message.u || "New message").slice(0, 80);
+  const body = String(message.t || "Sent an attachment").slice(0, 180);
+  try {
+    const notice = new Notification(title, {body: body, tag: "prism-" + typeScope, renotify: false});
+    notice.onclick = () => {
+      try { window.focus(); } catch(e) {}
+      notice.close();
+    };
+  } catch(e) {}
+}
 function renderMessages(path, typeScope){
   $("msgs").innerHTML = ""; $("typing").textContent = "";
   $("minput").value = ""; $("minput").style.height = "auto";
@@ -2419,6 +2487,7 @@ function renderMessages(path, typeScope){
   let lastDay = "";
   listen(mRef, "child_added", snap => {
     const m = snap.val(); if(!m || !m.u) return;
+    notifyIncomingMessage(m, typeScope);
     const d = new Date(m.ts || Date.now());
     const day = d.toLocaleDateString(undefined, {weekday: "long", month: "long", day: "numeric"});
     if(day !== lastDay){
@@ -2488,6 +2557,14 @@ function buildMsgEl(key, m, typeScope, path){
     ((mine || isAdmin()) ? '<button data-act="del" title="Delete" aria-label="Delete message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button>' : "") +
     "</div>";
   el.innerHTML = html;
+  const authorButton = el.querySelector(".mu");
+  if(authorButton){
+    authorButton.tabIndex = 0;
+    authorButton.setAttribute("role", "button");
+    authorButton.setAttribute("aria-label", "Open " + m.u + "'s profile");
+    authorButton.onclick = event => { event.stopPropagation(); openUserProfile(m.uid || "", m.u, (presenceCache[m.uid] && presenceCache[m.uid].status) || "", (presenceCache[m.uid] && presenceCache[m.uid].avatar) || profileAvatarCache[m.uid] || "", !!presenceCache[m.uid]); };
+    authorButton.onkeydown = event => { if(event.key === "Enter" || event.key === " "){ event.preventDefault(); authorButton.onclick(event); } };
+  }
   el.querySelector('[data-act="react"]').onclick = e => {
     e.stopPropagation(); openEmojiPicker(e.currentTarget, typeScope, key);
   };
@@ -2589,7 +2666,7 @@ function send(){
 }
 
 /* ---------------- themes & settings ---------------- */
-let settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: ""};
+let settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: "", notifications: false};
 let selTheme = "dark";
 function applySettings(){
   const root = document.documentElement;
@@ -2606,7 +2683,7 @@ function applySettings(){
   }
 }
 async function loadSettings(){
-  settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: ""};
+  settings = {theme: "dark", accent: "#5865f2", status: "", css: "", avatar: "", notifications: false};
   try{
     const snap = await db.ref("prism/users/" + me.uid + "/settings").once("value");
     if(snap.exists()) settings = Object.assign({}, settings, snap.val());
@@ -2633,6 +2710,7 @@ function openSettings(){
     b.classList.toggle("sel", b.dataset.th === selTheme));
   $("set-accent").value = settings.accent || "#5865f2";
   $("set-status").value = settings.status || "";
+  $("set-notifications").checked = settings.notifications === true;
   $("set-css").value = settings.css || "";
   $("settings").classList.remove("hidden");
 }
@@ -2702,6 +2780,12 @@ $("set-avatar-reset").onclick = () => {
   refreshAvatarPreview();
 };
 $("set-open").onclick = openSettings;
+$("avatar").style.cursor = "pointer";
+$("avatar").onclick = () => me && openUserProfile(me.uid, me.name, settings.status || "", settings.avatar || "", true);
+$("avatar").onkeydown = event => { if(event.key === "Enter" || event.key === " "){ event.preventDefault(); $("avatar").click(); } };
+document.addEventListener("keydown", event => {
+  if(event.key === "Escape" && !$("profile-card").classList.contains("hidden")) closeUserProfile();
+});
 $("get-themes").onclick = () => { window.open("https://ajgplayz-studio.github.io/prism/ct/#invite=oVUfWYCa", "_blank", "noopener,noreferrer"); };
 $("set-cancel").onclick = () => {
   $("settings").classList.add("hidden");
@@ -2724,7 +2808,16 @@ $("set-save").onclick = async () => {
   settings.theme = selTheme;
   settings.accent = $("set-accent").value || "#5865f2";
   settings.status = $("set-status").value.trim().slice(0, 60);
+  settings.notifications = $("set-notifications").checked;
   settings.css = $("set-css").value;
+  if(settings.notifications && "Notification" in window && Notification.permission === "default"){
+    try { await Notification.requestPermission(); } catch(e) {}
+  }
+  if(settings.notifications && (!("Notification" in window) || Notification.permission !== "granted")){
+    settings.notifications = false;
+    $("set-notifications").checked = false;
+    toast("This browser doesn't allow desktop notifications right now.");
+  }
   settings.avatar = isSafeAvatarSource(draftAvatar) ? draftAvatar : "";
   applySettings();
   $("settings").classList.add("hidden");
@@ -2866,14 +2959,60 @@ function openPins(){
 function closePins(){ $("pins").classList.add("hidden"); }
 
 /* ---------------- members ---------------- */
+let profileCardUser = null;
+function openUserProfile(uid, name, status, avatar, online){
+  profileCardUser = {uid:uid, name:name || "User"};
+  const box = $("profile-card");
+  $("profile-card-name").textContent = name || "User";
+  $("profile-card-status").textContent = status || (online ? "Online" : "Offline");
+  $("profile-card-note").textContent = uid === (me && me.uid) ? "This is how other Prism users see you." : "";
+  $("profile-card-presence").classList.toggle("offline", !online);
+  renderProfileAvatar($("profile-card-avatar"), avatar || "", name || "?");
+  $("profile-card-message").textContent = uid === (me && me.uid) ? "Your profile" : "Message";
+  $("profile-card-message").disabled = uid === (me && me.uid);
+  box.classList.remove("hidden");
+}
+function closeUserProfile(){ $("profile-card").classList.add("hidden"); profileCardUser = null; }
+$("profile-card-close").onclick = closeUserProfile;
+$("profile-card").addEventListener("click", event => { if(event.target === $("profile-card")) closeUserProfile(); });
+$("profile-card-copy").onclick = async () => {
+  if(!profileCardUser) return;
+  const name = profileCardUser.name;
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(name);
+    else throw new Error("Clipboard unavailable");
+    toast("Username copied.");
+  } catch(e) {
+    openModal("Copy username", "Copy this Prism username.", name, "Close", () => {});
+    $("m-input").value = name;
+    $("m-input").readOnly = true;
+    $("m-input").select();
+  }
+};
+$("profile-card-message").onclick = async () => {
+  const profile = profileCardUser;
+  closeUserProfile();
+  if(!profile || !me || profile.uid === me.uid) return;
+  const existing = await db.ref("prism/userDMs/" + me.uid + "/" + profile.uid).once("value").catch(() => null);
+  if(existing && existing.exists()){
+    const info = existing.val() || {};
+    openDM(profile.uid, profile.name, info.dmId);
+    return;
+  }
+  $("dm-add").click();
+  $("m-input").value = profile.name;
+};
+const presenceCache = Object.create(null);
 function renderMembers(snap){
   const box = $("memlist"); box.innerHTML = "";
+  Object.keys(presenceCache).forEach(key => delete presenceCache[key]);
   const now = Date.now(), seen = {};
   snap.forEach(c => {
     const v = c.val();
     if(!v || !v.u || seen[v.u]) return;
     if(now - (v.ts || 0) > 120000) return;
     seen[v.u] = 1;
+    presenceCache[c.key] = {uid:c.key, name:v.u, status:v.status || "", avatar:v.avatar || "", online:true};
     if(v.avatar && isSafeAvatarSource(v.avatar)){
       profileAvatarCache[c.key] = v.avatar;
       avatarReadDone.add(c.key);
@@ -2884,6 +3023,11 @@ function renderMembers(snap){
       esc(v.u[0].toUpperCase()) + '</div><div class="mtext"><div class="mname">' + esc(v.u) + "</div>" +
       (v.status ? '<div class="mstatus">' + esc(v.status) + "</div>" : "") + "</div>";
     renderProfileAvatar(d.querySelector(".mav"), v.avatar || profileAvatarCache[c.key] || "", v.u);
+    d.tabIndex = 0;
+    d.setAttribute("role", "button");
+    d.setAttribute("aria-label", "Open " + v.u + "'s profile");
+    d.onclick = () => openUserProfile(c.key, v.u, v.status || "", v.avatar || profileAvatarCache[c.key] || "", true);
+    d.onkeydown = event => { if(event.key === "Enter" || event.key === " "){ event.preventDefault(); openUserProfile(c.key, v.u, v.status || "", v.avatar || profileAvatarCache[c.key] || "", true); } };
     if(isAdmin() && c.key !== me.uid){
       const del = document.createElement("button");
       del.className = "mdel"; del.textContent = "🗑"; del.title = "Delete user";
