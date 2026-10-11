@@ -1873,7 +1873,7 @@ function renderRail(){
     const s = servers[sid]; if(!s) return;
     const d = document.createElement("div");
     d.className = "srv" + (!homeView && view.type === "server" && view.sid === sid ? " active" : "");
-    d.title = s.name;
+    d.title = (s.officialMark === true ? "Official • " : s.verified === true ? "Verified • " : "") + s.name;
     d.innerHTML = "<span class='pill'></span>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase()));
     d.onclick = () => openServer(sid);
     rail.appendChild(d);
@@ -2306,11 +2306,16 @@ function renderDiscoverServers(){
     const name = document.createElement("h3");
     name.textContent = server.name || "Untitled server";
     heading.appendChild(name);
-    if(sid === "official"){
+    if(sid === "official" || server.officialMark === true){
       const official = document.createElement("span");
       official.className = "discover-official-tag";
       official.textContent = "Official";
       heading.appendChild(official);
+    }else if(server.verified === true){
+      const verified = document.createElement("span");
+      verified.className = "discover-official-tag";
+      verified.textContent = "✓ Verified";
+      heading.appendChild(verified);
     }
     const desc = document.createElement("p");
     desc.className = "discover-server-description";
@@ -2459,7 +2464,7 @@ function openServer(sid){
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "server", sid: sid, cid: null};
-  $("srv-title").textContent = "◈ " + servers[sid].name;
+  $("srv-title").textContent = "◈ " + servers[sid].name + (sid === "official" || servers[sid].officialMark === true ? " ★ Official" : servers[sid].verified === true ? " ✓ Verified" : "");
   $("srv-title").dataset.sid = sid;
   renderRail();
   chanListRef = db.ref("prism/serverChannels/" + sid);
@@ -2747,7 +2752,10 @@ async function deleteUser(uid, uname){
   }catch(e){ toast("Couldn't delete the user."); }
 }
 function confirmDeleteServer(sid){
-  if(!isAdmin() || sid === "official") return;
+  if(!isAdmin() || sid === "official" || (servers[sid] && servers[sid].officialMark === true)){
+    toast("Official servers cannot be deleted.");
+    return;
+  }
   const name = servers[sid] ? servers[sid].name : "this server";
   openModal("Delete server",
     "Really delete \"" + name + "\"? This removes the server, all its channels, messages, posts and memberships. This can't be undone.",
@@ -2755,7 +2763,10 @@ function confirmDeleteServer(sid){
   $("m-input").style.display = "none";
 }
 async function deleteServer(sid){
-  if(sid === "official"){ toast("You can't delete the official server."); return; }
+  if(sid === "official" || (servers[sid] && servers[sid].officialMark === true)){
+    toast("Official servers cannot be deleted. Ajgplayz must remove the Official mark first.");
+    return;
+  }
   try{
     const s = servers[sid] || {};
     const updates = {};
@@ -2816,6 +2827,50 @@ async function handleInvite(code){
     $("m-input").style.display = "none";
   }catch(e){ toast("Couldn't open that invite."); }
 }
+function isAjgplayz(){
+  return !!(me && String(me.name || "").trim().toLowerCase() === "ajgplayz");
+}
+async function setServerVerified(sid, enabled){
+  if(!isAjgplayz() || !sid || sid === "official" || !servers[sid]){ toast("Only Ajgplayz can verify servers."); return; }
+  const server = servers[sid] || {};
+  if(!enabled && server.officialMark === true){ toast("Unmark this server as Official before removing verification."); return; }
+  const updates = {};
+  updates["prism/servers/" + sid + "/verified"] = enabled ? true : null;
+  updates["prism/servers/" + sid + "/verifiedBy"] = enabled ? me.name : null;
+  updates["prism/servers/" + sid + "/verifiedAt"] = enabled ? Date.now() : null;
+  if(server.discoverable === true){
+    updates["prism/discoverableServers/" + sid + "/verified"] = enabled ? true : null;
+    updates["prism/discoverableServers/" + sid + "/verifiedBy"] = enabled ? me.name : null;
+    updates["prism/discoverableServers/" + sid + "/verifiedAt"] = enabled ? Date.now() : null;
+  }
+  try{ await db.ref().update(updates); toast(enabled ? "Server verified." : "Server verification removed."); }
+  catch(e){ toast("Couldn't change verification. Check Firebase rules."); }
+}
+async function setServerOfficialMark(sid, enabled){
+  if(!isAjgplayz() || !sid || sid === "official" || !servers[sid]){ toast("Only Ajgplayz can mark servers Official."); return; }
+  const server = servers[sid] || {};
+  const updates = {};
+  updates["prism/servers/" + sid + "/officialMark"] = enabled ? true : null;
+  updates["prism/servers/" + sid + "/officialMarkedBy"] = enabled ? me.name : null;
+  updates["prism/servers/" + sid + "/officialMarkedAt"] = enabled ? Date.now() : null;
+  if(enabled){
+    updates["prism/servers/" + sid + "/verified"] = true;
+    updates["prism/servers/" + sid + "/verifiedBy"] = me.name;
+    updates["prism/servers/" + sid + "/verifiedAt"] = Date.now();
+  }
+  if(server.discoverable === true){
+    updates["prism/discoverableServers/" + sid + "/officialMark"] = enabled ? true : null;
+    updates["prism/discoverableServers/" + sid + "/officialMarkedBy"] = enabled ? me.name : null;
+    updates["prism/discoverableServers/" + sid + "/officialMarkedAt"] = enabled ? Date.now() : null;
+    if(enabled){
+      updates["prism/discoverableServers/" + sid + "/verified"] = true;
+      updates["prism/discoverableServers/" + sid + "/verifiedBy"] = me.name;
+      updates["prism/discoverableServers/" + sid + "/verifiedAt"] = Date.now();
+    }
+  }
+  try{ await db.ref().update(updates); toast(enabled ? "Server marked Official and verified." : "Official mark removed."); }
+  catch(e){ toast("Couldn't change the Official mark. Check Firebase rules."); }
+}
 function toggleSrvMenu(e){
   if(e) e.stopPropagation();
   const sid = $("srv-title").dataset.sid;
@@ -2850,13 +2905,23 @@ function toggleSrvMenu(e){
     lv.className = "danger";
     lv.onclick = () => { closeSrvMenu(); leaveServer(sid); };
     m.appendChild(lv);
-    if(isAdmin()){
+    if(isAdmin() && !servers[sid].officialMark){
       const ds = document.createElement("button");
       ds.textContent = "🗑️ Delete server";
       ds.className = "danger";
       ds.onclick = () => { closeSrvMenu(); confirmDeleteServer(sid); };
       m.appendChild(ds);
     }
+  }
+  if(isAjgplayz() && sid !== "official"){
+    const verify = document.createElement("button");
+    verify.textContent = servers[sid].verified === true ? "☑ Remove verification" : "☑ Verify server";
+    verify.onclick = () => { closeSrvMenu(); setServerVerified(sid, servers[sid].verified !== true); };
+    m.appendChild(verify);
+    const official = document.createElement("button");
+    official.textContent = servers[sid].officialMark === true ? "★ Remove Official mark" : "★ Mark Official";
+    official.onclick = () => { closeSrvMenu(); setServerOfficialMark(sid, servers[sid].officialMark !== true); };
+    m.appendChild(official);
   }
   const r = $("srv-title").getBoundingClientRect();
   m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 230)) + "px";
@@ -3551,11 +3616,12 @@ function renderAdminServers(){
     const item=document.createElement("div");item.className="admin-data-row";
     const copy=document.createElement("div");copy.className="admin-data-copy";
     const name=document.createElement("b");name.textContent=row.server.name||"Untitled server";
-    const meta=document.createElement("span");meta.textContent=row.sid==="official"?"Official server":"Owner: "+(row.server.owner||"Unknown");
+    const meta=document.createElement("span");meta.textContent=(row.sid==="official"||row.server.officialMark===true?"Official server":row.server.verified===true?"Verified server • ":"")+(row.sid==="official"||row.server.officialMark===true?"":"Owner: "+(row.server.owner||"Unknown"));
     copy.append(name,meta);
+    const protectedServer = row.sid === "official" || row.server.officialMark === true;
     const action=document.createElement("button");action.type="button";action.className="admin-danger-button";
-    action.textContent=row.sid==="official"?"Protected":"Delete";
-    action.disabled=row.sid==="official";action.title=action.disabled?"The official server cannot be deleted.":"Delete server";
+    action.textContent=protectedServer?"Protected":"Delete";
+    action.disabled=protectedServer;action.title=action.disabled?"Official servers cannot be deleted.":"Delete server";
     if(!action.disabled)action.onclick=()=>confirmDeleteServer(row.sid);
     item.append(copy,action);box.appendChild(item);
   });
