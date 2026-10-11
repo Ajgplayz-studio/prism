@@ -685,11 +685,11 @@ async function boot(){
   goOnline();
   loadSettings();
   const banRef = db.ref("prism/banned/" + me.uid);
-  banRef.on("value", snap => {
-    if(snap.exists()){
-      toast("Your account was deleted by an admin.");
-      auth.signOut();
-    }
+  banRef.on("value", async snap => {
+    if(!snap.exists()) return;
+    toast("Your account was deleted by an admin.");
+    try{ if(auth.currentUser) await auth.currentUser.delete(); }catch(e){}
+    try{ await auth.signOut(); }catch(e){}
   });
   bootRefs.push(banRef);
   setInterval(() => { if(me) db.ref("prism/presence/" + me.uid).update({ts: TS}); }, 60000);
