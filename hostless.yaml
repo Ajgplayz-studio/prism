@@ -1,7 +1,0 @@
-# Hostless deployment configuration for Prism Voice Chat.
-# Both paths explicitly point at the repository root to avoid the stale /PRIVATE path.
-working_directory: /
-build_context_directory: /
-build:
-  system: auto
-start_command: npm start

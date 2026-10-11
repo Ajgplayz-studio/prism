@@ -2,7 +2,7 @@
 
 **Prism** is a free and open-source Discord alternative where *everything* is free — no Nitro, no paywalled features, no premium tiers. Just chat.
 
-🌐 **Original live demo:** https://ajgplayz-studio.github.io/prism/
+🌐 **Live demo:** https://ajgplayz-studio.github.io/prism/
 
 ---
 
@@ -73,7 +73,7 @@ Prism is a single static `index.html` — no frameworks, no build step.
 2. Create a [Firebase](https://console.firebase.google.com/) project.
 3. Enable **Authentication → Email/Password** sign-in.
 4. Create a **Realtime Database** and wire your config into `index.html` (search for `firebaseConfig`).
-5. Go to **Settings → Pages**, set the branch to `main`, and hit **Save**.
+5. To deploy this voice-enabled branch, go to **Settings → Pages** and set the source to **GitHub Actions**. The workflow in `.github/workflows/pages.yml` deploys the `voice-chat-static` branch.
 6. Your site will be live at `https://[your-username].github.io/[repo-name]`.
 
 > ⚠️ The default database rules used during development allow open read/write (test mode). Before going public, tighten your [Realtime Database rules](https://firebase.google.com/docs/database/security) — especially around invites and membership.
@@ -88,28 +88,14 @@ Prism is a single static `index.html` — no frameworks, no build step.
 
 ## 🗺️ What's not here (yet)
 
-This `voice-chat-static` branch adds channel voice chat. GIF search, video calls, and file uploads are still not included.
+Voice chat is added on the `voice-chat-static` branch. Video calls, GIF search, and file uploads are not included.
 
 ---
 
+## 🎙️ Voice chat (this branch)
+
+Open a server text channel and click **Join Voice**. Allow microphone access to join, use **Mute mic** to mute yourself, and **Leave voice** to disconnect. Audio is peer-to-peer; Firebase Realtime Database carries room presence and WebRTC signaling, not the audio stream.
+
+This branch uses the original `discord-prism` Firebase project to keep the same accounts and messages as the original Prism. The owner of that Firebase project must authorize `michaelmb110b12-wq.github.io` under **Authentication → Settings → Authorized domains** and merge the voice rules in [VOICE_CHAT_RULES.md](./VOICE_CHAT_RULES.md) into the existing database rules. Do not replace the existing rules with only that fragment. Some restrictive networks need a TURN relay for audio to connect.
+
 Made with 💜 — free forever, no Nitro required.
-
-
-## 🎙️ Static voice chat
-
-This branch adds microphone-based voice chat in server channels using WebRTC audio and Firebase Realtime Database for presence/signaling. It is configured to use the original `discord-prism` Firebase project so existing accounts and chat data remain the same. The audio itself is peer-to-peer; Firebase does not store voice recordings.
-
-### Deploy with GitHub Pages
-
-1. In this fork, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**.
-2. The workflow in `.github/workflows/pages.yml` deploys this branch automatically after a push.
-3. When the workflow succeeds, open **https://michaelmb110b12-wq.github.io/prism-/**.
-
-### Firebase owner setup required
-
-The owner of the original `discord-prism` Firebase project needs to make two changes before voice chat can work:
-
-1. In **Authentication → Settings → Authorized domains**, add `michaelmb110b12-wq.github.io`.
-2. In **Realtime Database → Rules**, merge the `voiceRooms` fragment from [VOICE_CHAT_RULES.md](./VOICE_CHAT_RULES.md) into the existing `rules.prism` object, then publish. Do **not** replace the complete existing rules with the fragment; keep the existing accounts/chat permissions intact. Check for overly broad ancestor rules, because Realtime Database rules are additive and a broad parent read/write grant can override more-specific restrictions.
-
-After those changes, sign in with an existing Prism account, open a server text channel and select **Join Voice**, then approve microphone access. The page must be served over HTTPS. The client uses a public STUN server; some restrictive networks may need a TURN relay for connections to succeed.
