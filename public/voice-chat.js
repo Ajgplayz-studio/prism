@@ -247,6 +247,7 @@
       }
       state.stream = stream;
       const token = await firebase.auth().currentUser.getIdToken();
+      if (revision !== state.revision) return;
       const socket = window.io({ auth: { token: token }, transports: ['websocket', 'polling'] });
       state.socket = socket;
       status.textContent = 'Connecting to #' + room.name + ' voice…';
