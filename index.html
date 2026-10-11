@@ -1874,7 +1874,12 @@ function renderRail(){
     const d = document.createElement("div");
     d.className = "srv" + (!homeView && view.type === "server" && view.sid === sid ? " active" : "");
     d.title = (s.officialMark === true ? "Official • " : s.verified === true ? "Verified • " : "") + s.name;
-    d.innerHTML = "<span class='pill'></span>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase()));
+    d.innerHTML = "<span class='pill'></span>" + (s.icon ? "" : esc((s.name[0] || "?").toUpperCase()));
+    if(s.icon && /^(https:\/\/|data:image\/)/i.test(s.icon)){
+      const img=document.createElement("img");img.alt="";img.src=s.icon;img.style.cssText="width:100%;height:100%;object-fit:cover;border-radius:inherit";
+      img.onerror=()=>{img.remove();d.append(document.createTextNode((s.name[0]||"?").toUpperCase()));};
+      d.appendChild(img);
+    }else if(s.icon){d.append(document.createTextNode(String(s.icon).slice(0,4)));}
     d.onclick = () => openServer(sid);
     rail.appendChild(d);
   });
