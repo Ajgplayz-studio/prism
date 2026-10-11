@@ -246,6 +246,26 @@
   #srvmenu button.info{opacity:.55;cursor:default}
   #srvmenu button.info:hover{background:none}
 
+  /* ---------- discover ---------- */
+  #srv-discover{font-size:22px;cursor:pointer}
+  #discover{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;
+    justify-content:center;z-index:60}
+  #discover .box{background:var(--side);border-radius:14px;padding:28px;width:min(440px,92vw);
+    max-height:82vh;display:flex;flex-direction:column}
+  #discover h2{margin-bottom:6px}
+  #discover p{color:var(--dim);font-size:13px;margin-bottom:8px}
+  #discover-list{overflow-y:auto;margin:8px 0 16px;display:flex;flex-direction:column;gap:8px}
+  #discover .row button{background:var(--input);color:var(--text);border:none;border-radius:8px;
+    padding:10px 18px;cursor:pointer;font-size:14px}
+  .drow{display:flex;align-items:center;gap:12px;background:var(--input);border-radius:10px;
+    padding:10px 12px;cursor:pointer}
+  .drow:hover{background:var(--hover)}
+  .drow .dic{font-size:22px;width:42px;height:42px;flex:none;display:flex;align-items:center;
+    justify-content:center;background:var(--side);border-radius:50%}
+  .drow .dname{font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dtag{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:var(--accent);color:#fff;flex:none}
+  .dtag.joined{background:var(--hover);color:var(--dim)}
+
   /* ---------- forum channels ---------- */
   #newpost{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;
     font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px;align-self:flex-start}
@@ -325,6 +345,8 @@
     <div id="rail-servers" style="display:flex;flex-direction:column;gap:10px;align-items:center"></div>
     <div class="rail-sep"></div>
     <div class="srv add" id="srv-add" title="Create a server">+</div>
+    <div class="rail-sep"></div>
+    <div class="srv" id="srv-discover" title="Discover servers">🧭</div>
   </div>
 
   <div id="channels">
@@ -353,6 +375,18 @@
   </div>
 
   <div id="members"><h4>ONLINE</h4><div id="memlist"></div></div>
+</div>
+
+<!-- discover -->
+<div id="discover" class="hidden">
+  <div class="box">
+    <h2>🧭 Discover servers</h2>
+    <p>Find a community to join. Click a server to open its invite.</p>
+    <div id="discover-list"></div>
+    <div class="row">
+      <button id="discover-close">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- modal -->
@@ -441,6 +475,7 @@ const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f4
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
+const isOfficialServer = sid => sid === "official" || !!(servers[sid] && servers[sid].official);
 const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 const emailOf = name => name.toLowerCase() + "@prism.chat";
 const validName = n => /^[a-zA-Z0-9_]{3,20}$/.test(n);
@@ -661,8 +696,15 @@ async function seedOfficial(){
 /* ---------------- servers ---------------- */
 function renderRail(){
   const rail = $("rail-servers"); rail.innerHTML = "";
-  const ids = Object.keys(servers).filter(sid => sid === "official" || (myServers && myServers[sid]));
-  ids.sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
+  const ids = Object.keys(servers).filter(sid => isOfficialServer(sid) || (myServers && myServers[sid]));
+  ids.sort((a,b) => {
+    const ao = isOfficialServer(a), bo = isOfficialServer(b);
+    if(ao && !bo) return -1;
+    if(!ao && bo) return 1;
+    if(a === "official") return -1;
+    if(b === "official") return 1;
+    return 0;
+  });
   ids.forEach(sid => {
     const s = servers[sid]; if(!s) return;
     const d = document.createElement("div");
@@ -713,7 +755,7 @@ function copyText(t){
 }
 function openServer(sid){
   if(!servers[sid]) return;
-  if(sid !== "official" && !(myServers && myServers[sid])){
+  if(!isOfficialServer(sid) && !(myServers && myServers[sid])){
     toast("You need an invite link to join that server.");
     return;
   }
@@ -1001,7 +1043,7 @@ async function deleteUser(uid, uname){
   }catch(e){ toast("Couldn't delete the user."); }
 }
 function confirmDeleteServer(sid){
-  if(!isAdmin() || sid === "official") return;
+  if(!isAdmin() || isOfficialServer(sid)) return;
   const name = servers[sid] ? servers[sid].name : "this server";
   openModal("Delete server",
     "Really delete \"" + name + "\"? This removes the server, all its channels, messages, posts and memberships. This can't be undone.",
@@ -1009,7 +1051,7 @@ function confirmDeleteServer(sid){
   $("m-input").style.display = "none";
 }
 async function deleteServer(sid){
-  if(sid === "official"){ toast("You can't delete the official server."); return; }
+  if(isOfficialServer(sid)){ toast("You can't delete an official server."); return; }
   try{
     const s = servers[sid] || {};
     const updates = {};
@@ -1038,6 +1080,42 @@ async function deleteServer(sid){
     toast("Server deleted.");
   }catch(e){ toast("Couldn't delete the server."); }
 }
+
+/* ---------------- discover ---------------- */
+function openDiscover(){
+  const list = $("discover-list"); list.innerHTML = "";
+  const ids = Object.keys(servers);
+  ids.sort((a,b) => {
+    const ao = isOfficialServer(a), bo = isOfficialServer(b);
+    if(ao && !bo) return -1;
+    if(!ao && bo) return 1;
+    return String((servers[a] && servers[a].name) || "").localeCompare(String((servers[b] && servers[b].name) || ""));
+  });
+  if(!ids.length) list.innerHTML = "<div class='fempty'>No servers yet.</div>";
+  ids.forEach(sid => {
+    const s = servers[sid]; if(!s) return;
+    const official = isOfficialServer(sid);
+    const joined = official || (myServers && myServers[sid]);
+    const d = document.createElement("div");
+    d.className = "drow";
+    d.innerHTML = "<div class='dic'>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase())) + "</div>" +
+      "<div class='dname'>" + esc(s.name) + "</div>" +
+      (official ? "<span class='dtag'>OFFICIAL</span>" :
+        (joined ? "<span class='dtag joined'>JOINED</span>" : ""));
+    d.onclick = () => {
+      closeDiscover();
+      if(official){ openServer(sid); return; }
+      if(s.invite){
+        const h = "#invite=" + s.invite;
+        if(location.hash === h) handleInvite(s.invite);
+        else location.hash = h;
+      }else toast("That server has no invite link.");
+    };
+    list.appendChild(d);
+  });
+  $("discover").classList.remove("hidden");
+}
+function closeDiscover(){ $("discover").classList.add("hidden"); }
 
 /* ---------------- invites ---------------- */
 let pendingInvite = null;
@@ -1079,7 +1157,7 @@ function toggleSrvMenu(e){
   closeSrvMenu();
   if(!wasHidden) return;
   m.innerHTML = "";
-  if(sid === "official"){
+  if(isOfficialServer(sid)){
     const d = document.createElement("button");
     d.className = "info";
     d.textContent = "◈ Official server — open to everyone";
@@ -1124,7 +1202,7 @@ function closeSrvMenu(){
   document.removeEventListener("click", srvMenuOutside);
 }
 function leaveServer(sid){
-  if(!me || sid === "official") return;
+  if(!me || isOfficialServer(sid)) return;
   db.ref("prism/myServers/" + me.uid + "/" + sid).remove().catch(() => {});
   if(myServers) delete myServers[sid];
   renderRail();
@@ -1771,6 +1849,8 @@ $("pins-close").onclick = closePins;
 $("reply-x").onclick = clearReply;
 $("srv-title").parentElement.style.cursor = "pointer";
 $("srv-title").parentElement.onclick = toggleSrvMenu;
+$("srv-discover").onclick = openDiscover;
+$("discover-close").onclick = closeDiscover;
 pendingInvite = parseInviteHash();
 window.addEventListener("hashchange", () => {
   const code = parseInviteHash();
