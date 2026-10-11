@@ -6,6 +6,49 @@ const style = document.createElement("style");
 style.textContent = "\n#voice-join{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:6px;padding:7px 11px;background:var(--accent,#5755d9);color:#fff;cursor:pointer;font-weight:650;font-size:13px;box-shadow:none}\n#voice-join.hidden{display:none!important}#voice-join:disabled{opacity:.6;cursor:wait}\n#voice-overlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(5,6,10,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);opacity:0;transition:opacity .18s ease}\n#voice-overlay.hidden{display:none!important}#voice-overlay.voice-visible{opacity:1}\n#voice-window{position:relative;display:flex;flex-direction:column;width:min(700px,calc(100vw - 28px));height:min(440px,calc(100dvh - 28px));min-height:300px;overflow:hidden;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 9%,transparent);border-radius:12px;background:var(--side,#191a20);color:var(--text,#e5e5e9);box-shadow:0 20px 60px rgba(0,0,0,.45);transform:translateY(10px) scale(.985);transition:transform .18s ease}\n#voice-overlay.voice-visible #voice-window{transform:translateY(0) scale(1)}\n#voice-topbar{height:56px;min-height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid color-mix(in srgb,var(--text,#e5e5e9) 7%,transparent);background:var(--darker,#131419)}\n#voice-brand-dot{width:8px;height:8px;border-radius:50%;background:#3ba879;box-shadow:none}\n#voice-header-copy{min-width:0;flex:1}#voice-kicker{font-size:9px;letter-spacing:1.5px;font-weight:700;color:var(--dim,#a0a3ad)}#voice-title{font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}#voice-status{font-size:11px;color:var(--dim,#a0a3ad);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#voice-close{width:30px;height:30px;border-radius:5px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 10%,transparent);background:var(--input,#292b32);color:var(--text,#e5e5e9);font-size:20px;line-height:1;cursor:pointer}\n#voice-stage{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:12px 16px;background:var(--bg,#202127)}\n#voice-participants{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;align-content:center;gap:20px;min-height:100px}\n.voice-person{width:112px;max-width:30%;display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}\n.voice-avatar{width:72px;height:72px;max-width:100%;aspect-ratio:1;border:2px solid color-mix(in srgb,var(--text,#e5e5e9) 12%,transparent);border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:22px;letter-spacing:-.5px;background:var(--accent,#5755d9);box-shadow:none;position:relative}\n.voice-person.voice-self .voice-avatar{border-color:#39b982;box-shadow:0 0 0 2px rgba(57,185,130,.12)}\n.voice-person.voice-speaking .voice-avatar{outline:2px solid #3fe594;outline-offset:3px}\n.voice-person-name{max-width:100%;font-size:12px;color:#f0f3fa;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.voice-person-sub{font-size:10px;color:#9eaac0;margin-top:-5px}\n#voice-local-share-wrap{width:min(100%,520px);height:170px;min-height:95px;border-radius:8px;overflow:hidden;position:relative;background:#08090d;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 12%,transparent);box-shadow:none}\n#voice-local-share-wrap.hidden{display:none!important}#voice-local-share{width:100%;height:100%;object-fit:contain;display:block}\n#voice-local-share-label{position:absolute;left:10px;bottom:9px;padding:5px 8px;border-radius:7px;background:rgba(0,0,0,.68);font-size:10px;color:#fff}\n#voice-remote-shares{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;max-height:132px;overflow:auto}\n#voice-remote-shares:empty{display:none}#voice-remote-shares .voice-remote-tile{width:min(46%,260px);height:116px;position:relative;background:#070a10;border:1px solid rgba(255,255,255,.13);border-radius:10px;overflow:hidden}\n.voice-remote-tile video{width:100%;height:100%;object-fit:contain;display:block}.voice-remote-label{position:absolute;left:7px;bottom:6px;background:#000b;padding:4px 6px;border-radius:5px;font-size:10px}\n#voice-note{font-size:10px;color:#929eb3;min-height:14px;text-align:center;padding:0 14px 8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n#voice-controls{min-height:64px;display:flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px 11px;border-top:1px solid color-mix(in srgb,var(--text,#e5e5e9) 7%,transparent);background:var(--darker,#131419)}\n.voice-control{position:relative;width:46px;height:46px;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 9%,transparent);border-radius:8px;background:var(--input,#292b32);color:var(--text,#e5e5e9);cursor:pointer;transition:background .12s ease,border-color .12s ease}\n.voice-control:hover{background:var(--hover,#272930)}.voice-control:focus-visible{outline:2px solid #91a7ff;outline-offset:2px}\n.voice-control svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}\n.voice-control small{font-size:8px;color:#d0d7e4;line-height:1}\n.voice-control.voice-active{background:color-mix(in srgb,var(--accent,#5755d9) 24%,var(--input,#292b32));border-color:color-mix(in srgb,var(--accent,#5755d9) 55%,transparent)}\n.voice-control.voice-muted{background:rgba(233,67,80,.2);border-color:rgba(255,99,113,.55);color:#ffb7be}\n#voice-hangup{background:#fa3e49;border:0;border-radius:50%;width:52px;height:52px;margin-left:3px;box-shadow:0 4px 18px #fa3e493c}\n#voice-hangup:hover{background:#ff5962}#voice-hangup svg{width:23px;height:23px}\n@media(max-width:560px){#voice-overlay{padding:8px}#voice-window{width:calc(100vw - 16px);height:min(520px,calc(100dvh - 16px));border-radius:17px}#voice-topbar{height:56px;min-height:56px;padding:0 12px}#voice-stage{padding:8px}#voice-participants{gap:10px}.voice-person{width:84px}.voice-avatar{width:58px;font-size:18px}#voice-controls{gap:7px;padding:9px 8px 11px}.voice-control{width:42px;height:44px;border-radius:13px}#voice-hangup{width:49px;height:49px}#voice-local-share-wrap{height:135px}#voice-remote-shares .voice-remote-tile{height:90px}}\n@media(prefers-reduced-motion:reduce){#voice-overlay,#voice-window,.voice-control{transition:none}}\n";
 style.textContent += "\n#dm-call{display:inline-flex;align-items:center;gap:7px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 10%,transparent);border-radius:6px;padding:7px 11px;background:var(--input,#292b32);color:var(--text,#e5e5e9);cursor:pointer;font-weight:650;font-size:13px}\n#dm-call.hidden{display:none!important}#dm-call:disabled{opacity:.6;cursor:wait}\n";
 document.head.appendChild(style);
+const callLayoutStyle=document.createElement("style");
+callLayoutStyle.textContent = `
+#voice-overlay.voice-minimized{inset:auto 16px 16px auto;width:min(360px,calc(100vw - 24px));height:auto;padding:0;display:flex;align-items:stretch;justify-content:stretch;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;opacity:1;pointer-events:none;transition:none}
+#voice-overlay.voice-minimized.hidden{display:none!important}
+#voice-overlay.voice-minimized #voice-window{pointer-events:auto;width:100%;height:auto;min-height:0;max-height:none;transform:none;border-radius:11px;box-shadow:0 12px 38px rgba(0,0,0,.42)}
+#voice-overlay.voice-minimized #voice-stage,#voice-overlay.voice-minimized #voice-note{display:none}
+#voice-overlay.voice-minimized #voice-controls{min-height:56px;padding:8px;gap:7px}
+#voice-overlay.voice-minimized .voice-control{width:42px;height:42px}
+#voice-overlay.voice-minimized #voice-hangup{width:74px;height:42px;border-radius:8px;margin-left:0;box-shadow:none}
+#voice-overlay.voice-minimized #voice-hangup small{font-size:9px}
+#voice-topbar{cursor:grab;user-select:none;touch-action:none}
+#voice-topbar:active{cursor:grabbing}
+#voice-window button{user-select:none}
+#voice-minimize{height:30px;min-width:30px;border-radius:5px;border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 10%,transparent);background:var(--input,#292b32);color:var(--text,#e5e5e9);font-size:20px;line-height:1;cursor:pointer}
+#voice-local-share-wrap{width:min(100%,680px);height:min(340px,42vh);min-height:190px}
+#voice-local-share-wrap video{width:100%;height:100%;object-fit:contain;cursor:zoom-in}
+#voice-local-fullscreen{position:absolute;right:9px;top:9px;border:1px solid #ffffff30;border-radius:6px;background:#090b12cc;color:#fff;padding:6px 9px;cursor:pointer;z-index:2}
+#voice-remote-shares{width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;max-height:min(420px,50vh);overflow:auto}
+#voice-remote-shares:empty{display:none}
+#voice-remote-shares .voice-remote-tile{width:min(640px,100%);height:min(360px,45vh);min-height:210px;flex:1 1 420px;position:relative;background:#070a10;border:1px solid rgba(255,255,255,.13);border-radius:10px;overflow:hidden}
+.voice-remote-tile video{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in}
+.voice-remote-label{position:absolute;left:8px;bottom:8px;background:#000b;padding:5px 7px;border-radius:5px;font-size:11px;max-width:calc(100% - 56px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.voice-fullscreen-button{position:absolute;top:8px;right:8px;width:34px;height:32px;border:1px solid #ffffff35;border-radius:6px;background:#05070cbd;color:white;font-size:19px;cursor:pointer;z-index:3}
+#voice-share-window{display:none;position:fixed;z-index:2147482999;right:392px;bottom:16px;width:min(520px,calc(100vw - 410px));max-height:65vh;min-height:180px;flex-direction:column;overflow:hidden;background:var(--side,#191a20);color:var(--text,#e5e5e9);border:1px solid color-mix(in srgb,var(--text,#e5e5e9) 13%,transparent);border-radius:11px;box-shadow:0 12px 38px rgba(0,0,0,.42)}
+#voice-share-window.voice-share-visible{display:flex}
+#voice-share-window-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;font-size:12px;font-weight:700;border-bottom:1px solid color-mix(in srgb,var(--text,#e5e5e9) 9%,transparent);background:var(--darker,#131419)}
+#voice-share-window-body{padding:8px;overflow:auto;min-height:0}
+#voice-share-empty{font-size:11px;line-height:1.5;color:var(--dim,#a0a3ad);padding:18px 12px;text-align:center}
+#voice-share-empty.hidden{display:none!important}
+#voice-share-window #voice-local-share-wrap{width:100%;height:min(300px,36vh);min-height:160px;margin-bottom:8px}
+#voice-share-window #voice-remote-shares{max-height:56vh}
+#voice-share-window #voice-remote-shares .voice-remote-tile{width:100%;height:min(320px,38vh);min-height:180px;flex:1 1 100%}
+#voice-hangup{width:74px;border-radius:10px;margin-left:0;box-shadow:none}
+#voice-hangup small{font-size:9px}
+@media(max-width:760px){
+ #voice-share-window{right:12px;bottom:calc(16px + 122px);width:min(520px,calc(100vw - 24px));max-height:48vh}
+ #voice-share-window #voice-local-share-wrap{height:180px;min-height:120px}
+ #voice-share-window #voice-remote-shares .voice-remote-tile{height:200px;min-height:130px}
+ #voice-overlay.voice-minimized{right:12px;bottom:12px;width:calc(100vw - 24px)}
+ #voice-remote-shares .voice-remote-tile{height:min(300px,38vh);min-height:170px;flex-basis:100%}
+}
+`;
+document.head.appendChild(callLayoutStyle);
 const join = document.createElement("button");
 join.id = "voice-join"; join.type = "button"; join.className = "hidden";
 join.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2A19.8 19.8 0 0 1 11.2 19a19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7a2 2 0 0 1 1.7 2z"/></svg><span>Join Voice</span>';
@@ -18,8 +61,12 @@ head.appendChild(join);
 const overlay = document.createElement("div");
 overlay.id = "voice-overlay"; overlay.className = "hidden";
 overlay.setAttribute("role", "dialog"); overlay.setAttribute("aria-modal", "true"); overlay.setAttribute("aria-label", "Prism voice call");
-overlay.innerHTML = "\n  <section id=\"voice-window\">\n    <header id=\"voice-topbar\">\n      <span id=\"voice-brand-dot\"></span>\n      <div id=\"voice-header-copy\">\n        <div id=\"voice-kicker\">PRISM VOICE</div>\n        <div id=\"voice-title\">Voice call</div>\n        <div id=\"voice-status\">Not connected</div>\n      </div>\n      <button id=\"voice-close\" type=\"button\" aria-label=\"Close call window\" title=\"Close call window\">×</button>\n    </header>\n    <div id=\"voice-stage\">\n      <div id=\"voice-local-share-wrap\" class=\"hidden\">\n        <video id=\"voice-local-share\" autoplay muted playsinline></video>\n        <span id=\"voice-local-share-label\">You're sharing your screen</span>\n      </div>\n      <div id=\"voice-remote-shares\"></div>\n      <div id=\"voice-participants\"></div>\n    </div>\n    <div id=\"voice-note\">Your microphone is only used while connected.</div>\n    <footer id=\"voice-controls\">\n      <button class=\"voice-control\" id=\"voice-mute\" type=\"button\" aria-label=\"Mute microphone\" title=\"Mute microphone\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"/><path d=\"M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8\"/></svg><small>Mic</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-deafen\" type=\"button\" aria-label=\"Mute incoming audio\" title=\"Mute incoming audio\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 10v4a2 2 0 0 0 2 2h2l5 4V4l-5 4H5a2 2 0 0 0-2 2z\"/><path d=\"M16 9a5 5 0 0 1 0 6M18.5 6.5a9 9 0 0 1 0 11\"/></svg><small>Audio</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-camera\" type=\"button\" aria-label=\"Start camera\" title=\"Start camera\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"m15 10 6-3v10l-6-3\"/></svg><small id=\"voice-camera-label\">Camera</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-share\" type=\"button\" aria-label=\"Share screen\" title=\"Share screen\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 22h8M12 17v5M12 13V8M9 11l3-3 3 3\"/></svg><small id=\"voice-share-label\">Share</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-hangup\" type=\"button\" aria-label=\"Leave voice call\" title=\"Leave voice call\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4.5 14.5a12 12 0 0 1 15 0l1.8 1.5a1.6 1.6 0 0 1 .3 2.1l-1.3 2a1.6 1.6 0 0 1-2 .6l-3.5-1.5a1.6 1.6 0 0 1-.9-1.8l.4-1.8a10 10 0 0 0-4.6 0l.4 1.8a1.6 1.6 0 0 1-.9 1.8L5.2 20.7a1.6 1.6 0 0 1-2-.6l-1.3-2a1.6 1.6 0 0 1 .3-2.1z\"/></svg>\n      </button>\n    </footer>\n  </section>";
+overlay.innerHTML = "\n  <section id=\"voice-window\">\n    <header id=\"voice-topbar\">\n      <span id=\"voice-brand-dot\"></span>\n      <div id=\"voice-header-copy\">\n        <div id=\"voice-kicker\">PRISM VOICE</div>\n        <div id=\"voice-title\">Voice call</div>\n        <div id=\"voice-status\">Not connected</div>\n      </div>\n      <button id=\"voice-minimize\" type=\"button\" aria-label=\"Minimize call window\" title=\"Minimize call window\">—</button>\n      <button id=\"voice-close\" type=\"button\" aria-label=\"End call\" title=\"End call\">×</button>\n    </header>\n    <div id=\"voice-stage\">\n      <div id=\"voice-local-share-wrap\" class=\"hidden\">\n        <video id=\"voice-local-share\" autoplay muted playsinline></video>\n        <button id=\"voice-local-fullscreen\" type=\"button\" title=\"View fullscreen\" aria-label=\"View fullscreen\">⛶</button>\n        <span id=\"voice-local-share-label\">You're sharing your screen</span>\n      </div>\n      <div id=\"voice-remote-shares\"></div>\n      <div id=\"voice-participants\"></div>\n    </div>\n    <div id=\"voice-note\">Your microphone is only used while connected.</div>\n    <footer id=\"voice-controls\">\n      <button class=\"voice-control\" id=\"voice-mute\" type=\"button\" aria-label=\"Mute microphone\" title=\"Mute microphone\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"13\" rx=\"3\"/><path d=\"M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8\"/></svg><small>Mic</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-deafen\" type=\"button\" aria-label=\"Mute incoming audio\" title=\"Mute incoming audio\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 10v4a2 2 0 0 0 2 2h2l5 4V4l-5 4H5a2 2 0 0 0-2 2z\"/><path d=\"M16 9a5 5 0 0 1 0 6M18.5 6.5a9 9 0 0 1 0 11\"/></svg><small>Audio</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-camera\" type=\"button\" aria-label=\"Start camera\" title=\"Start camera\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"6\" width=\"12\" height=\"12\" rx=\"2\"/><path d=\"m15 10 6-3v10l-6-3\"/></svg><small id=\"voice-camera-label\">Camera</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-share\" type=\"button\" aria-label=\"Share screen\" title=\"Share screen\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"13\" rx=\"2\"/><path d=\"M8 22h8M12 17v5M12 13V8M9 11l3-3 3 3\"/></svg><small id=\"voice-share-label\">Share</small>\n      </button>\n      <button class=\"voice-control\" id=\"voice-hangup\" type=\"button\" aria-label=\"Leave voice call\" title=\"Leave voice call\">\n        <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4.5 14.5a12 12 0 0 1 15 0l1.8 1.5a1.6 1.6 0 0 1 .3 2.1l-1.3 2a1.6 1.6 0 0 1-2 .6l-3.5-1.5a1.6 1.6 0 0 1-.9-1.8l.4-1.8a10 10 0 0 0-4.6 0l.4 1.8a1.6 1.6 0 0 1-.9 1.8L5.2 20.7a1.6 1.6 0 0 1-2-.6l-1.3-2a1.6 1.6 0 0 1 .3-2.1z\"/></svg><small>End call</small>\n      </button>\n    </footer>\n  </section>";
 document.body.appendChild(overlay);
+const shareWindow=document.createElement("aside");
+shareWindow.id="voice-share-window";
+shareWindow.innerHTML='<div id="voice-share-window-head"><span>Live screenshare / camera</span></div><div id="voice-share-window-body"><div id="voice-share-empty">Minimize the call window to keep chatting while video stays here.</div></div>';
+document.body.appendChild(shareWindow);
 const $ = id => document.getElementById(id);
 const status = $("voice-status"), title = $("voice-title"), list = $("voice-participants");
 const note = $("voice-note"), mute = $("voice-mute"), deafen = $("voice-deafen");
@@ -27,7 +74,10 @@ const shareBtn = $("voice-share"), shareLabel = $("voice-share-label"), hangup =
 const cameraBtn = $("voice-camera"), cameraLabel = $("voice-camera-label");
 const localShareWrap = $("voice-local-share-wrap"), localShareVideo = $("voice-local-share"), localShareLabel = $("voice-local-share-label");
 const remoteShares = $("voice-remote-shares");
-const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,directTarget:null,inviteStateRef:null,inviteStateHandler:null,ice:[{urls:"stun:stun.l.google.com:19302"}]};
+const voiceStage=$("voice-stage"), callWindow=$("voice-window"), callTopbar=$("voice-topbar");
+const sideShareBody=$("voice-share-window-body"), sideShareEmpty=$("voice-share-empty");
+const localFullscreen=$("voice-local-fullscreen"), minimizeBtn=$("voice-minimize");
+const s = {room:null,session:null,stream:null,screenStream:null,cameraStream:null,joined:false,joining:false,muted:false,deafened:false,people:{},peers:new Map(),pr:null,ownRef:null,inbox:null,ph:null,ih:null,revision:0,directTarget:null,inviteStateRef:null,inviteStateHandler:null,minimized:false,ice:[{urls:"stun:stun.l.google.com:19302"}]};
 let incomingCallsRef = null;
 const seenIncomingCalls = new Set();
 const valid = x => /^[A-Za-z0-9_-]{1,128}$/.test(String(x));
@@ -48,8 +98,40 @@ function current(){
  return {sid:String(view.sid),cid:String(view.cid),name:$("chname").textContent||"channel"};
 }
 function showCall(){
+ if(s.minimized)setMinimized(false);
  if(overlay.classList.contains("hidden"))overlay.classList.remove("hidden");
  requestAnimationFrame(()=>overlay.classList.add("voice-visible"));
+}
+function setMinimized(minimized){
+ s.minimized=!!minimized;
+ overlay.classList.toggle("voice-minimized",s.minimized);
+ minimizeBtn.textContent=s.minimized?"□":"—";
+ minimizeBtn.title=s.minimized?"Restore call window":"Minimize call window";
+ minimizeBtn.setAttribute("aria-label",s.minimized?"Restore call window":"Minimize call window");
+ if(s.minimized){
+   shareWindow.classList.add("voice-share-visible");
+   sideShareBody.appendChild($("voice-local-share-wrap"));
+   sideShareBody.appendChild(remoteShares);
+ }else{
+   shareWindow.classList.remove("voice-share-visible");
+   voiceStage.insertBefore(remoteShares,$("voice-participants"));
+   voiceStage.insertBefore($("voice-local-share-wrap"),remoteShares);
+   callWindow.style.position="";callWindow.style.left="";callWindow.style.top="";callWindow.style.right="";callWindow.style.bottom="";callWindow.style.transform="";callWindow.style.margin="";callWindow.style.zIndex="";
+ }
+ refreshSideShareEmpty();
+}
+function refreshSideShareEmpty(){
+ const hasLocal=!!(s.screenStream||s.cameraStream);
+ const hasRemote=!!remoteShares.children.length;
+ sideShareEmpty.classList.toggle("hidden",hasLocal||hasRemote);
+}
+async function requestMediaFullscreen(target){
+ if(!target)return;
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen();return;}
+  if(target.requestFullscreen)await target.requestFullscreen();
+  else if(target.webkitRequestFullscreen)target.webkitRequestFullscreen();
+ }catch(e){note.textContent="Fullscreen isn't available in this browser.";}
 }
 function refresh(){
  const canJoin=!!current()&&!s.directTarget;
@@ -100,9 +182,13 @@ function renderShares(){
  s.peers.forEach(p=>{
   if(!p.video||!p.videoTrack||p.videoTrack.readyState==="ended")return;
   const tile=document.createElement("div");tile.className="voice-remote-tile";
-  const label=document.createElement("span");label.className="voice-remote-label";label.textContent=p.name+" · video";
-  tile.append(p.video,label);remoteShares.appendChild(tile);
+  const full=document.createElement("button");full.type="button";full.className="voice-fullscreen-button";full.textContent="⛶";full.title="View fullscreen";full.setAttribute("aria-label","View "+p.name+"'s video fullscreen");
+  full.onclick=event=>{event.stopPropagation();requestMediaFullscreen(tile);};
+  p.video.onclick=()=>requestMediaFullscreen(tile);
+  const label=document.createElement("span");label.className="voice-remote-label";label.textContent=p.name+" · camera / screen";
+  tile.append(p.video,label,full);remoteShares.appendChild(tile);
  });
+ refreshSideShareEmpty();
 }
 function send(uid,session,type,payload){
  if(!s.joined||!s.room||!s.session||!session)return Promise.resolve();
@@ -241,6 +327,7 @@ async function toggleCamera(){
 async function stop(error){
  s.revision++;
  const direct = s.directTarget;
+ if(s.minimized)setMinimized(false);
  if(s.pr&&s.ph)s.pr.off("value",s.ph);if(s.inbox&&s.ih)s.inbox.off("child_added",s.ih);
  if(s.inviteStateRef&&s.inviteStateHandler)s.inviteStateRef.off("value",s.inviteStateHandler);
  s.inviteStateRef=null;s.inviteStateHandler=null;
@@ -277,6 +364,31 @@ async function start(){
  }
 }
 join.addEventListener("click",()=>{if(s.joined)showCall();else if(s.joining)stop();else start();});
+minimizeBtn.addEventListener("click",()=>setMinimized(!s.minimized));
+localFullscreen.addEventListener("click",()=>requestMediaFullscreen($("voice-local-share-wrap")));
+callTopbar.addEventListener("pointerdown",event=>{
+ if(event.button!==0||event.target.closest("button"))return;
+ const rect=callWindow.getBoundingClientRect();
+ callWindow.style.position="fixed";callWindow.style.left=rect.left+"px";callWindow.style.top=rect.top+"px";
+ callWindow.style.right="auto";callWindow.style.bottom="auto";callWindow.style.transform="none";callWindow.style.margin="0";
+ callWindow.style.zIndex="2147483002";
+ callWindow.dataset.dragX=String(event.clientX);callWindow.dataset.dragY=String(event.clientY);
+ callWindow.dataset.dragLeft=String(rect.left);callWindow.dataset.dragTop=String(rect.top);
+ callWindow.dataset.dragging="1";
+ try{callTopbar.setPointerCapture(event.pointerId);}catch(_){}
+ event.preventDefault();
+});
+callTopbar.addEventListener("pointermove",event=>{
+ if(callWindow.dataset.dragging!=="1")return;
+ const dx=event.clientX-Number(callWindow.dataset.dragX||0),dy=event.clientY-Number(callWindow.dataset.dragY||0);
+ const rect=callWindow.getBoundingClientRect();
+ const left=Math.max(8,Math.min(window.innerWidth-rect.width-8,Number(callWindow.dataset.dragLeft||rect.left)+dx));
+ const top=Math.max(8,Math.min(window.innerHeight-rect.height-8,Number(callWindow.dataset.dragTop||rect.top)+dy));
+ callWindow.style.left=left+"px";callWindow.style.top=top+"px";
+});
+const stopDragging=()=>{callWindow.dataset.dragging="0";};
+callTopbar.addEventListener("pointerup",stopDragging);
+callTopbar.addEventListener("pointercancel",stopDragging);
 dmCall.addEventListener("click",()=>{
  if(typeof view==="undefined"||!view||view.type!=="dm"||!view.otherUid)return;
  if(s.joined&&s.directTarget&&s.directTarget.uid===view.otherUid){showCall();return;}
@@ -288,7 +400,7 @@ shareBtn.addEventListener("click",toggleShare);
 cameraBtn.addEventListener("click",toggleCamera);
 hangup.addEventListener("click",()=>stop());
 $("voice-close").addEventListener("click",()=>stop());
-overlay.addEventListener("click",e=>{if(e.target===overlay)overlay.classList.remove("voice-visible");});
+overlay.addEventListener("click",e=>{if(e.target===overlay&&!s.minimized)overlay.classList.remove("voice-visible");});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&s.joined&&!overlay.classList.contains("hidden"))overlay.classList.remove("voice-visible");});
 if(typeof openChannel==="function"){
  const original=openChannel;
