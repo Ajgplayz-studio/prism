@@ -200,6 +200,9 @@
   #settings .row button{flex:1;padding:12px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:14px}
   #set-save{background:var(--accent);color:#fff}
   #set-cancel{background:var(--input);color:var(--text)}
+  #get-themes{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;
+    font-weight:700;padding:0 0 0 10px}
+  #get-themes:hover{text-decoration:underline}
   .pinitem{background:var(--input);border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer}
   .pinitem:hover{background:var(--hover)}
   .pinitem .pinhead{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
@@ -339,7 +342,7 @@
     <div class="trow"><input type="color" id="set-accent" value="#5865f2"></div>
     <label>Status</label>
     <input type="text" id="set-status" maxlength="60" placeholder="What's on your mind?" autocomplete="off">
-    <label>Custom CSS</label>
+    <label>Custom CSS <button id="get-themes" type="button">🎨 Get themes</button></label>
     <textarea id="set-css" placeholder="e.g.&#10;.msg{border-radius:12px}&#10;#app{font-family:cursive}" spellcheck="false"></textarea>
     <div class="row">
       <button id="set-save">Save</button>
@@ -1028,6 +1031,7 @@ function openSettings(){
   $("settings").classList.remove("hidden");
 }
 $("set-open").onclick = openSettings;
+$("get-themes").onclick = () => window.open("https://ajgplayz-studio.github.io/prism/#invite=oVUfWYCa", "_blank", "noopener");
 $("set-cancel").onclick = () => $("settings").classList.add("hidden");
 document.querySelectorAll("#theme-row button").forEach(b => {
   b.onclick = () => {
