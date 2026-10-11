@@ -2153,28 +2153,31 @@ $("discover-editor-save").onclick = async () => {
   const button = $("discover-editor-save");
   button.disabled = true;
   button.textContent = "Saving…";
+  const serverRef = db.ref("prism/servers/" + sid);
+  const catalogRef = db.ref("prism/discoverableServers/" + sid);
+  const previous = {
+    discoverable: server.discoverable === true,
+    description: server.description || "",
+    category: server.category || "Community"
+  };
+  const previousCatalog = discoveryListings[sid] || null;
   try{
-    const serverRef = db.ref("prism/servers/" + sid);
-    const catalogRef = db.ref("prism/discoverableServers/" + sid);
-    const previous = {
-      discoverable: server.discoverable === true,
-      description: server.description || "",
-      category: server.category || "Community"
-    };
-    const previousCatalog = discoveryListings[sid] || null;
     await serverRef.update(updates);
     Object.assign(server, updates);
     if(isPublic){
-      await catalogRef.set({
+      const listing = {
         sid: sid,
         name: server.name || "Untitled server",
         description: description,
         category: category,
         icon: server.icon || "",
         owner: server.owner,
+        discoverable: true,
         publishedAt: (previousCatalog && previousCatalog.publishedAt) || Date.now(),
         updatedAt: Date.now()
-      });
+      };
+      await catalogRef.set(listing);
+      discoveryListings[sid] = listing;
     }else{
       await catalogRef.remove();
       delete discoveryListings[sid];
@@ -2183,14 +2186,12 @@ $("discover-editor-save").onclick = async () => {
     renderDiscoverServers();
     toast(isPublic ? "Server published in Discover." : "Server removed from Discover.");
   }catch(e){
-    // Keep the old server settings if publishing its directory record failed.
-    try{
-      await db.ref("prism/servers/" + sid).update({
-        discoverable: server.discoverable === true,
-        description: server.description || "",
-        category: server.category || "Community"
-      });
-    }catch(_){}
+    // Roll back the server's discovery fields if its public directory entry could not be saved.
+    Object.assign(server, previous);
+    try{ await serverRef.update(previous); }catch(_){}
+    if(previousCatalog) discoveryListings[sid] = previousCatalog;
+    else delete discoveryListings[sid];
+    renderDiscoverServers();
     toast("Couldn't publish this server. Check Firebase rules for prism/discoverableServers.");
   }finally{
     button.disabled = false;
@@ -2198,8 +2199,9 @@ $("discover-editor-save").onclick = async () => {
   }
 };
 function isListedForDiscovery(sid, server){
+  const listing = discoveryListings && discoveryListings[sid];
   return sid === "official" ||
-    !!(discoveryListings && discoveryListings[sid]) ||
+    (!!listing && listing.discoverable !== false) ||
     !!(server && server.discoverable === true);
 }
 function discoveryRecordMap(){
