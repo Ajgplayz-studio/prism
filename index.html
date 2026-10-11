@@ -1437,7 +1437,8 @@ const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
 const linkify = s => {
   const codeBlocks = [];
   const tick = String.fromCharCode(96);
-  let out = esc(s).replace(/\x60\x60\x60([\\s\\S]*?)\x60\x60\x60/g, (match, code) => {
+  const fencedCode = new RegExp(tick.repeat(3) + "([\\s\\S]*?)" + tick.repeat(3), "g");
+  let out = esc(s).replace(fencedCode, (match, code) => {
     const marker = "PRISMCODEBLOCK" + codeBlocks.length + "END";
     codeBlocks.push("<pre><code>" + code + "</code></pre>");
     return marker;
