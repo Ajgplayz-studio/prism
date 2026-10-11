@@ -18,7 +18,7 @@ const io = new Server(server, {
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = '0.0.0.0';
-const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://discord-prism-default-rtdb.firebaseio.com';
+const DATABASE_URL = process.env.FIREBASE_DATABASE_URL || 'https://prism-web-v2-default-rtdb.firebaseio.com';
 const MAX_PEERS = Math.min(12, Math.max(2, Number(process.env.MAX_VOICE_PEERS) || 8));
 let htmlCache = { value: '', expiresAt: 0 };
 
@@ -34,7 +34,7 @@ function getAdmin() {
     }
     admin.initializeApp({
       credential: admin.credential.cert(account),
-      projectId: process.env.FIREBASE_PROJECT_ID || account.project_id || 'discord-prism',
+      projectId: process.env.FIREBASE_PROJECT_ID || account.project_id || 'prism-web-v2',
       databaseURL: DATABASE_URL
     });
   }
