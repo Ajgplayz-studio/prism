@@ -1230,6 +1230,72 @@
   .call-sound-volume-row input { min-width:0; width:100%; accent-color:var(--accent); }
   .call-sound-volume-row output { color:var(--dim); font-size:11px; min-width:30px; text-align:right; }
   @media(max-width:420px){ .call-sound-volume-row { grid-template-columns:1fr auto; } .call-sound-volume-row input { grid-column:1/-1; grid-row:2; } }
+
+  /* ---------- Phone layout: full-screen panes with touch-friendly navigation ---------- */
+  #mobile-back { display:none; }
+  #mobile-settings-button { display:none!important; }
+  html.mobile-layout, html.mobile-layout body { width:100%; height:100%; overflow:hidden; }
+  html.mobile-layout body { height:100dvh; overscroll-behavior:none; }
+  html.mobile-layout #app {
+    width:100%; height:100dvh; min-height:0; min-width:0; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  html.mobile-layout #rail {
+    width:100%; height:58px; min-height:58px; flex:0 0 58px;
+    display:flex; flex-direction:row; justify-content:flex-start; align-items:center;
+    padding:7px 9px; gap:7px; overflow-x:auto; overflow-y:hidden;
+    border-right:0; border-bottom:1px solid color-mix(in srgb,var(--text) 9%,transparent);
+    scrollbar-width:none; -webkit-overflow-scrolling:touch;
+  }
+  html.mobile-layout #rail::-webkit-scrollbar { display:none; }
+  html.mobile-layout #rail .srv { width:40px; height:40px; min-width:40px; flex:0 0 40px; }
+  html.mobile-layout #rail .rail-sep { width:1px; height:28px; flex:0 0 1px; margin:0 2px; }
+  html.mobile-layout #rail-servers {
+    display:flex!important; flex-direction:row!important; align-items:center;
+    justify-content:flex-start; width:max-content!important; height:100%; flex:0 0 auto;
+    gap:7px!important;
+  }
+  html.mobile-layout #mobile-settings-button { display:flex!important; }
+  html.mobile-layout #channels {
+    display:flex; width:100%; max-width:none; min-width:0; min-height:0;
+    flex:1 1 auto; border-right:0; padding-bottom:env(safe-area-inset-bottom);
+  }
+  html.mobile-layout #channels .srv-name { min-height:52px; padding:0 16px; flex:0 0 52px; }
+  html.mobile-layout #chan-list { min-height:0; flex:1 1 auto; overflow-y:auto; overscroll-behavior:contain; }
+  html.mobile-layout #main {
+    display:flex; width:100%; min-width:0; min-height:0; height:auto; flex:1 1 auto; overflow:hidden;
+  }
+  html.mobile-layout #members { display:none!important; }
+  html.mobile-layout #app.mobile-pane-home #channels,
+  html.mobile-layout #app.mobile-pane-discover #channels,
+  html.mobile-layout #app.mobile-pane-chat #channels { display:none!important; }
+  html.mobile-layout #app.mobile-pane-channels #main { display:none!important; }
+  html.mobile-layout #app.mobile-pane-chat #main { display:flex!important; }
+  html.mobile-layout #mobile-back {
+    display:none; flex:0 0 36px; width:36px; height:36px; align-items:center; justify-content:center;
+    padding:0; border:0; border-radius:9px; background:var(--input); color:var(--text);
+    font-size:30px; line-height:1; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  html.mobile-layout #app.mobile-pane-chat #mobile-back { display:flex; }
+  html.mobile-layout #chead { min-height:52px; flex:0 0 52px; gap:8px; padding:0 10px; }
+  html.mobile-layout #chname { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  html.mobile-layout #chtopic { display:none; }
+  html.mobile-layout #msgs { min-height:0; padding:12px 10px; overscroll-behavior:contain; }
+  html.mobile-layout .msg { gap:9px; padding:7px 2px; }
+  html.mobile-layout .msg .ma { width:34px; height:34px; }
+  html.mobile-layout .msg .mx { overflow-wrap:anywhere; }
+  html.mobile-layout #inputbar { padding:0 9px max(10px,env(safe-area-inset-bottom)); }
+  html.mobile-layout #minput { font-size:16px; }
+  html.mobile-layout #compose-tools { flex-wrap:wrap; }
+  html.mobile-layout #settings .box,
+  html.mobile-layout #pins .box,
+  html.mobile-layout #modal .box { max-height:90dvh; overflow-y:auto; overscroll-behavior:contain; }
+  html.mobile-layout #toast { bottom:max(18px,env(safe-area-inset-bottom)); max-width:calc(100vw - 28px); }
+  @media (orientation:landscape) and (max-height:500px) {
+    html.mobile-layout #rail { height:50px; min-height:50px; flex-basis:50px; padding-block:4px; }
+    html.mobile-layout #rail .srv { width:36px; height:36px; min-width:36px; flex-basis:36px; }
+  }
+
 </style>
 </head>
 <body>
@@ -1278,6 +1344,10 @@
     <button id="rail-admin" class="srv admin-nav" type="button" title="Admin panel" aria-label="Admin panel" style="display:none">
       <span class="pill"></span>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3Z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
+    </button>    
+    <button id="mobile-settings-button" class="srv" type="button" title="Settings" aria-label="Settings">
+      <span class="pill"></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Z"/><path d="m19.4 13.5 1.1.9-1.6 2.8-1.4-.5a7.8 7.8 0 0 1-1.6.9l-.2 1.5h-3.2l-.2-1.5a7.8 7.8 0 0 1-1.6-.9l-1.4.5-1.6-2.8 1.1-.9a7 7 0 0 1 0-1.9l-1.1-.9 1.6-2.8 1.4.5a7.8 7.8 0 0 1 1.6-.9l.2-1.5h3.2l.2 1.5a7.8 7.8 0 0 1 1.6.9l1.4-.5 1.6 2.8-1.1.9a7 7 0 0 1 0 1.9Z"/></svg>
     </button>
   </div>
 
@@ -1308,7 +1378,7 @@
   </div>
 
   <div id="main">
-    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span>
+    <div id="chead"><button id="mobile-back" type="button" title="Back" aria-label="Back to channels">‹</button><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span>
       <button id="message-search-toggle" type="button" title="Search messages" aria-label="Search messages"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></button>
       <input id="message-search-input" class="hidden" type="search" placeholder="Search this conversation…" aria-label="Search messages in this conversation">
       <button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
@@ -1707,6 +1777,30 @@ const profileAvatarCache = Object.create(null);
 const avatarReadPending = new Set();
 const avatarReadDone = new Set();
 let draftAvatar = "";
+let mobilePane = "home";
+const MOBILE_DEVICE_RE = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i;
+function isMobileLayout(){
+  return document.documentElement.classList.contains("mobile-layout");
+}
+function setMobilePane(pane){
+  if(!["home","discover","channels","chat"].includes(pane)) return;
+  mobilePane = pane;
+  const app = $("app");
+  ["home","discover","channels","chat"].forEach(name => app.classList.remove("mobile-pane-" + name));
+  if(isMobileLayout()) app.classList.add("mobile-pane-" + pane);
+}
+function applyMobileDeviceLayout(){
+  const coarsePointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const narrowViewport = window.matchMedia && window.matchMedia("(max-width: 520px)").matches;
+  const tabletTouch = coarsePointer && window.innerWidth <= 900;
+  const enabled = MOBILE_DEVICE_RE.test(navigator.userAgent || "") || narrowViewport || tabletTouch;
+  document.documentElement.classList.toggle("mobile-layout", enabled);
+  if(enabled) setMobilePane(mobilePane);
+  else ["home","discover","channels","chat"].forEach(name => $("app").classList.remove("mobile-pane-" + name));
+}
+window.addEventListener("resize", applyMobileDeviceLayout, {passive:true});
+window.addEventListener("orientationchange", applyMobileDeviceLayout, {passive:true});
+applyMobileDeviceLayout();
 
 function isSafeAvatarSource(value){
   if(typeof value !== "string" || value.length > 260000) return false;
@@ -2230,6 +2324,7 @@ async function startDMWithUser(uid,name){
 function openHome(){
   homeView = true;
   discoverView = false;
+  setMobilePane("home");
   unlisten();
   updateHomeLayout();
   setHomeTab(homeTab);
@@ -2435,6 +2530,7 @@ function discoveryRecordMap(){
 function openDiscover(){
   homeView = false;
   discoverView = true;
+  setMobilePane("discover");
   unlisten();
   updateHomeLayout();
   applySidebarSearch();
@@ -2673,6 +2769,7 @@ function openServer(sid){
     toast("You need an invite link to join that server.");
     return;
   }
+  setMobilePane("channels");
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "server", sid: sid, cid: null};
@@ -2695,14 +2792,15 @@ function openServer(sid){
     applySidebarSearch();
     if(view.type === "server" && view.sid === sid && (!view.cid || !chs[view.cid])){
       const first = chs.general ? "general" : Object.keys(chs)[0];
-      if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "", chs[first].type || "chat");
+      if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "", chs[first].type || "chat", true);
     }
   });
 }
-function openChannel(sid, cid, cname, topic, ctype){
+function openChannel(sid, cid, cname, topic, ctype, autoSelect = false){
   homeView = false;
   discoverView = false;
   updateHomeLayout();
+  setMobilePane(autoSelect ? "channels" : "chat");
   unlisten();
   view = {type: "server", sid: sid, cid: cid, cname: cname, topic: topic, ctype: ctype || "chat", post: null};
   renderRail();
@@ -3371,6 +3469,7 @@ function closeGroupDM(groupId){
 function openGroupDM(groupId,name,members){
   homeView=false;discoverView=false;
   updateHomeLayout();
+  setMobilePane("chat");
   if(chanListRef){chanListRef.off();chanListRef=null;}
   unlisten();
   view={type:"group",dmId:groupId,groupName:name||"Group message",members:members||{}};
@@ -3458,6 +3557,7 @@ function openDM(otherUid, otherName, dmId){
   homeView = false;
   discoverView = false;
   updateHomeLayout();
+  setMobilePane("chat");
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "dm", dmId: dmId, otherUid: otherUid, otherName: otherName};
@@ -4558,6 +4658,12 @@ function openModal(title, sub, placeholder, okLabel, cb){
 function closeModal(){ $("modal").classList.add("hidden"); modalCb = null; }
 $("m-cancel").onclick = closeModal;
 $("pinbtn").onclick = openPins;
+$("mobile-back").onclick = () => {
+  if(!isMobileLayout()) return;
+  if(view && view.type === "server" && !homeView && !discoverView) setMobilePane("channels");
+  else setMobilePane("home");
+};
+$("mobile-settings-button").onclick = () => $("set-open").click();
 $("pins-close").onclick = closePins;
 $("reply-x").onclick = clearReply;
 $("srv-title").parentElement.style.cursor = "pointer";
