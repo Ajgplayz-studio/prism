@@ -808,7 +808,7 @@ function buildMsgEl(key, m, typeScope, path){
   pinB.onclick = () => togglePin(typeScope, key, m);
   if(pinData[key]) pinB.classList.add("on");
   const eb = el.querySelector('[data-act="edit"]');
-  if(eb) eb.onclick = () => editMessage(path, key, m.t);
+  if(eb) eb.onclick = () => editMessage(path, typeScope, key, m.t);
   const dbtn = el.querySelector('[data-act="del"]');
   if(dbtn) dbtn.onclick = () => deleteMessage(path, typeScope, key);
   const rq = el.querySelector(".rply");
@@ -987,12 +987,14 @@ function clearReply(){
 }
 
 /* ---------------- edit / delete ---------------- */
-function editMessage(path, key, oldText){
+function editMessage(path, scope, key, oldText){
   openModal("Edit message", "Make it say something better.", "", "Save", v => {
     const t = (v || "").trim();
     if(!t) return;
-    db.ref(path + "/" + key).update({t: t.slice(0, 2000), edited: true})
+    const nt = t.slice(0, 2000);
+    db.ref(path + "/" + key).update({t: nt, edited: true})
       .catch(() => toast("Couldn't edit that message."));
+    if(pinData[key]) db.ref("prism/pins/" + scope + "/" + key + "/t").set(nt.slice(0, 140)).catch(() => {});
   });
   $("m-input").value = oldText;
 }
