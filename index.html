@@ -759,6 +759,123 @@
     .msg.msg-grouped { padding-left: 43px; }
   }
 
+
+  /* ---------- Fluxer-like Home navigation and search-first sidebar ---------- */
+  #rail { padding-top: 12px; gap: 8px; }
+  #rail-home { appearance: none; padding: 0; border: 0; flex: none; background: var(--side); color: var(--dim); }
+  #rail-home svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  #rail-home.active, #rail-home:hover { color: #fff; background: var(--accent); }
+  #rail-home.active .pill { height: 26px; }
+  #rail-servers { overflow: visible; }
+  #srv-add { appearance: none; padding: 0; }
+  #sidebar-search {
+    display: flex; align-items: center; gap: 7px; height: 34px; margin: 0 4px 12px; padding: 0 8px;
+    background: color-mix(in srgb, var(--darker) 58%, var(--side));
+    border: 1px solid color-mix(in srgb, var(--text) 5%, transparent); border-radius: 5px; color: var(--dim); min-width: 0;
+    transition: border-color .12s ease, background .12s ease;
+  }
+  #sidebar-search:focus-within { background: var(--input); border-color: color-mix(in srgb, var(--accent) 68%, transparent); }
+  #sidebar-search svg, .home-search-row svg {
+    width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  #sidebar-search input, .home-search-row input {
+    display: block; min-width: 0; width: 100%; flex: 1; border: 0; outline: 0; padding: 0; background: transparent;
+    color: var(--text); font: inherit; font-size: 11px;
+  }
+  #sidebar-search input::placeholder, .home-search-row input::placeholder { color: var(--dim); opacity: .9; }
+  #sidebar-search kbd, .home-search-row kbd {
+    flex: none; border: 1px solid color-mix(in srgb, var(--text) 9%, transparent); border-radius: 3px;
+    padding: 1px 4px; color: var(--dim); font-size: 9px; white-space: nowrap; opacity: .75;
+  }
+  #chan-list { padding-top: 10px; }
+  #server-channel-category { padding-top: 2px; }
+  #dm-category { padding-top: 10px; }
+  #channels.home-mode #server-channel-category, #channels.home-mode #srv-channels { display: none !important; }
+  #channels.home-mode #dm-category { margin-top: 0 !important; padding-top: 3px; }
+  #channels.home-mode #sidebar-search { margin-bottom: 8px; }
+  #main.home-mode #chead { gap: 0; }
+  #main.home-mode #ch-hash, #main.home-mode #chtopic, #main.home-mode #pinbtn, #main.home-mode #chdel { display: none !important; }
+  #main.home-mode #chname { font-size: 14px; }
+  #main.home-mode #msgs, #main.home-mode #typing, #main.home-mode #inputbar { display: none !important; }
+  #main.home-mode #home-screen { display: flex !important; }
+  #app.home-mode #members { display: none !important; }
+  #home-screen {
+    min-height: 0; min-width: 0; flex: 1; overflow: auto; flex-direction: column; gap: 26px;
+    padding: clamp(22px, 3.3vw, 42px); background: var(--bg); color: var(--text);
+  }
+  .home-welcome { display: flex; align-items: center; gap: 17px; min-width: 0; padding: 2px 0 22px; border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent); }
+  .home-welcome-icon {
+    width: 58px; height: 58px; flex: none; display: grid; place-items: center; border-radius: 13px;
+    color: var(--accent); background: color-mix(in srgb, var(--accent) 11%, var(--side));
+    border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+  .home-welcome-icon svg { width: 32px; height: 32px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .home-welcome-copy { min-width: 0; flex: 1; }
+  .home-overline { margin-bottom: 5px; color: var(--dim); font-size: 10px; font-weight: 700; letter-spacing: 1.4px; }
+  .home-welcome h1 { font-size: 23px; line-height: 1.25; font-weight: 650; letter-spacing: -.45px; }
+  .home-welcome p { margin-top: 5px; color: var(--dim); font-size: 12px; }
+  .home-primary, .home-secondary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: none;
+    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent); border-radius: 5px;
+    padding: 9px 12px; background: var(--side); color: var(--text); cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .home-primary { border-color: transparent; color: #fff; background: var(--accent); }
+  .home-primary:hover { filter: brightness(1.08); }
+  .home-primary svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .home-secondary:hover { background: var(--hover); }
+  .home-conversations { min-width: 0; }
+  .home-search-row {
+    display: flex; align-items: center; gap: 9px; max-width: 560px; height: 38px; margin: 0 0 24px;
+    padding: 0 11px; color: var(--dim); background: var(--input);
+    border: 1px solid color-mix(in srgb, var(--text) 6%, transparent); border-radius: 5px;
+  }
+  .home-search-row:focus-within { border-color: color-mix(in srgb, var(--accent) 68%, transparent); }
+  .home-search-row input { font-size: 12px; }
+  .home-section-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+  .home-section-header h2 { font-size: 14px; line-height: 1.3; font-weight: 650; }
+  .home-section-header p { margin-top: 4px; color: var(--dim); font-size: 11px; }
+  #home-dm-count { color: var(--dim); font-size: 10px; white-space: nowrap; }
+  .home-dm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .home-dm-card {
+    display: flex; align-items: center; gap: 11px; min-width: 0; min-height: 66px; padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--text) 7%, transparent); border-radius: 6px;
+    background: var(--side); color: var(--text); text-align: left; cursor: pointer; transition: background .12s ease, border-color .12s ease;
+  }
+  .home-dm-card:hover { background: var(--hover); border-color: color-mix(in srgb, var(--text) 13%, transparent); }
+  .home-dm-avatar { position: relative; display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; overflow: hidden; color: white; font-weight: 650; font-size: 13px; }
+  .home-dm-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .home-dm-online { position: absolute; width: 10px; height: 10px; right: 0; bottom: 0; border-radius: 50%; background: #35b87b; border: 2px solid var(--side); }
+  .home-dm-copy { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+  .home-dm-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; font-weight: 600; }
+  .home-dm-status { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--dim); font-size: 10px; }
+  .home-dm-arrow { color: var(--dim); font-size: 22px; line-height: 1; }
+  .home-empty { min-height: 190px; padding: 30px 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .home-empty-mark { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 14px; border-radius: 12px; background: var(--side); color: var(--dim); }
+  .home-empty-mark svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .home-empty h3 { font-size: 14px; font-weight: 650; }
+  .home-empty p { margin: 6px 0 14px; color: var(--dim); font-size: 12px; }
+  [data-theme="light"] #sidebar-search { background: #e9eaed; }
+  [data-theme="light"] .home-dm-card { background: #f5f6f8; }
+  [data-theme="light"] .home-dm-card:hover { background: #eceef1; }
+  [data-theme="midnight"] #sidebar-search { background: #111114; }
+  [data-theme="midnight"] .home-dm-card { background: #09090b; }
+  @media (max-width: 900px) {
+    .home-dm-grid { grid-template-columns: minmax(0, 1fr); }
+    .home-welcome { align-items: flex-start; flex-wrap: wrap; }
+    .home-welcome-copy { min-width: calc(100% - 80px); }
+    .home-primary { margin-left: 75px; }
+    #home-screen { padding: 20px 16px; }
+  }
+  @media (max-width: 520px) {
+    #sidebar-search { margin-inline: 2px; }
+    #sidebar-search kbd, .home-search-row kbd { display: none; }
+    .home-welcome-icon { width: 46px; height: 46px; border-radius: 10px; }
+    .home-welcome-icon svg { width: 26px; height: 26px; }
+    .home-welcome h1 { font-size: 20px; }
+    .home-primary { margin-left: 0; }
+    #home-screen { padding: 18px 12px; }
+  }
+
 </style>
 </head>
 <body>
@@ -791,17 +908,27 @@
 <!-- app -->
 <div id="app" class="hidden">
   <div id="rail">
-    <div id="rail-servers" style="display:flex;flex-direction:column;gap:10px;align-items:center"></div>
+    <button id="rail-home" class="srv home-nav" type="button" title="Home" aria-label="Home">
+      <span class="pill"></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.2V21h13V9.2"/><path d="M9.5 21v-6.8h5V21"/></svg>
+    </button>
     <div class="rail-sep"></div>
-    <div class="srv add" id="srv-add" title="Create a server">+</div>
+    <div id="rail-servers" style="display:flex;flex-direction:column;gap:8px;align-items:center"></div>
+    <div class="rail-sep"></div>
+    <button class="srv add" id="srv-add" type="button" title="Create a server" aria-label="Create a server">+</button>
   </div>
 
   <div id="channels">
     <div class="srv-name"><span id="srv-title">◈ Prism</span><span class="free">FREE · no nitro</span></div>
     <div id="chan-list">
-      <div class="cat"><span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Text Channels</span><button id="ch-add" title="Create a channel" aria-label="Create a channel">+</button></div>
+      <div id="sidebar-search" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="sidebar-search-input" type="search" placeholder="Find or start a conversation" autocomplete="off" aria-label="Search channels and direct messages">
+        <kbd>Ctrl K</kbd>
+      </div>
+      <div id="server-channel-category" class="cat"><span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Text Channels</span><button id="ch-add" title="Create a channel" aria-label="Create a channel">+</button></div>
       <div id="srv-channels"></div>
-      <div class="cat" style="margin-top:12px"><span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Direct Messages</span><button id="dm-add" title="Start a DM" aria-label="Start a direct message">+</button></div>
+      <div id="dm-category" class="cat" style="margin-top:12px"><span class="cat-label"><span class="cat-caret" aria-hidden="true">⌄</span>Direct Messages</span><button id="dm-add" title="Start a DM" aria-label="Start a direct message">+</button></div>
       <div id="dm-list"></div>
     </div>
     <div id="userbar">
@@ -814,6 +941,42 @@
 
   <div id="main">
     <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span><button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
+    <div id="home-screen" class="hidden" aria-label="Messages home">
+      <div class="home-welcome">
+        <div class="home-welcome-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48"><rect x="7" y="8" width="34" height="29" rx="8"/><path d="M15 37v5l9-5"/><path d="M16 19h16M16 26h10"/></svg>
+        </div>
+        <div class="home-welcome-copy">
+          <div class="home-overline">YOUR SPACE</div>
+          <h1>Messages</h1>
+          <p>Pick up a conversation or start a new one.</p>
+        </div>
+        <button id="home-new-dm" type="button" class="home-primary">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          New message
+        </button>
+      </div>
+      <section class="home-conversations">
+        <div class="home-search-row">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
+          <input id="home-search" type="search" placeholder="Search conversations" autocomplete="off" aria-label="Search conversations">
+          <kbd>Enter</kbd>
+        </div>
+        <div class="home-section-header">
+          <div><h2>Direct messages</h2><p>Your recent conversations</p></div>
+          <span id="home-dm-count">0 conversations</span>
+        </div>
+        <div id="home-dm-list" class="home-dm-grid"></div>
+        <div id="home-empty" class="home-empty hidden">
+          <div class="home-empty-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><path d="M8 11.5A5.5 5.5 0 0 1 13.5 6h21A5.5 5.5 0 0 1 40 11.5v16a5.5 5.5 0 0 1-5.5 5.5H22l-9 8v-8.4A5.5 5.5 0 0 1 8 27.5Z"/><path d="M16 17h16M16 23h11"/></svg>
+          </div>
+          <h3>No conversations yet</h3>
+          <p>Start a direct message to see it here.</p>
+          <button id="home-empty-new" type="button" class="home-secondary">Start a conversation</button>
+        </div>
+      </section>
+    </div>
     <div id="msgs"></div>
     <div id="typing"></div>
     <div id="inputbar"><div id="replybar" class="hidden"><span>↩ Replying to <b id="reply-u"></b></span><span id="reply-t"></span><span class="rx" id="reply-x" title="Cancel reply">✕</span></div><div id="inputwrap">
@@ -925,6 +1088,7 @@ let me = null;                 // {uid, name}
 let servers = {};             // sid -> {name, owner}
 let myServers = {};           // sid -> true (servers I've joined)
 let view = {type:"server", sid:null, cid:null};
+let homeView = false;
 let liveRefs = [];            // message/typing refs to .off() on view change
 let chanListRef = null;       // channel-list ref for the open server
 let bootRefs = [];            // persistent boot listeners
@@ -1130,18 +1294,117 @@ async function seedOfficial(){
 /* ---------------- servers ---------------- */
 function renderRail(){
   const rail = $("rail-servers"); rail.innerHTML = "";
+  $("rail-home").classList.toggle("active", homeView);
   const ids = Object.keys(servers).filter(sid => sid === "official" || (myServers && myServers[sid]));
   ids.sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
   ids.forEach(sid => {
     const s = servers[sid]; if(!s) return;
     const d = document.createElement("div");
-    d.className = "srv" + (view.type === "server" && view.sid === sid ? " active" : "");
+    d.className = "srv" + (!homeView && view.type === "server" && view.sid === sid ? " active" : "");
     d.title = s.name;
     d.innerHTML = "<span class='pill'></span>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase()));
     d.onclick = () => openServer(sid);
     rail.appendChild(d);
   });
 }
+function updateHomeLayout(){
+  $("app").classList.toggle("home-mode", homeView);
+  $("channels").classList.toggle("home-mode", homeView);
+  $("main").classList.toggle("home-mode", homeView);
+  $("rail-home").classList.toggle("active", homeView);
+  if(homeView){
+    $("srv-title").textContent = "Messages";
+    $("ch-hash").textContent = "";
+    $("chname").textContent = "Messages";
+    $("chtopic").textContent = "";
+    $("pinbtn").classList.add("hidden");
+    $("chdel").classList.add("hidden");
+  }
+}
+function applySidebarSearch(){
+  const q = ($("sidebar-search-input").value || "").trim().toLowerCase();
+  document.querySelectorAll("#srv-channels .chan, #dm-list .chan").forEach(item => {
+    const label = (item.textContent || "").toLowerCase();
+    item.style.display = !q || label.includes(q) ? "" : "none";
+  });
+  const hasVisible = selector => [...document.querySelectorAll(selector)].some(el => el.style.display !== "none");
+  $("server-channel-category").style.display = homeView || (q && !hasVisible("#srv-channels .chan")) ? "none" : "";
+  $("dm-category").style.display = q && !hasVisible("#dm-list .chan") ? "none" : "";
+}
+function renderHomeDMList(){
+  const box = $("home-dm-list");
+  if(!box) return;
+  box.innerHTML = "";
+  const q = (($("home-search") && $("home-search").value) || $("sidebar-search-input").value || "").trim().toLowerCase();
+  const items = [...document.querySelectorAll("#dm-list .chan")].filter(item => {
+    const label = (item.querySelector(".dname")?.textContent || item.textContent || "").trim().toLowerCase();
+    return !q || label.includes(q);
+  });
+  $("home-dm-count").textContent = items.length + (items.length === 1 ? " conversation" : " conversations");
+  $("home-empty").classList.toggle("hidden", items.length !== 0);
+  box.classList.toggle("hidden", items.length === 0);
+  for(const item of items){
+    const name = (item.querySelector(".dname")?.textContent || "User").trim();
+    const sourceAvatar = item.querySelector(".dmav");
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "home-dm-card";
+    const avatar = document.createElement("span");
+    avatar.className = "home-dm-avatar";
+    if(sourceAvatar){
+      avatar.style.background = sourceAvatar.style.background || "var(--accent)";
+      const sourceImage = sourceAvatar.querySelector("img");
+      if(sourceImage){
+        const image = sourceImage.cloneNode(true);
+        image.alt = "";
+        avatar.appendChild(image);
+      }else avatar.textContent = name.charAt(0).toUpperCase();
+      if(sourceAvatar.querySelector(".odot.on")){
+        const dot = document.createElement("span");
+        dot.className = "home-dm-online";
+        avatar.appendChild(dot);
+      }
+    }else avatar.textContent = name.charAt(0).toUpperCase();
+    const copy = document.createElement("span"); copy.className = "home-dm-copy";
+    const title = document.createElement("span"); title.className = "home-dm-name"; title.textContent = name;
+    const subtitle = document.createElement("span"); subtitle.className = "home-dm-status";
+    subtitle.textContent = sourceAvatar && sourceAvatar.querySelector(".odot.on") ? "Online" : "Open conversation";
+    copy.append(title, subtitle);
+    const arrow = document.createElement("span"); arrow.className = "home-dm-arrow"; arrow.textContent = "›";
+    card.append(avatar, copy, arrow);
+    card.onclick = () => item.click();
+    box.appendChild(card);
+  }
+}
+function openHome(){
+  homeView = true;
+  unlisten();
+  updateHomeLayout();
+  applySidebarSearch();
+  renderHomeDMList();
+  renderRail();
+}
+$("rail-home").onclick = openHome;
+$("home-new-dm").onclick = () => $("dm-add").click();
+$("home-empty-new").onclick = () => $("dm-add").click();
+$("sidebar-search-input").addEventListener("input", () => {
+  $("home-search").value = $("sidebar-search-input").value;
+  applySidebarSearch();
+  renderHomeDMList();
+});
+$("home-search").addEventListener("input", () => {
+  $("sidebar-search-input").value = $("home-search").value;
+  applySidebarSearch();
+  renderHomeDMList();
+});
+document.addEventListener("keydown", event => {
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k" &&
+      !["INPUT","TEXTAREA"].includes(document.activeElement?.tagName) &&
+      $("auth").classList.contains("hidden")){
+    event.preventDefault();
+    $("sidebar-search-input").focus();
+  }
+});
 $("srv-add").onclick = () => {
   openModal("Create a server", "Give your server a name. Only people with your invite link can join — including you.",
     "My cool server", "Create", async name => {
@@ -1182,6 +1445,8 @@ function copyText(t){
 }
 function openServer(sid){
   if(!servers[sid]) return;
+  homeView = false;
+  updateHomeLayout();
   if(sid !== "official" && !(myServers && myServers[sid])){
     toast("You need an invite link to join that server.");
     return;
@@ -1205,6 +1470,7 @@ function openServer(sid){
       d.onclick = () => openChannel(sid, cid, c.name, c.topic || "", ctype);
       box.appendChild(d);
     });
+    applySidebarSearch();
     if(view.type === "server" && view.sid === sid && (!view.cid || !chs[view.cid])){
       const first = chs.general ? "general" : Object.keys(chs)[0];
       if(first) openChannel(sid, first, chs[first].name, chs[first].topic || "", chs[first].type || "chat");
@@ -1212,6 +1478,8 @@ function openServer(sid){
   });
 }
 function openChannel(sid, cid, cname, topic, ctype){
+  homeView = false;
+  updateHomeLayout();
   unlisten();
   view = {type: "server", sid: sid, cid: cid, cname: cname, topic: topic, ctype: ctype || "chat", post: null};
   renderRail();
@@ -1709,6 +1977,8 @@ function renderDMs(snap){
     paintDMUnread(w.dmId, w.lastN);
     paintDMOnline(w.dmId, w.online);
   });
+  applySidebarSearch();
+  renderHomeDMList();
 }
 function closeDM(otherUid, dmId){
   stopDMWatcher(dmId);
@@ -1742,6 +2012,8 @@ $("dm-add").onclick = () => {
   });
 };
 function openDM(otherUid, otherName, dmId){
+  homeView = false;
+  updateHomeLayout();
   if(chanListRef){ chanListRef.off(); chanListRef = null; }
   unlisten();
   view = {type: "dm", dmId: dmId, otherUid: otherUid, otherName: otherName};
