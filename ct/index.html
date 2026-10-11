@@ -5158,5 +5158,43 @@ $("m-input").addEventListener("keydown", e => {
 });
 </script>
 <script src="./public/voice-chat.js"></script>
+<!-- Prism maintenance kill-switch: polls ../maintenance.txt ("yes"/"no") -->
+<style>
+#maintPopup{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+#maintPopup.show{display:flex}
+#maintPopup .box{background:#1e1f2b;color:#fff;border-radius:14px;padding:28px 32px;max-width:380px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5);font-family:inherit}
+#maintPopup .box h2{margin:0 0 10px;font-size:22px}
+#maintPopup .box p{margin:0 0 20px;opacity:.85}
+#maintPopup .box button{background:#5865F2;color:#fff;border:none;border-radius:8px;padding:10px 34px;font-size:15px;cursor:pointer;font-family:inherit}
+#maintLock{position:fixed;inset:0;z-index:999999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:#0b0b12;color:#fff;text-align:center;padding:24px;cursor:not-allowed;font-family:inherit}
+#maintLock.show{display:flex}
+#maintLock h1{font-size:26px;margin:0}
+#maintLock p{opacity:.7;margin:0}
+</style>
+<div id="maintPopup"><div class="box"><h2>\U0001f6e0\ufe0f Prism Notice</h2><p>Prism has shutdown for maintenance.</p><button id="maintOk">OK</button></div></div>
+<div id="maintLock"><h1>\U0001f6e0\ufe0f Prism is down for maintenance</h1><p>Everything is locked until maintenance is over.<br>This page will unlock automatically.</p></div>
+<script>
+(function(){
+  var FILE='../maintenance.txt', POLL_MS=15000;
+  var locked=false, popupOpen=false;
+  var popup=document.getElementById('maintPopup'), lock=document.getElementById('maintLock');
+  function showPopup(){ if(popupOpen||locked) return; popupOpen=true; popup.classList.add('show'); }
+  function hidePopup(){ popupOpen=false; popup.classList.remove('show'); }
+  function engageLock(){ locked=true; hidePopup(); lock.classList.add('show'); }
+  function releaseLock(){ locked=false; hidePopup(); lock.classList.remove('show'); }
+  document.getElementById('maintOk').addEventListener('click', engageLock);
+  async function check(){
+    var yes=false;
+    try{
+      var r=await fetch(FILE+'?t='+Date.now(),{cache:'no-store'});
+      if(r.ok){ yes=(await r.text()).trim().toLowerCase()==='yes'; }
+    }catch(e){ yes=false; }
+    if(yes){ if(!locked) showPopup(); }
+    else if(locked||popupOpen){ releaseLock(); }
+  }
+  check(); setInterval(check, POLL_MS);
+})();
+</script>
+
 </body>
 </html>
