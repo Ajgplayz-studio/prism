@@ -246,6 +246,24 @@
   #srvmenu button.info{opacity:.55;cursor:default}
   #srvmenu button.info:hover{background:none}
 
+  /* ---------- admin panel ---------- */
+  #srv-admin{font-size:22px;cursor:pointer}
+  #admin{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;
+    justify-content:center;z-index:60}
+  #admin .box{background:var(--side);border-radius:14px;padding:28px;width:min(480px,94vw);
+    max-height:82vh;display:flex;flex-direction:column}
+  #admin h2{margin-bottom:12px}
+  #admin-tabs{display:flex;gap:8px;margin-bottom:12px}
+  .atab{background:var(--input);color:var(--text);border:none;border-radius:8px;
+    padding:8px 18px;cursor:pointer;font-size:14px}
+  .atab.active{background:var(--accent);color:#fff}
+  #admin-list{overflow-y:auto;margin:4px 0 16px;display:flex;flex-direction:column;gap:8px}
+  #admin .row button{background:var(--input);color:var(--text);border:none;border-radius:8px;
+    padding:10px 18px;cursor:pointer;font-size:14px}
+  .drow .dban{background:var(--err);color:#fff;border:none;border-radius:8px;padding:7px 14px;
+    cursor:pointer;font-size:12px;font-weight:700;flex:none}
+  .drow .dban:hover{filter:brightness(1.15)}
+
   /* ---------- discover ---------- */
   #srv-discover{font-size:22px;cursor:pointer}
   #discover{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;
@@ -347,6 +365,8 @@
     <div class="srv add" id="srv-add" title="Create a server">+</div>
     <div class="rail-sep"></div>
     <div class="srv" id="srv-discover" title="Discover servers">🧭</div>
+    <div class="rail-sep" id="admin-sep" style="display:none"></div>
+    <div class="srv" id="srv-admin" title="Admin panel" style="display:none">🛡</div>
   </div>
 
   <div id="channels">
@@ -375,6 +395,21 @@
   </div>
 
   <div id="members"><h4>ONLINE</h4><div id="memlist"></div></div>
+</div>
+
+<!-- admin panel -->
+<div id="admin" class="hidden">
+  <div class="box">
+    <h2>🛡 Admin panel</h2>
+    <div id="admin-tabs">
+      <button class="atab" id="atab-users">Users</button>
+      <button class="atab" id="atab-servers">Servers</button>
+    </div>
+    <div id="admin-list"></div>
+    <div class="row">
+      <button id="admin-close">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- discover -->
@@ -474,7 +509,8 @@ const $ = id => document.getElementById(id);
 const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f472b6","#facc15"];
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
+const ADMINS = ["ajgplayz", "maplz_"];
+const isAdmin = () => me && me.name && ADMINS.includes(me.name.toLowerCase());
 const isOfficialServer = sid => sid === "official" || !!(servers[sid] && servers[sid].official);
 const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
 const emailOf = name => name.toLowerCase() + "@prism.chat";
@@ -489,6 +525,7 @@ function toast(msg){
 /* ---------------- state ---------------- */
 let me = null;                 // {uid, name}
 let servers = {};             // sid -> {name, owner}
+let users = {};               // uid -> {name, ...}
 let myServers = {};           // sid -> true (servers I've joined)
 let view = {type:"server", sid:null, cid:null};
 let liveRefs = [];            // message/typing refs to .off() on view change
@@ -655,9 +692,16 @@ async function boot(){
   sRef.on("value", snap => {
     servers = snap.val() || {};
     renderRail();
+    if(!$("admin").classList.contains("hidden")) renderAdminList();
     if(view.type === "server" && !view.sid) openServer("official");
   });
   bootRefs.push(sRef);
+  const uRef = db.ref("prism/users");
+  uRef.on("value", snap => {
+    users = snap.val() || {};
+    if(!$("admin").classList.contains("hidden")) renderAdminList();
+  });
+  bootRefs.push(uRef);
   const msRef = db.ref("prism/myServers/" + me.uid);
   msRef.on("value", snap => {
     myServers = snap.val() || {};
@@ -695,6 +739,9 @@ async function seedOfficial(){
 
 /* ---------------- servers ---------------- */
 function renderRail(){
+  const showAdminBtn = isAdmin();
+  $("srv-admin").style.display = showAdminBtn ? "" : "none";
+  $("admin-sep").style.display = showAdminBtn ? "" : "none";
   const rail = $("rail-servers"); rail.innerHTML = "";
   const ids = Object.keys(servers).filter(sid => isOfficialServer(sid) || (myServers && myServers[sid]));
   ids.sort((a,b) => {
@@ -1000,15 +1047,18 @@ function openForumPost(pid){
   }).catch(() => { view.post = null; openChannel(sid, cid, view.cname, view.topic, "forum"); });
 }
 
-/* ---------------- admin (ajgplayz) ---------------- */
+/* ---------------- admin ---------------- */
 function confirmDeleteUser(uid, uname){
   if(!isAdmin() || uid === me.uid) return;
+  if(ADMINS.includes(String(uname || "").toLowerCase())){ toast("You can't ban another admin."); return; }
   openModal("Delete user",
     "Really delete @" + uname + "? Their account, username, memberships and DMs will be removed and they won't be able to log back in. This can't be undone.",
     "", "Delete", () => deleteUser(uid, uname));
   $("m-input").style.display = "none";
 }
 async function deleteUser(uid, uname){
+  if(!isAdmin()) return;
+  if(ADMINS.includes(String(uname || "").toLowerCase())){ toast("You can't ban another admin."); return; }
   try{
     await db.ref("prism/banned/" + uid).set({u: uname, ts: Date.now()});
     const updates = {};
@@ -1079,6 +1129,61 @@ async function deleteServer(sid){
     if(view.sid === sid) openServer("official");
     toast("Server deleted.");
   }catch(e){ toast("Couldn't delete the server."); }
+}
+
+/* ---------------- admin panel ---------------- */
+let adminTab = "users";
+function openAdmin(){
+  if(!isAdmin()) return;
+  adminTab = "users";
+  renderAdminList();
+  $("admin").classList.remove("hidden");
+}
+function closeAdmin(){ $("admin").classList.add("hidden"); }
+function renderAdminList(){
+  if(!isAdmin()){ closeAdmin(); return; }
+  const list = $("admin-list"); list.innerHTML = "";
+  $("atab-users").classList.toggle("active", adminTab === "users");
+  $("atab-servers").classList.toggle("active", adminTab === "servers");
+  if(adminTab === "users"){
+    const ids = Object.keys(users);
+    ids.sort((a,b) => String((users[a] && users[a].name) || "").localeCompare(String((users[b] && users[b].name) || "")));
+    if(!ids.length) list.innerHTML = "<div class='fempty'>No users.</div>";
+    ids.forEach(uid => {
+      const u = users[uid]; if(!u) return;
+      const uname = String(u.name || "?");
+      const adminTarget = ADMINS.includes(uname.toLowerCase());
+      const d = document.createElement("div");
+      d.className = "drow"; d.style.cursor = "default";
+      d.innerHTML = "<div class='dic'>" + esc(uname[0].toUpperCase()) + "</div>" +
+        "<div class='dname'>" + esc(uname) + (uid === me.uid ? " (you)" : "") + "</div>" +
+        (adminTarget ? "<span class='dtag'>ADMIN</span>" : "<button class='dban'>Ban</button>");
+      const btn = d.querySelector(".dban");
+      if(btn) btn.onclick = () => confirmDeleteUser(uid, uname);
+      list.appendChild(d);
+    });
+  }else{
+    const ids = Object.keys(servers);
+    ids.sort((a,b) => {
+      const ao = isOfficialServer(a), bo = isOfficialServer(b);
+      if(ao && !bo) return -1;
+      if(!ao && bo) return 1;
+      return String((servers[a] && servers[a].name) || "").localeCompare(String((servers[b] && servers[b].name) || ""));
+    });
+    if(!ids.length) list.innerHTML = "<div class='fempty'>No servers.</div>";
+    ids.forEach(sid => {
+      const s = servers[sid]; if(!s) return;
+      const official = isOfficialServer(sid);
+      const d = document.createElement("div");
+      d.className = "drow"; d.style.cursor = "default";
+      d.innerHTML = "<div class='dic'>" + (s.icon ? esc(s.icon) : esc((s.name[0] || "?").toUpperCase())) + "</div>" +
+        "<div class='dname'>" + esc(s.name) + "</div>" +
+        (official ? "<span class='dtag'>OFFICIAL</span>" : "<button class='dban'>Delete</button>");
+      const btn = d.querySelector(".dban");
+      if(btn) btn.onclick = () => confirmDeleteServer(sid);
+      list.appendChild(d);
+    });
+  }
 }
 
 /* ---------------- discover ---------------- */
@@ -1178,7 +1283,7 @@ function toggleSrvMenu(e){
     lv.className = "danger";
     lv.onclick = () => { closeSrvMenu(); leaveServer(sid); };
     m.appendChild(lv);
-    if(isAdmin()){
+    if(isAdmin() && !isOfficialServer(sid)){
       const ds = document.createElement("button");
       ds.textContent = "🗑️ Delete server";
       ds.className = "danger";
@@ -1818,7 +1923,7 @@ function renderMembers(snap){
       esc(v.u[0].toUpperCase()) + '</div><div class="mtext"><div class="mname">' + esc(v.u) + "</div>" +
       (v.status ? '<div class="mstatus">' + esc(v.status) + "</div>" : "") + "</div>";
     renderProfileAvatar(d.querySelector(".mav"), v.avatar || profileAvatarCache[c.key] || "", v.u);
-    if(isAdmin() && c.key !== me.uid){
+    if(isAdmin() && c.key !== me.uid && !ADMINS.includes(String(v.u || "").toLowerCase())){
       const del = document.createElement("button");
       del.className = "mdel"; del.textContent = "🗑"; del.title = "Delete user";
       del.onclick = e => { e.stopPropagation(); confirmDeleteUser(c.key, v.u); };
@@ -1851,6 +1956,10 @@ $("srv-title").parentElement.style.cursor = "pointer";
 $("srv-title").parentElement.onclick = toggleSrvMenu;
 $("srv-discover").onclick = openDiscover;
 $("discover-close").onclick = closeDiscover;
+$("srv-admin").onclick = openAdmin;
+$("admin-close").onclick = closeAdmin;
+$("atab-users").onclick = () => { adminTab = "users"; renderAdminList(); };
+$("atab-servers").onclick = () => { adminTab = "servers"; renderAdminList(); };
 pendingInvite = parseInviteHash();
 window.addEventListener("hashchange", () => {
   const code = parseInviteHash();
