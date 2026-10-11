@@ -1060,6 +1060,45 @@
     .friends-page-heading .home-primary { margin:0; }
   }
 
+
+  /* Fluxer-style composer tools, Markdown and current-conversation search */
+  #inputwrap { display:flex; flex-direction:column; gap:8px; }
+  #compose-tools { display:flex; align-items:center; gap:3px; min-height:22px; }
+  #compose-tools button {
+    min-width:24px; height:23px; display:inline-flex; align-items:center; justify-content:center;
+    padding:0 6px; border:0; border-radius:4px; background:transparent; color:var(--dim);
+    font:inherit; font-size:11px; font-weight:650; cursor:pointer;
+  }
+  #compose-tools button:hover { color:var(--text); background:var(--hover); }
+  #compose-tools button b, #compose-tools button i, #compose-tools button s { font-size:12px; }
+  #minput { display:block; width:100%; }
+  #message-search-toggle {
+    flex:none; width:29px; height:29px; display:inline-flex; align-items:center; justify-content:center;
+    padding:0; border:0; border-radius:5px; background:transparent; color:var(--dim); cursor:pointer;
+  }
+  #message-search-toggle:hover { background:var(--hover); color:var(--text); }
+  #message-search-toggle svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  #message-search-input {
+    width:min(220px,28vw); min-width:90px; height:29px; padding:0 8px; border:1px solid color-mix(in srgb,var(--text) 9%,transparent);
+    border-radius:5px; background:var(--input); color:var(--text); font:inherit; font-size:11px; outline:0;
+  }
+  #message-search-input:focus { border-color:color-mix(in srgb,var(--accent) 70%,transparent); }
+  .msg.search-match, .fpost.search-match, .fdetail.search-match { outline:1px solid color-mix(in srgb,var(--accent) 55%,transparent); outline-offset:-1px; }
+  .msg .mx strong { font-weight:700; }
+  .msg .mx em { font-style:italic; }
+  .msg .mx del { text-decoration:line-through; opacity:.85; }
+  .msg .mx code { padding:2px 4px; border-radius:3px; background:var(--input); color:var(--text); font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.92em; }
+  .msg .mx pre { margin:6px 0; padding:10px; border-radius:5px; background:var(--darker); overflow:auto; white-space:pre-wrap; }
+  .msg .mx pre code { padding:0; background:transparent; }
+  .msg .mx blockquote { margin:4px 0; padding:3px 9px; border-left:3px solid var(--accent); background:color-mix(in srgb,var(--text) 3%,transparent); color:var(--text); }
+  .msg .mx .message-image-link { display:inline-block; max-width:min(520px,100%); margin:4px 0; }
+  .msg .mx .message-image { display:block; max-width:100%; max-height:340px; object-fit:contain; border-radius:5px; border:1px solid color-mix(in srgb,var(--text) 8%,transparent); }
+  @media(max-width:560px){
+    #compose-tools { flex-wrap:wrap; }
+    #message-search-input { width:120px; }
+    #inputwrap { gap:5px; }
+  }
+
 </style>
 </head>
 <body>
@@ -1128,7 +1167,10 @@
   </div>
 
   <div id="main">
-    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span><button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
+    <div id="chead"><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span>
+      <button id="message-search-toggle" type="button" title="Search messages" aria-label="Search messages"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></button>
+      <input id="message-search-input" class="hidden" type="search" placeholder="Search this conversation…" aria-label="Search messages in this conversation">
+      <button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
     <div id="home-screen" class="hidden" aria-label="Messages home">
       <div class="home-welcome">
         <div class="home-welcome-icon" aria-hidden="true">
@@ -1239,6 +1281,15 @@
     <div id="msgs"></div>
     <div id="typing"></div>
     <div id="inputbar"><div id="replybar" class="hidden"><span>↩ Replying to <b id="reply-u"></b></span><span id="reply-t"></span><span class="rx" id="reply-x" title="Cancel reply">✕</span></div><div id="inputwrap">
+      <div id="compose-tools" aria-label="Message formatting">
+        <button type="button" data-format="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+        <button type="button" data-format="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
+        <button type="button" data-format="strike" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+        <button type="button" data-format="code" title="Inline code" aria-label="Inline code">&lt;/&gt;</button>
+        <button type="button" data-format="codeblock" title="Code block" aria-label="Code block">▤</button>
+        <button type="button" data-format="quote" title="Quote" aria-label="Quote">❞</button>
+        <button type="button" data-format="link" title="Insert link" aria-label="Insert link">↗</button>
+      </div>
       <textarea id="minput" rows="1" placeholder="Message"></textarea>
     </div></div>
   </div>
@@ -1383,7 +1434,27 @@ const COLORS = ["#5865f2","#8b5cf6","#ec4899","#22d3ee","#4ade80","#fb923c","#f4
 const colorFor = n => COLORS[[...String(n)].reduce((a,c)=>a+c.charCodeAt(0),0) % COLORS.length];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const isAdmin = () => me && me.name && me.name.toLowerCase() === "ajgplayz";
-const linkify = s => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+const linkify = s => {
+  const codeBlocks = [];
+  const tick = String.fromCharCode(96);
+  let out = esc(s).replace(/\x60\x60\x60([\\s\\S]*?)\x60\x60\x60/g, (match, code) => {
+    const marker = "PRISMCODEBLOCK" + codeBlocks.length + "END";
+    codeBlocks.push("<pre><code>" + code + "</code></pre>");
+    return marker;
+  });
+  out = out.replace(/(https?:\\/\\/[^\\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  out = out.replace(/\\*\\*(.+?)\\*\\*/g, "<strong>$1</strong>");
+  out = out.replace(/~~(.+?)~~/g, "<del>$1</del>");
+  out = out.replace(/(^|[^*])\\*([^*\\n]+)\\*(?!\\*)/g, "$1<em>$2</em>");
+  const inlineCode = new RegExp(tick + "([^" + tick + "\\\\n]+)" + tick, "g");
+  out = out.replace(inlineCode, "<code>$1</code>");
+  out = out.replace(/(^|\\n)&gt;\\s?([^\\n]+)/g, "$1<blockquote>$2</blockquote>");
+  out = out.replace(/\\n/g, "<br>");
+  out = out.replace(/<a href="(https?:\\/\\/[^"]+\\.(?:png|jpe?g|gif|webp|avif)(?:[?#][^"]*)?)" target="_blank" rel="noopener noreferrer">([^<]+)<\\/a>/gi,
+    '<a class="message-image-link" href="$1" target="_blank" rel="noopener noreferrer"><img class="message-image" src="$1" alt="Shared image" loading="lazy" decoding="async"></a>');
+  codeBlocks.forEach((block, index) => { out = out.replace("PRISMCODEBLOCK" + index + "END", block); });
+  return out;
+};
 const emailOf = name => name.toLowerCase() + "@prism.chat";
 const validName = n => /^[a-zA-Z0-9_]{3,20}$/.test(n);
 
@@ -2264,6 +2335,7 @@ async function deleteChannel(sid, cid, ctype){
 const ftime = ts => new Date(ts || Date.now())
   .toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"});
 function renderForum(){
+  resetMessageSearch();
   const box = $("msgs"); box.innerHTML = "";
   $("typing").textContent = "";
   $("pinbtn").classList.add("hidden");
@@ -2745,6 +2817,7 @@ function notifyIncomingMessage(message, typeScope){
   } catch(e) {}
 }
 function renderMessages(path, typeScope){
+  resetMessageSearch();
   $("msgs").innerHTML = ""; $("typing").textContent = "";
   $("minput").value = ""; $("minput").style.height = "auto";
   clearReply();
@@ -2887,6 +2960,74 @@ function jumpToMsg(key){
     setTimeout(() => el.classList.remove("flash"), 1600);
   }else toast("That message isn't loaded.");
 }
+function resetMessageSearch(){
+  const input=$("message-search-input");
+  if(input){input.value="";input.classList.add("hidden");}
+  document.querySelectorAll("#msgs .msg, #msgs .fpost, #msgs .fdetail").forEach(node=>{
+    node.style.display="";
+    node.classList.remove("search-match");
+  });
+}
+function applyMessageSearch(){
+  const input=$("message-search-input");
+  const query=(input && input.value || "").trim().toLowerCase();
+  let found=0;
+  document.querySelectorAll("#msgs .msg, #msgs .fpost, #msgs .fdetail").forEach(node=>{
+    const match=!query || (node.textContent||"").toLowerCase().includes(query);
+    node.style.display=match?"":"none";
+    node.classList.toggle("search-match",!!query&&match);
+    if(match&&query) found++;
+  });
+  if(query) $("typing").textContent=found ? (found+" matching item"+(found===1?"":"s")) : "No matches in this conversation.";
+  else if($("typing").textContent.startsWith("No matches") || $("typing").textContent.includes("matching item")) $("typing").textContent="";
+}
+$("message-search-toggle").onclick=()=>{
+  const input=$("message-search-input");
+  const wasHidden=input.classList.contains("hidden");
+  if(wasHidden){input.classList.remove("hidden");input.focus();}
+  else {input.value="";input.classList.add("hidden");applyMessageSearch();}
+};
+$("message-search-input").addEventListener("input",applyMessageSearch);
+function formatComposer(type){
+  const input=$("minput");
+  const start=input.selectionStart, end=input.selectionEnd;
+  const selected=input.value.slice(start,end);
+  const tick=String.fromCharCode(96);
+  const formats={
+    bold:["**","**"], italic:["*","*"], strike:["~~","~~"],
+    code:[tick,tick], codeblock:[tick.repeat(3)+"\\n","\\n"+tick.repeat(3)], quote:["> ",""]
+  };
+  let prefix="", suffix="", content=selected;
+  if(type==="link"){
+    prefix="[";
+    suffix="](https://example.com)";
+    if(!content) content="link text";
+  }else{
+    [prefix,suffix]=formats[type]||["",""];
+  }
+  if(type==="quote"){
+    content=(selected||"quote").split("\\n").map(line=>"> "+line).join("\\n");
+    prefix="";suffix="";
+  }
+  input.setRangeText(prefix+content+suffix,start,end,"select");
+  if(!selected && type!=="quote"){
+    const cursor=start+prefix.length;
+    input.setSelectionRange(cursor,cursor);
+  }
+  input.focus();
+  input.dispatchEvent(new Event("input",{bubbles:true}));
+}
+document.querySelectorAll("[data-format]").forEach(button=>button.addEventListener("click",()=>formatComposer(button.dataset.format)));
+document.addEventListener("keydown",event=>{
+  if((event.ctrlKey||event.metaKey) && $("auth").classList.contains("hidden") &&
+     !["INPUT","TEXTAREA"].includes(document.activeElement?.tagName)){
+    const key=event.key.toLowerCase();
+    if(key==="f"){
+      event.preventDefault();
+      $("message-search-toggle").click();
+    }
+  }
+});
 let inputWired = false;
 function wireInput(){
   if(inputWired) return; inputWired = true;
@@ -2904,6 +3045,11 @@ function wireInput(){
     minput.style.height = Math.min(minput.scrollHeight, 120) + "px";
   });
   minput.addEventListener("keydown", e => {
+    if((e.ctrlKey || e.metaKey) && ["b","i"].includes(e.key.toLowerCase())){
+      e.preventDefault();
+      formatComposer(e.key.toLowerCase()==="b"?"bold":"italic");
+      return;
+    }
     if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); }
   });
 }
