@@ -2415,26 +2415,42 @@ document.addEventListener("keydown", event => {
   }
 });
 $("srv-add").onclick = () => {
-  openModal("Create a server", "Give your server a name. Only people with your invite link can join — including you.",
-    "My cool server", "Create", async name => {
-      if(!name.trim()) return;
-      const ref = db.ref("prism/servers").push();
-      const sid = ref.key;
-      const code = makeInviteCode();
-      try{
-        await ref.set({name: name.trim().slice(0, 32), owner: me.uid, createdAt: TS, invite: code});
-        await db.ref("prism/invites/" + code).set(sid);
-        await db.ref("prism/serverChannels/" + sid + "/general")
-          .set({name: "general", topic: "The beginning."});
-        const link = inviteLink(code);
-        openModal("Server created! 🎉",
-          "Here's your invite link. Everyone joins with this link — even you.",
-          "", "Copy link", () => copyText(link));
-        $("m-input").value = link;
-        $("m-input").readOnly = true;
-        $("m-input").select();
-      }catch(e){ toast("Couldn't create the server."); }
-    });
+  if(!me) return;
+  let draftServerIcon = "";
+  const safeIcon = value => typeof value === "string" && value.length <= 2100000 && (/^https:\/\/[^\s"'<>]+$/i.test(value) || /^data:image\/(?:gif|jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value));
+  openModal("Create a server", "Give your server a name and optional image/GIF icon.", "My cool server", "Create", async name => {
+    if(!name.trim()) return;
+    const url = ($("server-icon-url")?.value || "").trim();
+    if(url && !safeIcon(url)){toast("Use a valid HTTPS image/GIF URL.");return;}
+    const icon = url || draftServerIcon;
+    const ref = db.ref("prism/servers").push();
+    const sid = ref.key, code = makeInviteCode();
+    try{
+      await ref.set({name:name.trim().slice(0,32),icon:safeIcon(icon)?icon:"",owner:me.uid,createdAt:TS,invite:code});
+      await db.ref("prism/invites/"+code).set(sid);
+      await db.ref("prism/serverChannels/"+sid+"/general").set({name:"general",topic:"The beginning."});
+      await db.ref("prism/myServers/"+me.uid+"/"+sid).set(true);
+      const link=inviteLink(code);
+      openModal("Server created! 🎉","Here's your invite link. Everyone joins with this link — even you.","","Copy link",()=>copyText(link));
+      $("m-input").value=link;$("m-input").readOnly=true;$("m-input").select();
+    }catch(e){toast("Couldn't create the server.");}
+  });
+  const modal=$("modal");
+  const input=document.createElement("input");input.id="server-icon-url";input.type="url";input.placeholder="Icon URL (optional, HTTPS image/GIF)";input.maxLength=2000;
+  const upload=document.createElement("input");upload.type="file";upload.accept="image/png,image/jpeg,image/webp,image/gif";upload.style.cssText="display:block;max-width:100%;margin-top:8px";
+  upload.setAttribute("aria-label","Upload server icon");
+  const preview=document.createElement("img");preview.alt="Server icon preview";preview.style.cssText="width:44px;height:44px;object-fit:cover;border-radius:12px;display:none;margin-top:8px";
+  upload.onchange=()=>{
+    const file=upload.files&&upload.files[0];if(!file)return;
+    if(!/^image\/(?:gif|png|jpeg|webp)$/i.test(file.type)){toast("Choose a PNG, JPG, WebP, or GIF.");upload.value="";return;}
+    if(file.size>1500000){toast("Choose an icon smaller than 1.5 MB.");upload.value="";return;}
+    const reader=new FileReader();reader.onerror=()=>toast("Couldn't read that icon.");
+    reader.onload=()=>{const data=String(reader.result||"");if(!safeIcon(data)){toast("Unsupported icon format.");return;}draftServerIcon=data;preview.src=data;preview.style.display="block";input.value="";};
+    reader.readAsDataURL(file);
+  };
+  const label=document.createElement("label");label.textContent="Server icon";label.style.cssText="display:block;margin-top:12px;font-size:12px";
+  const field=$("m-input");
+  if(field){field.insertAdjacentElement("afterend",label);label.insertAdjacentElement("afterend",input);input.insertAdjacentElement("afterend",upload);upload.insertAdjacentElement("afterend",preview);}
 };
 function makeInviteCode(){
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
