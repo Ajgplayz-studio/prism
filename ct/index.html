@@ -278,7 +278,7 @@
   .typepick small{opacity:.6;font-size:12px}
 
   /* modal + toast */
-  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:50}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:80}
   #modal .box{background:var(--side);border-radius:14px;padding:28px;width:min(400px,90vw)}
   #modal h2{margin-bottom:6px}
   #modal p{color:var(--dim);font-size:13px;margin-bottom:16px}
@@ -885,6 +885,7 @@
   /* ---------- Discover: public community browser ---------- */
   #rail-discover { appearance:none; padding:0; border:0; flex:none; background:var(--side); color:var(--dim); }
   #rail-discover svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  #rail-admin svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
   #rail-discover.active, #rail-discover:hover { background:var(--accent); color:#fff; }
   #rail-discover.active .pill { height:26px; }
   #main.discover-mode #chead { gap:0; }
@@ -1206,6 +1207,11 @@
     <div id="rail-servers" style="display:flex;flex-direction:column;gap:8px;align-items:center"></div>
     <div class="rail-sep"></div>
     <button class="srv add" id="srv-add" type="button" title="Create a server" aria-label="Create a server">+</button>
+    <div class="rail-sep" id="admin-sep" style="display:none"></div>
+    <button id="rail-admin" class="srv admin-nav" type="button" title="Admin panel" aria-label="Admin panel" style="display:none">
+      <span class="pill"></span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6l7-3Z"/><path d="M9.5 12l2 2 3.5-4"/></svg>
+    </button>
   </div>
 
   <div id="channels">
@@ -1866,6 +1872,7 @@ async function seedOfficial(){
 /* ---------------- servers ---------------- */
 function renderRail(){
   const rail = $("rail-servers"); rail.innerHTML = "";
+  syncAdminButton();
   $("rail-home").classList.toggle("active", homeView);
   const ids = Object.keys(servers).filter(sid => sid === "official" || (myServers && myServers[sid]));
   ids.sort((a,b) => (a === "official" ? -1 : b === "official" ? 1 : 0));
@@ -2152,6 +2159,7 @@ function openHome(){
 }
 $("rail-home").onclick = openHome;
 $("rail-discover").onclick = openDiscover;
+$("rail-admin").onclick = openAdminPanel;
 document.querySelectorAll("[data-home-tab]").forEach(button => button.addEventListener("click",()=>setHomeTab(button.dataset.homeTab)));
 $("friends-add-button").onclick = promptAddFriend;
 $("friends-empty-add").onclick = promptAddFriend;
@@ -3618,10 +3626,17 @@ async function loadSettings(){
 function refreshAvatarPreview(){
   renderProfileAvatar($("set-avatar-preview"), draftAvatar || "", me && me.name || "?");
 }
+function syncAdminButton(){
+  const show = isAdmin();
+  const ab = $("rail-admin"), as = $("admin-sep");
+  if(ab) ab.style.display = show ? "" : "none";
+  if(as) as.style.display = show ? "" : "none";
+}
 function syncAdminSectionAccess(){
   const section=$("admin-settings-section");
   if(!section)return;
   const allowed=isAdmin();
+  syncAdminButton();
   section.classList.toggle("hidden",!allowed);
   $("admin-root-tools").classList.toggle("hidden",!isRootAdmin());
   $("admin-role-badge").textContent=isRootAdmin()?"Root admin":"Admin";
@@ -3803,6 +3818,14 @@ function refreshBannerPreview(){
   const el = $("set-banner-preview");
   if(!el) return;
   el.style.backgroundImage = isSafeBannerSource(draftBanner) ? 'url("' + draftBanner + '")' : "";
+}
+function openAdminPanel(){
+  if(!isAdmin()) return;
+  openSettings();
+  setTimeout(() => {
+    const sec = $("admin-settings-section");
+    if(sec) sec.scrollIntoView({block:"start"});
+  }, 60);
 }
 function openSettings(){
   selTheme = settings.theme || "dark";
