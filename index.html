@@ -1150,6 +1150,14 @@
   .admin-protected-tag { border-radius:3px; padding:4px 6px; background:color-mix(in srgb,#3aa879 13%,var(--side)); color:#3aa879; font-size:9px; font-weight:800; }
   .admin-danger-button { flex:none; border:1px solid color-mix(in srgb,#d54a54 26%,transparent); border-radius:4px; padding:5px 8px; background:color-mix(in srgb,#d54a54 9%,var(--side)); color:#d54a54; font:inherit; font-size:9px; font-weight:700; cursor:pointer; }
   .admin-danger-button:disabled { opacity:.45; cursor:default; color:var(--dim); border-color:color-mix(in srgb,var(--text) 8%,transparent); background:transparent; }
+  .admin-server-actions { display:flex; align-items:center; justify-content:flex-end; gap:5px; flex:none; }
+  .admin-discover-state { font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.35px; white-space:nowrap; color:var(--dim); }
+  .admin-discover-state.listed { color:#36b37e; }
+  .admin-discover-state.hidden { color:#e09b54; }
+  .admin-discover-button { flex:none; border:1px solid color-mix(in srgb,var(--accent) 38%,transparent); border-radius:4px; padding:5px 7px; background:color-mix(in srgb,var(--accent) 10%,var(--side)); color:var(--text); font:inherit; font-size:9px; font-weight:750; cursor:pointer; }
+  .admin-discover-button:hover:not(:disabled) { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 18%,var(--side)); }
+  .admin-discover-button:disabled { opacity:.45; cursor:default; }
+  .admin-discover-help { margin:0 0 8px; color:var(--dim); font-size:10px; line-height:1.5; }
   .admin-search { width:100%; height:32px; margin-bottom:7px; padding:0 9px; background:var(--input); border:1px solid color-mix(in srgb,var(--text) 8%,transparent); color:var(--text); border-radius:5px; font:inherit; font-size:11px; outline:0; }
   .admin-search:focus { border-color:var(--accent); }
   .admin-data-list { display:flex; flex-direction:column; gap:4px; max-height:230px; overflow-y:auto; }
@@ -1699,6 +1707,7 @@
       </div>
       <div class="admin-section">
         <div class="admin-subhead"><h4>Servers</h4><span id="admin-servers-label">Server moderation</span></div>
+        <p class="admin-discover-help">Use List/Hide to choose which communities appear in public Discover. Hidden-by-admin listings stay hidden until an admin restores them. The Official Prism server is always listed.</p>
         <input id="admin-servers-search" class="admin-search" type="search" placeholder="Search servers" autocomplete="off" aria-label="Search servers">
         <div id="admin-servers-list" class="admin-data-list"><div class="admin-loading">Open the panel to load servers.</div></div>
       </div>
@@ -2084,6 +2093,7 @@ async function boot(){
     discoveryListings = snap.val() || {};
     discoveryLoadError = false;
     renderDiscoverServers();
+    if(adminPanelLoaded && isAdmin()) renderAdminServers();
     syncOwnedServersToDiscovery();
   }, error => {
     discoveryLoadError = true;
@@ -2445,6 +2455,10 @@ document.querySelectorAll("[data-friend-filter]").forEach(button => button.addEv
 
 function openDiscoveryEditor(sid){
   const server = servers[sid];
+  if(server && (server.adminDiscoverHidden === true || (discoveryListings[sid]||{}).adminDiscoverHidden === true)){
+    toast("An admin has hidden this server from Discover. Contact an admin to change its visibility.");
+    return;
+  }
   if(!server || server.owner !== me.uid){ toast("Only the server owner can edit its Discover listing."); return; }
   discoverEditingServerId = sid;
   $("discover-editor-public").checked = server.discoverable === true;
@@ -2471,6 +2485,10 @@ $("discover-editor-save").onclick = async () => {
   const server = sid && servers[sid];
   if(!me || !sid || !server || server.owner !== me.uid) return;
   const isPublic = $("discover-editor-public").checked;
+  if(isPublic && (server.adminDiscoverHidden === true || (discoveryListings[sid]||{}).adminDiscoverHidden === true)){
+    toast("An admin has hidden this server from Discover. Contact an admin to restore it.");
+    return;
+  }
   const description = $("discover-editor-description").value.trim().slice(0,180);
   const category = $("discover-editor-category").value || "Community";
   const updates = {discoverable: isPublic, description: description, category: category};
@@ -2526,8 +2544,9 @@ async function syncOwnedServersToDiscovery(){
   if(!me) return;
   for(const [sid, server] of Object.entries(servers || {})){
     if(!sid || sid === "official" || !server || server.owner !== me.uid ||
-       server.discoverable === false || discoverySyncBusy.has(sid)) continue;
+       server.adminDiscoverHidden === true || server.discoverable === false || discoverySyncBusy.has(sid)) continue;
     const existing = discoveryListings[sid];
+    if(existing && existing.adminDiscoverHidden === true) continue;
     if(server.discoverable === true && existing && existing.discoverable !== false) continue;
     discoverySyncBusy.add(sid);
     try{
@@ -2566,6 +2585,10 @@ async function setServerDiscoverable(sid, enabled){
     return;
   }
   const isPublic = !!enabled;
+  if(isPublic && (server.adminDiscoverHidden === true || (discoveryListings[sid]||{}).adminDiscoverHidden === true)){
+    toast("An admin has hidden this server from Discover. Contact an admin to restore it.");
+    return;
+  }
   const description = String(server.description || "").trim().slice(0,180);
   const category = server.category || "Community";
   const updates = {};
@@ -2605,15 +2628,18 @@ async function setServerDiscoverable(sid, enabled){
 }
 function isListedForDiscovery(sid, server){
   if(sid === "official") return true;
+  const listing = (discoveryListings && discoveryListings[sid]) || {};
+  if((server && server.adminDiscoverHidden === true) || listing.adminDiscoverHidden === true) return false;
   if(server && server.discoverable === false) return false;
-  const listing = discoveryListings && discoveryListings[sid];
-  return (!!listing && listing.discoverable !== false) ||
+  if(listing.discoverable === false) return false;
+  return (!!Object.keys(listing).length && listing.discoverable !== false) ||
     !!(server && server.discoverable === true);
 }
 function discoveryRecordMap(){
   const records = Object.create(null);
   Object.entries(discoveryListings || {}).forEach(([sid, listing]) => {
-    if(!listing || listing.discoverable === false || (servers[sid] && servers[sid].discoverable === false)) return;
+    if(!listing || listing.discoverable === false || listing.adminDiscoverHidden === true ||
+       (servers[sid] && (servers[sid].discoverable === false || servers[sid].adminDiscoverHidden === true))) return;
     records[sid] = Object.assign({}, servers[sid] || {}, listing, {sid:sid});
   });
   Object.entries(servers || {}).forEach(([sid, server]) => {
@@ -4272,6 +4298,15 @@ function renderAdminUsers(){
     item.append(copy,action);box.appendChild(item);
   });
 }
+function adminServerIsListedForDiscovery(sid, server){
+  if(sid === "official") return true;
+  const current = server || {};
+  const listing = (discoveryListings && discoveryListings[sid]) || {};
+  if(current.adminDiscoverHidden === true || listing.adminDiscoverHidden === true) return false;
+  if(current.discoverable === false || listing.discoverable === false) return false;
+  return (!!Object.keys(listing).length && listing.discoverable !== false) ||
+    current.discoverable === true;
+}
 function renderAdminServers(){
   const box=$("admin-servers-list");
   if(!box)return;
@@ -4286,15 +4321,78 @@ function renderAdminServers(){
     const item=document.createElement("div");item.className="admin-data-row";
     const copy=document.createElement("div");copy.className="admin-data-copy";
     const name=document.createElement("b");name.textContent=row.server.name||"Untitled server";
-    const meta=document.createElement("span");meta.textContent=(row.sid==="official"||row.server.officialMark===true?"Official server":row.server.verified===true?"Verified server • ":"")+(row.sid==="official"||row.server.officialMark===true?"":"Owner: "+(row.server.owner||"Unknown"));
+    const meta=document.createElement("span");
+    meta.textContent=(row.sid==="official"||row.server.officialMark===true?"Official server":row.server.verified===true?"Verified server • ":"")+(row.sid==="official"||row.server.officialMark===true?"":"Owner: "+(row.server.owner||"Unknown"));
     copy.append(name,meta);
-    const protectedServer = row.sid === "official" || row.server.officialMark === true;
-    const action=document.createElement("button");action.type="button";action.className="admin-danger-button";
-    action.textContent=protectedServer?"Protected":"Delete";
-    action.disabled=protectedServer;action.title=action.disabled?"Official servers cannot be deleted.":"Delete server";
-    if(!action.disabled)action.onclick=()=>confirmDeleteServer(row.sid);
-    item.append(copy,action);box.appendChild(item);
+
+    const actions=document.createElement("div");actions.className="admin-server-actions";
+    const protectedServer=row.sid==="official"||row.server.officialMark===true;
+    const listed=adminServerIsListedForDiscovery(row.sid,row.server);
+    if(row.sid==="official"){
+      const pinned=document.createElement("span");pinned.className="admin-discover-state listed";pinned.textContent="Pinned";
+      actions.appendChild(pinned);
+    }else{
+      const state=document.createElement("span");
+      state.className="admin-discover-state "+(listed?"listed":"hidden");
+      state.textContent=listed?"Listed":"Hidden";
+      actions.appendChild(state);
+      const visibility=document.createElement("button");
+      visibility.type="button";visibility.className="admin-discover-button";
+      visibility.textContent=listed?"Hide":"List";
+      visibility.title=listed?"Hide this server from public Discover":"Show this server in public Discover";
+      visibility.setAttribute("aria-label",(listed?"Hide ":"List ")+(row.server.name||"server")+" in Discover");
+      visibility.onclick=()=>setAdminServerDiscoverable(row.sid,!listed);
+      actions.appendChild(visibility);
+    }
+
+    const remove=document.createElement("button");remove.type="button";remove.className="admin-danger-button";
+    remove.textContent=protectedServer?"Protected":"Delete";
+    remove.disabled=protectedServer;remove.title=remove.disabled?"Official servers cannot be deleted.":"Delete server";
+    if(!remove.disabled)remove.onclick=()=>confirmDeleteServer(row.sid);
+    actions.appendChild(remove);
+    item.append(copy,actions);box.appendChild(item);
   });
+}
+async function setAdminServerDiscoverable(sid, enabled){
+  if(!isAdmin()){toast("Only admins can manage Discover visibility.");return;}
+  if(!sid||sid==="official"||!servers[sid]){
+    toast("The Official Prism server is always listed in Discover.");
+    return;
+  }
+  const server=servers[sid]||{};
+  const previousListing=(discoveryListings&&discoveryListings[sid])||{};
+  const now=Date.now();
+  const listing=Object.assign({},server,previousListing,{
+    sid:sid,
+    name:previousListing.name||server.name||"Untitled server",
+    description:previousListing.description!==undefined?previousListing.description:(server.description||""),
+    category:previousListing.category||server.category||"Community",
+    icon:previousListing.icon!==undefined?previousListing.icon:(server.icon||""),
+    owner:previousListing.owner||server.owner||"",
+    discoverable:!!enabled,
+    publishedAt:previousListing.publishedAt||now,
+    updatedAt:now
+  });
+  if(enabled) delete listing.adminDiscoverHidden;
+  else listing.adminDiscoverHidden=true;
+
+  const updates={};
+  updates["prism/servers/"+sid+"/discoverable"]=!!enabled;
+  updates["prism/servers/"+sid+"/adminDiscoverHidden"]=enabled?null:true;
+  updates["prism/discoverableServers/"+sid]=listing;
+  try{
+    await db.ref().update(updates);
+    server.discoverable=!!enabled;
+    if(enabled) delete server.adminDiscoverHidden;
+    else server.adminDiscoverHidden=true;
+    discoveryListings[sid]=listing;
+    renderDiscoverServers();
+    renderAdminServers();
+    toast(enabled?"Server added to Discover by an admin.":"Server hidden from Discover by an admin.");
+  }catch(error){
+    console.warn("Admin could not change Discover visibility for "+sid,error);
+    toast("Couldn't change Discover visibility. Check Firebase Database Rules for prism/servers and prism/discoverableServers.");
+  }
 }
 function renderAdminList(){
   const box=$("admin-list");
