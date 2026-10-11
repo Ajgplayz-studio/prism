@@ -3571,7 +3571,7 @@ function renderDMs(snap){
       '<span class="odot"></span></div>' +
       '<span class="dname">' + esc(dname) + "</span>" +
       '<span class="badge hidden"></span>' +
-      '<span class="dx" title="Close DM">\u00d7</span>';
+      '<span class="dx" title="Close DM">×</span>';
     renderProfileAvatar(el.querySelector(".dmav"), profileAvatarCache[otherUid] || "", dname);
     if(!Object.prototype.hasOwnProperty.call(profileAvatarCache, otherUid)) loadPublicAvatar(otherUid, el.querySelector(".dmav"), dname);
     el.onclick = () => openDM(otherUid, dname, d.dmId);
@@ -4496,9 +4496,6 @@ function revokeAdmin(uid,name){
   $("m-input").style.display="none";
 }
 $("admin-grant-button").onclick=grantAdminByUsername;
-$("admin-announce-send").onclick=sendAnnouncement;
-$("admin-announce-clear").onclick=clearAnnouncement;
-$("admin-announce-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendAnnouncement();});
 $("admin-grant-username").addEventListener("keydown",event=>{if(event.key==="Enter")grantAdminByUsername();});
 $("admin-users-search").addEventListener("input",renderAdminUsers);
 $("admin-servers-search").addEventListener("input",renderAdminServers);
@@ -5187,8 +5184,8 @@ $("m-input").addEventListener("keydown", e => {
 #maintLock h1{font-size:26px;margin:0}
 #maintLock p{opacity:.7;margin:0}
 </style>
-<div id="maintPopup"><div class="box"><h2>\U0001f6e0\ufe0f Prism Notice</h2><p>Prism has shutdown for maintenance.</p><button id="maintOk">OK</button></div></div>
-<div id="maintLock"><h1>\U0001f6e0\ufe0f Prism is down for maintenance</h1><p>Everything is locked until maintenance is over.<br>This page will unlock automatically.</p></div>
+<div id="maintPopup"><div class="box"><h2>🛠️ Prism Notice</h2><p>Prism has shutdown for maintenance.</p><button id="maintOk">OK</button></div></div>
+<div id="maintLock"><h1>🛠️ Prism is down for maintenance</h1><p>Everything is locked until maintenance is over.<br>This page will unlock automatically.</p></div>
 <script>
 (function(){
   var FILE='../maintenance.txt', POLL_MS=15000;
@@ -5224,7 +5221,7 @@ $("m-input").addEventListener("keydown", e => {
 #admin-announce-send{min-height:34px;flex:none;border:0;border-radius:5px;padding:0 12px;background:var(--accent);color:#fff;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
 #admin-announce-send:hover{filter:brightness(1.08)}
 </style>
-<div id="announce-bar" class="hidden"><span class="announce-icon">\U0001f4e2</span><span id="announce-text"></span><button id="announce-dismiss" type="button" aria-label="Dismiss announcement">\u00d7</button></div>
+<div id="announce-bar" class="hidden"><span class="announce-icon">📢</span><span id="announce-text"></span><button id="announce-dismiss" type="button" aria-label="Dismiss announcement">×</button></div>
 <script>
 async function sendAnnouncement(){
   if(!isAdmin())return;
@@ -5271,6 +5268,9 @@ function initAnnounceBar(){
     bar.classList.add("hidden");
   };
 }
+$("admin-announce-send").onclick=sendAnnouncement;
+$("admin-announce-clear").onclick=clearAnnouncement;
+$("admin-announce-input").addEventListener("keydown",e=>{if(e.key==="Enter")sendAnnouncement();});
 </script>
 
 </body>
