@@ -1017,6 +1017,49 @@
   .msg .mu:hover { text-decoration:underline; }
   .mem[role="button"]:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 
+
+  /* Friends hub: real requests stored in Firebase, no paid features. */
+  .home-navigation-tabs { display:flex; align-items:center; gap:4px; padding:0 0 14px; border-bottom:1px solid color-mix(in srgb,var(--text) 7%,transparent); }
+  .home-navigation-tab { display:inline-flex; align-items:center; gap:7px; padding:8px 11px; border:0; border-radius:5px; background:transparent; color:var(--dim); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+  .home-navigation-tab:hover { background:var(--hover); color:var(--text); }
+  .home-navigation-tab.active { background:color-mix(in srgb,var(--accent) 16%,var(--side)); color:var(--text); }
+  .friends-request-badge, .friends-mini-count { display:inline-grid; place-items:center; min-width:17px; height:17px; padding:0 4px; border-radius:4px; background:#d94b54; color:#fff; font-size:10px; font-weight:700; }
+  .home-friends-panel { min-height:0; flex:1; }
+  .friends-page-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:4px 0 18px; border-bottom:1px solid color-mix(in srgb,var(--text) 7%,transparent); }
+  .friends-page-heading h2 { font-size:16px; font-weight:650; }
+  .friends-page-heading p { color:var(--dim); font-size:11px; margin-top:5px; }
+  .friends-filter-tabs { display:flex; align-items:center; gap:6px; padding:12px 0; border-bottom:1px solid color-mix(in srgb,var(--text) 6%,transparent); }
+  .friends-filter-tabs button { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border:0; border-radius:5px; background:transparent; color:var(--dim); font:inherit; font-size:11px; cursor:pointer; }
+  .friends-filter-tabs button:hover { background:var(--hover); color:var(--text); }
+  .friends-filter-tabs button.active { background:color-mix(in srgb,var(--accent) 16%,var(--side)); color:var(--text); }
+  .friends-list { display:flex; flex-direction:column; }
+  .friend-row { display:flex; align-items:center; gap:11px; min-height:66px; padding:10px 4px; border-bottom:1px solid color-mix(in srgb,var(--text) 6%,transparent); }
+  .friend-row-avatar { position:relative; width:38px; height:38px; flex:none; border:0; padding:0; border-radius:50%; overflow:hidden; display:grid; place-items:center; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+  .friend-row-avatar img { width:100%; height:100%; object-fit:cover; }
+  .friend-row-online { position:absolute; right:0; bottom:0; width:10px; height:10px; background:#36b87a; border:2px solid var(--side); border-radius:50%; }
+  .friend-row-details { flex:1; min-width:0; }
+  .friend-row-name { color:var(--text); font-size:12px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .friend-row-status { margin-top:4px; color:var(--dim); font-size:10px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .friend-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:6px; flex:none; }
+  .friend-message, .friend-accept, .friend-decline, .friend-icon-button { min-height:29px; padding:6px 10px; border:1px solid color-mix(in srgb,var(--text) 9%,transparent); border-radius:5px; background:var(--input); color:var(--text); font:inherit; font-size:10px; cursor:pointer; }
+  .friend-message:hover, .friend-decline:hover, .friend-icon-button:hover { background:var(--hover); }
+  .friend-accept { border-color:transparent; background:#27865e; color:#fff; }
+  .friend-accept:hover { background:#2e9b6b; }
+  .friend-pending-label { padding:5px 7px; border-radius:4px; background:color-mix(in srgb,#d5a344 12%,var(--side)); color:#d5a344; font-size:10px; }
+  .friend-icon-button { width:29px; padding:0; font-size:17px; color:var(--dim); }
+  .friends-empty { min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:28px 14px; }
+  .friends-empty-icon { display:grid; place-items:center; width:48px; height:48px; border-radius:10px; background:var(--side); color:var(--dim); margin-bottom:12px; }
+  .friends-empty-icon svg { width:25px; height:25px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .friends-empty h3 { font-size:13px; font-weight:650; }
+  .friends-empty p { max-width:350px; margin:6px 0 12px; color:var(--dim); font-size:11px; line-height:1.5; }
+  .friends-empty .home-secondary { margin-top:2px; }
+  @media(max-width:520px){
+    .friend-row { align-items:flex-start; flex-wrap:wrap; }
+    .friend-row-actions { margin-left:49px; width:calc(100% - 49px); justify-content:flex-start; }
+    .friends-page-heading { align-items:flex-start; }
+    .friends-page-heading .home-primary { margin:0; }
+  }
+
 </style>
 </head>
 <body>
@@ -1093,15 +1136,19 @@
         </div>
         <div class="home-welcome-copy">
           <div class="home-overline">YOUR SPACE</div>
-          <h1>Messages</h1>
-          <p>Pick up a conversation or start a new one.</p>
+          <h1 id="home-title">Messages</h1>
+          <p id="home-description">Pick up a conversation or start a new one.</p>
         </div>
         <button id="home-new-dm" type="button" class="home-primary">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           New message
         </button>
       </div>
-      <section class="home-conversations">
+      <div id="home-navigation-tabs" class="home-navigation-tabs" role="tablist" aria-label="Home navigation">
+        <button type="button" class="home-navigation-tab active" data-home-tab="messages" role="tab" aria-selected="true">Messages</button>
+        <button type="button" class="home-navigation-tab" data-home-tab="friends" role="tab" aria-selected="false">Friends <span id="friends-request-badge" class="friends-request-badge hidden">0</span></button>
+      </div>
+      <section id="home-conversations" class="home-conversations">
         <div class="home-search-row">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg>
           <input id="home-search" type="search" placeholder="Search conversations" autocomplete="off" aria-label="Search conversations">
@@ -1119,6 +1166,28 @@
           <h3>No conversations yet</h3>
           <p>Start a direct message to see it here.</p>
           <button id="home-empty-new" type="button" class="home-secondary">Start a conversation</button>
+        </div>
+      </section>
+      <section id="home-friends-panel" class="home-friends-panel hidden" aria-label="Friends">
+        <div class="friends-page-heading">
+          <div><h2>Friends</h2><p>Connect with people across Prism.</p></div>
+          <button id="friends-add-button" class="home-primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add Friend
+          </button>
+        </div>
+        <div class="friends-filter-tabs" role="group" aria-label="Filter friends">
+          <button type="button" data-friend-filter="all" class="active">All</button>
+          <button type="button" data-friend-filter="online">Online</button>
+          <button type="button" data-friend-filter="pending">Pending <span id="friends-pending-count" class="friends-mini-count hidden">0</span></button>
+        </div>
+        <div id="friends-list" class="friends-list"></div>
+        <div id="friends-empty" class="friends-empty hidden">
+          <div class="friends-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 8v6m-3-3h6"/></svg>
+          </div>
+          <h3 id="friends-empty-title">No friends yet</h3>
+          <p id="friends-empty-description">Add a friend by their Prism username to get started.</p>
+          <button id="friends-empty-add" type="button" class="home-secondary">Add a friend</button>
         </div>
       </section>
     </div>
@@ -1333,6 +1402,11 @@ let homeView = false;
 let discoverView = false;
 let discoverCategoryFilter = "All";
 let discoverEditingServerId = null;
+let homeTab = "messages";
+let friendFilter = "all";
+let friendEntries = {};
+let incomingFriendRequests = {};
+let outgoingFriendRequests = {};
 let liveRefs = [];            // message/typing refs to .off() on view change
 let chanListRef = null;       // channel-list ref for the open server
 let bootRefs = [];            // persistent boot listeners
@@ -1513,6 +1587,15 @@ async function boot(){
   const dRef = db.ref("prism/userDMs/" + me.uid);
   dRef.on("value", renderDMs);
   bootRefs.push(dRef);
+  const fRef = db.ref("prism/friends/" + me.uid);
+  fRef.on("value", snap => { friendEntries=snap.val()||{}; renderFriendsView(); });
+  bootRefs.push(fRef);
+  const frRef = db.ref("prism/friendRequests/" + me.uid);
+  frRef.on("value", snap => { incomingFriendRequests=snap.val()||{}; renderFriendsView(); });
+  bootRefs.push(frRef);
+  const fsRef = db.ref("prism/friendRequestsSent/" + me.uid);
+  fsRef.on("value", snap => { outgoingFriendRequests=snap.val()||{}; renderFriendsView(); });
+  bootRefs.push(fsRef);
   wireInput();
 }
 function goOnline(){
@@ -1625,17 +1708,207 @@ function renderHomeDMList(){
     box.appendChild(card);
   }
 }
+function setHomeTab(tab){
+  homeTab = tab === "friends" ? "friends" : "messages";
+  document.querySelectorAll("[data-home-tab]").forEach(button => {
+    const active = button.dataset.homeTab === homeTab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  $("home-title").textContent = homeTab === "friends" ? "Friends" : "Messages";
+  $("home-description").textContent = homeTab === "friends" ? "Connect with people across Prism." : "Pick up a conversation or start a new one.";
+  $("home-conversations").classList.toggle("hidden", homeTab !== "messages");
+  $("home-friends-panel").classList.toggle("hidden", homeTab !== "friends");
+  $("home-new-dm").lastChild.textContent = homeTab === "friends" ? " Add Friend" : " New message";
+  $("home-new-dm").setAttribute("aria-label", homeTab === "friends" ? "Add friend" : "New message");
+  renderFriendsView();
+}
+function renderFriendsView(){
+  const list = $("friends-list");
+  if(!list) return;
+  list.innerHTML = "";
+  const incoming = Object.entries(incomingFriendRequests || {});
+  const outgoing = Object.entries(outgoingFriendRequests || {});
+  const friendList = Object.entries(friendEntries || {});
+  const onlineFriends = friendList.filter(([uid]) => !!presenceCache[uid]);
+  const count = incoming.length;
+  $("friends-request-badge").textContent = String(count);
+  $("friends-request-badge").classList.toggle("hidden", count === 0);
+  $("friends-pending-count").textContent = String(count);
+  $("friends-pending-count").classList.toggle("hidden", count === 0);
+  let rows = [];
+  if(friendFilter === "pending"){
+    for(const [uid,request] of incoming){
+      rows.push({kind:"incoming",uid,name:request.name || (presenceCache[uid] && presenceCache[uid].name) || "Prism user",status:"Incoming friend request"});
+    }
+    for(const [uid,value] of outgoing){
+      rows.push({kind:"outgoing",uid,name:(value && value.name) || (presenceCache[uid] && presenceCache[uid].name) || "Prism user",status:"Request sent"});
+    }
+  }else{
+    const filtered = friendFilter === "online" ? onlineFriends : friendList;
+    rows = filtered.map(([uid,friend]) => ({
+      kind:"friend", uid,
+      name:(friend && friend.name) || (presenceCache[uid] && presenceCache[uid].name) || "Prism user",
+      status:presenceCache[uid] ? (presenceCache[uid].status || "Online") : "Offline",
+      online:!!presenceCache[uid]
+    }));
+  }
+  $("friends-empty-title").textContent = friendFilter === "pending" ? "No pending requests" : friendFilter === "online" ? "No friends online" : "No friends yet";
+  $("friends-empty-description").textContent = friendFilter === "pending" ? "When someone sends you a friend request, it will appear here." : friendFilter === "online" ? "Your friends will show here when they are online." : "Add a friend by their Prism username to get started.";
+  $("friends-empty").classList.toggle("hidden", rows.length !== 0);
+  list.classList.toggle("hidden", rows.length === 0);
+  for(const row of rows){
+    const card = document.createElement("div");
+    card.className = "friend-row";
+    const avatar = document.createElement("button");
+    avatar.type = "button";
+    avatar.className = "friend-row-avatar";
+    avatar.style.background = (presenceCache[row.uid] && presenceCache[row.uid].avatar) ? "transparent" : colorFor(row.name);
+    const avatarUrl = (presenceCache[row.uid] && presenceCache[row.uid].avatar) || profileAvatarCache[row.uid] || "";
+    if(isSafeAvatarSource(avatarUrl)){
+      const image = document.createElement("img");
+      image.src = avatarUrl; image.alt = "";
+      avatar.appendChild(image);
+    }else avatar.textContent = row.name.charAt(0).toUpperCase();
+    if(row.online){
+      const dot = document.createElement("span"); dot.className = "friend-row-online"; avatar.appendChild(dot);
+    }
+    avatar.onclick = () => openUserProfile(row.uid,row.name,(presenceCache[row.uid] && presenceCache[row.uid].status)||"",avatarUrl,!!row.online);
+    const details = document.createElement("div");
+    details.className = "friend-row-details";
+    const name = document.createElement("div"); name.className = "friend-row-name"; name.textContent = row.name;
+    const status = document.createElement("div"); status.className = "friend-row-status"; status.textContent = row.status;
+    details.append(name,status);
+    const actions = document.createElement("div"); actions.className = "friend-row-actions";
+    if(row.kind === "incoming"){
+      const accept = document.createElement("button"); accept.type="button"; accept.className="friend-accept"; accept.textContent="Accept";
+      accept.onclick=()=>acceptFriendRequest(row.uid,row.name);
+      const decline = document.createElement("button"); decline.type="button"; decline.className="friend-decline"; decline.textContent="Decline";
+      decline.onclick=()=>declineFriendRequest(row.uid);
+      actions.append(accept,decline);
+    }else if(row.kind === "outgoing"){
+      const pending = document.createElement("span"); pending.className="friend-pending-label"; pending.textContent="Pending";
+      const cancel = document.createElement("button"); cancel.type="button"; cancel.className="friend-icon-button"; cancel.title="Cancel request"; cancel.textContent="×";
+      cancel.onclick=()=>cancelFriendRequest(row.uid);
+      actions.append(pending,cancel);
+    }else{
+      const message = document.createElement("button"); message.type="button"; message.className="friend-message"; message.textContent="Message";
+      message.onclick=()=>startDMWithUser(row.uid,row.name);
+      const remove = document.createElement("button"); remove.type="button"; remove.className="friend-icon-button"; remove.title="Remove friend"; remove.textContent="×";
+      remove.onclick=()=>removeFriend(row.uid,row.name);
+      actions.append(message,remove);
+    }
+    card.append(avatar,details,actions);
+    list.appendChild(card);
+  }
+}
+function promptAddFriend(){
+  openModal("Add friend","Enter their Prism username. They’ll need to accept your request.","username","Send request",sendFriendRequestByName);
+}
+async function sendFriendRequestByName(rawName){
+  const name=(rawName||"").trim().toLowerCase();
+  if(!validName(name)){toast("Enter a valid Prism username.");return;}
+  if(name === me.name.toLowerCase()){toast("You can't add yourself.");return;}
+  try{
+    const user=await db.ref("prism/usernames/"+name).once("value");
+    if(!user.exists()){toast("No user named "+name+".");return;}
+    const uid=user.val();
+    const [friendSnap,incomingSnap,outgoingSnap]=await Promise.all([
+      db.ref("prism/friends/"+me.uid+"/"+uid).once("value"),
+      db.ref("prism/friendRequests/"+me.uid+"/"+uid).once("value"),
+      db.ref("prism/friendRequestsSent/"+me.uid+"/"+uid).once("value")
+    ]);
+    if(friendSnap.exists()){toast("You're already friends.");return;}
+    if(incomingSnap.exists()){await acceptFriendRequest(uid,name);return;}
+    if(outgoingSnap.exists()){toast("Friend request already sent.");return;}
+    const request={uid:me.uid,name:me.name,ts:Date.now()};
+    const updates={};
+    updates["prism/friendRequests/"+uid+"/"+me.uid]=request;
+    updates["prism/friendRequestsSent/"+me.uid+"/"+uid]={uid:uid,name:name,ts:Date.now()};
+    await db.ref().update(updates);
+    toast("Friend request sent to "+name+".");
+  }catch(e){toast("Couldn't send the request. The Firebase rules may need friendRequests/friends access.");}
+}
+async function acceptFriendRequest(uid,name){
+  if(!me||!uid) return;
+  try{
+    let otherName=name;
+    if(!otherName){const snap=await db.ref("prism/users/"+uid+"/name").once("value");otherName=snap.val()||"Prism user";}
+    const now=Date.now(), updates={};
+    updates["prism/friends/"+me.uid+"/"+uid]={uid:uid,name:otherName,since:now};
+    updates["prism/friends/"+uid+"/"+me.uid]={uid:me.uid,name:me.name,since:now};
+    updates["prism/friendRequests/"+me.uid+"/"+uid]=null;
+    updates["prism/friendRequestsSent/"+uid+"/"+me.uid]=null;
+    await db.ref().update(updates);
+    toast("You and "+otherName+" are now friends.");
+  }catch(e){toast("Couldn't accept the request. Check your Firebase rules.");}
+}
+async function declineFriendRequest(uid){
+  if(!me||!uid)return;
+  try{
+    const updates={};
+    updates["prism/friendRequests/"+me.uid+"/"+uid]=null;
+    updates["prism/friendRequestsSent/"+uid+"/"+me.uid]=null;
+    await db.ref().update(updates);
+  }catch(e){toast("Couldn't decline this request.");}
+}
+async function cancelFriendRequest(uid){
+  if(!me||!uid)return;
+  try{
+    const updates={};
+    updates["prism/friendRequestsSent/"+me.uid+"/"+uid]=null;
+    updates["prism/friendRequests/"+uid+"/"+me.uid]=null;
+    await db.ref().update(updates);
+  }catch(e){toast("Couldn't cancel this request.");}
+}
+async function removeFriend(uid,name){
+  if(!me||!uid)return;
+  openModal("Remove friend","Remove "+name+" from your friends list? Your existing DM won’t be deleted.","","Remove",async()=>{
+    try{
+      const updates={};
+      updates["prism/friends/"+me.uid+"/"+uid]=null;
+      updates["prism/friends/"+uid+"/"+me.uid]=null;
+      await db.ref().update(updates);
+      toast("Friend removed.");
+    }catch(e){toast("Couldn't remove this friend.");}
+  });
+}
+async function startDMWithUser(uid,name){
+  if(!me||!uid||uid===me.uid)return;
+  try{
+    const snap=await db.ref("prism/userDMs/"+me.uid+"/"+uid).once("value");
+    const existing=snap.val();
+    if(existing&&existing.dmId){openDM(uid,name,existing.dmId);return;}
+    const dmId=[me.uid,uid].sort().join("_");
+    const now=Date.now(), updates={};
+    updates["prism/userDMs/"+me.uid+"/"+uid]={dmId:dmId,name:name,lastTs:now};
+    updates["prism/userDMs/"+uid+"/"+me.uid]={dmId:dmId,name:me.name,lastTs:now};
+    updates["prism/dmRead/"+uid+"/"+dmId]=0;
+    await db.ref().update(updates);
+    openDM(uid,name,dmId);
+  }catch(e){toast("Couldn't open a DM with "+name+".");}
+}
 function openHome(){
   homeView = true;
   discoverView = false;
   unlisten();
   updateHomeLayout();
+  setHomeTab(homeTab);
   applySidebarSearch();
   renderHomeDMList();
   renderRail();
 }
 $("rail-home").onclick = openHome;
 $("rail-discover").onclick = openDiscover;
+document.querySelectorAll("[data-home-tab]").forEach(button => button.addEventListener("click",()=>setHomeTab(button.dataset.homeTab)));
+$("friends-add-button").onclick = promptAddFriend;
+$("friends-empty-add").onclick = promptAddFriend;
+document.querySelectorAll("[data-friend-filter]").forEach(button => button.addEventListener("click",()=>{
+  friendFilter=button.dataset.friendFilter||"all";
+  document.querySelectorAll("[data-friend-filter]").forEach(b=>b.classList.toggle("active",b===button));
+  renderFriendsView();
+}));
+
 function openDiscoveryEditor(sid){
   const server = servers[sid];
   if(!server || server.owner !== me.uid){ toast("Only the server owner can edit its Discover listing."); return; }
@@ -2989,18 +3262,10 @@ $("profile-card-copy").onclick = async () => {
     $("m-input").select();
   }
 };
-$("profile-card-message").onclick = async () => {
+$("profile-card-message").onclick = () => {
   const profile = profileCardUser;
   closeUserProfile();
-  if(!profile || !me || profile.uid === me.uid) return;
-  const existing = await db.ref("prism/userDMs/" + me.uid + "/" + profile.uid).once("value").catch(() => null);
-  if(existing && existing.exists()){
-    const info = existing.val() || {};
-    openDM(profile.uid, profile.name, info.dmId);
-    return;
-  }
-  $("dm-add").click();
-  $("m-input").value = profile.name;
+  if(profile && me && profile.uid !== me.uid) startDMWithUser(profile.uid,profile.name);
 };
 const presenceCache = Object.create(null);
 function renderMembers(snap){
@@ -3036,6 +3301,7 @@ function renderMembers(snap){
     }
     box.appendChild(d);
   });
+  renderFriendsView();
 }
 
 /* ---------------- modal ---------------- */
