@@ -2123,7 +2123,7 @@ function goOnline(){
   const r = db.ref("prism/presence/" + me.uid);
   r.set({
     u: me.name, ts: TS, status: settings.status || "", mode: settings.presenceMode || "online",
-    avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+    avatar: settings.avatar || "", bio: settings.bio || ""
   });
   r.onDisconnect().remove();
 }
@@ -4187,7 +4187,7 @@ async function loadSettings(){
   applySettings();
   if(me) db.ref("prism/presence/" + me.uid).update({
     status: settings.status || "", mode: settings.presenceMode || "online",
-    avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+    avatar: settings.avatar || "", banner: null, bio: settings.bio || ""
   }).catch(() => {});
 }
 function refreshAvatarPreview(){
@@ -4569,40 +4569,67 @@ $("set-save").onclick = async () => {
   }
   if(usableAvatarUrl) draftAvatar = usableAvatarUrl;
   if(bannerUrlValue) draftBanner = bannerUrlValue;
-  settings.theme = selTheme;
-  settings.accent = $("set-accent").value || "#5865f2";
-  settings.status = $("set-status").value.trim().slice(0, 60);
-  settings.presenceMode = ["online","dnd","offline"].includes($("set-presence-mode").value) ? $("set-presence-mode").value : "online";
-  updateAccountPresenceLabel();
-  settings.bio = $("set-bio").value.trim().slice(0, 180);
-  settings.banner = isSafeBannerSource(draftBanner) ? draftBanner : "";
-  settings.notifications = $("set-notifications").checked;
-  settings.css = $("set-css").value;
-  settings.callSounds = readCallSoundSettingsUI();
-  if(settings.notifications && "Notification" in window && Notification.permission === "default"){
+
+  // Avoid re-writing a potentially large base64 banner when only another setting changed.
+  // Keep the current banner in the settings record unless the user actually changed it.
+  const previousBanner = String(settings.banner || "");
+  const nextBanner = isSafeBannerSource(draftBanner) ? draftBanner : "";
+  const bannerChanged = nextBanner !== previousBanner;
+  const nextSettings = Object.assign({}, settings);
+  nextSettings.theme = selTheme;
+  nextSettings.accent = $("set-accent").value || "#5865f2";
+  nextSettings.status = $("set-status").value.trim().slice(0, 60);
+  nextSettings.presenceMode = ["online","dnd","offline"].includes($("set-presence-mode").value) ? $("set-presence-mode").value : "online";
+  nextSettings.bio = $("set-bio").value.trim().slice(0, 180);
+  nextSettings.banner = nextBanner;
+  nextSettings.notifications = $("set-notifications").checked;
+  nextSettings.css = $("set-css").value;
+  nextSettings.callSounds = readCallSoundSettingsUI();
+  nextSettings.avatar = isSafeAvatarSource(draftAvatar) ? draftAvatar : "";
+
+  if(nextSettings.notifications && "Notification" in window && Notification.permission === "default"){
     try { await Notification.requestPermission(); } catch(e) {}
   }
-  if(settings.notifications && (!("Notification" in window) || Notification.permission !== "granted")){
-    settings.notifications = false;
+  if(nextSettings.notifications && (!("Notification" in window) || Notification.permission !== "granted")){
+    nextSettings.notifications = false;
     $("set-notifications").checked = false;
     toast("This browser doesn't allow desktop notifications right now.");
   }
-  settings.avatar = isSafeAvatarSource(draftAvatar) ? draftAvatar : "";
+
+  const settingsToSave = Object.assign({}, nextSettings);
+  if(!bannerChanged) delete settingsToSave.banner;
+  else if(!nextBanner) settingsToSave.banner = null;
+
+  try{
+    // update() merges ordinary settings without retransmitting an unchanged banner.
+    await db.ref("prism/users/" + me.uid + "/settings").update(settingsToSave);
+  }catch(e){
+    console.warn("Prism settings save failed:", e);
+    toast("Couldn't save settings. Your edits are still here; try Save again.");
+    return;
+  }
+
+  settings = nextSettings;
+  await updateAccountPresenceLabel();
   applySettings();
   refreshBannerPreview();
   $("settings").classList.add("hidden");
+
+  // Profile banners live in /settings. Keeping large data URLs out of presence
+  // prevents a secondary write from failing after settings have already saved.
   try{
-    await db.ref("prism/users/" + me.uid + "/settings").set(settings);
     await db.ref("prism/presence/" + me.uid).update({
       status: settings.status || "", mode: settings.presenceMode || "online",
-      avatar: settings.avatar || "", banner: settings.banner || "", bio: settings.bio || ""
+      avatar: settings.avatar || "", banner: null, bio: settings.bio || ""
     });
-    db.ref("prism/users/" + me.uid + "/avatar").set(settings.avatar || "").catch(() => {});
-    profileAvatarCache[me.uid] = settings.avatar || "";
-    avatarReadDone.add(me.uid);
-    renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
-    toast("Settings saved.");
-  }catch(e){ toast("Couldn't save settings."); }
+  }catch(e){
+    console.warn("Prism settings saved, but presence sync failed:", e);
+  }
+  db.ref("prism/users/" + me.uid + "/avatar").set(settings.avatar || "").catch(() => {});
+  profileAvatarCache[me.uid] = settings.avatar || "";
+  avatarReadDone.add(me.uid);
+  renderProfileAvatar($("avatar"), settings.avatar || "", me.name);
+  toast("Settings saved.");
 };
 
 /* ---------------- reactions ---------------- */
@@ -4774,7 +4801,7 @@ function openUserProfile(uid, name, status, avatar, online){
       const live = presenceCache[uid] || {};
       updateProfileCardDetails(uid, {
         bio: live.bio || v.bio || "",
-        banner: live.banner || v.banner || "",
+        banner: isSafeBannerSource(v.banner) ? v.banner : "",
         presenceMode: live.mode || (online ? (v.presenceMode || "online") : "offline"),
         status: live.status || v.status || status || ""
       });
