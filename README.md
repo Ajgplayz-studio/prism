@@ -2,7 +2,7 @@
 
 **Prism** is a free and open-source Discord alternative where *everything* is free — no Nitro, no paywalled features, no premium tiers. Just chat.
 
-🌐 **Live demo:** https://ajgplayz-studio.github.io/prism/
+🌐 **Original live demo:** https://ajgplayz-studio.github.io/prism/
 
 ---
 
@@ -88,29 +88,28 @@ Prism is a single static `index.html` — no frameworks, no build step.
 
 ## 🗺️ What's not here (yet)
 
-Voice chat is implemented on the `voice-chat` branch as a Hostless Node.js app. GIF search, video calls, and file uploads are still not included.
+This `voice-chat-static` branch adds channel voice chat. GIF search, video calls, and file uploads are still not included.
 
 ---
 
 Made with 💜 — free forever, no Nitro required.
 
 
-## 🎙️ Hostless voice-chat branch
+## 🎙️ Static voice chat
 
-This branch adds authenticated, channel-based voice rooms using WebRTC audio and Socket.IO signaling. The GitHub Pages version on `main` is unchanged; use the Hostless App to run the voice-enabled version.
+This branch adds microphone-based voice chat in server channels using WebRTC audio and Firebase Realtime Database for presence/signaling. It is configured to use the original `discord-prism` Firebase project so existing accounts and chat data remain the same. The audio itself is peer-to-peer; Firebase does not store voice recordings.
 
-1. In Hostless, create an **App** for this repository and select the **`voice-chat`** branch.
-2. Set the start command to **`npm start`** (Node.js 20 or newer). The server listens on Hostless's supplied `PORT`.
-3. In your Firebase project, open **Project settings → Service accounts** and generate a private key JSON for the project Prism already uses (`discord-prism`).
-4. Add the entire JSON file contents as the Hostless secret/environment variable **`FIREBASE_SERVICE_ACCOUNT_JSON`**. Never commit the key to GitHub or put it in frontend code.
-5. Add the Hostless domain in Firebase Authentication → Settings → Authorized domains.
-6. Deploy, sign in to Prism, open a server text channel and click **Join Voice**. Give the browser microphone permission.
+### Deploy with GitHub Pages
 
-Optional environment variables:
+1. In this fork, open **Settings → Pages** and set the build/deployment source to **GitHub Actions**.
+2. The workflow in `.github/workflows/pages.yml` deploys this branch automatically after a push.
+3. When the workflow succeeds, open **https://michaelmb110b12-wq.github.io/prism-/**.
 
-- `FIREBASE_DATABASE_URL` — defaults to the Prism Realtime Database URL.
-- `FIREBASE_PROJECT_ID` — defaults to the service account's project ID.
-- `MAX_VOICE_PEERS` — room size limit; defaults to 8 and is capped at 12.
-- `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` — optional TURN relay settings for restrictive networks.
+### Firebase owner setup required
 
-The server uses a public STUN server by default. Some networks—especially school or workplace networks—may require TURN credentials for audio to connect reliably. Voice requires HTTPS and browser microphone permission. Check `/healthz` for service status.
+The owner of the original `discord-prism` Firebase project needs to make two changes before voice chat can work:
+
+1. In **Authentication → Settings → Authorized domains**, add `michaelmb110b12-wq.github.io`.
+2. In **Realtime Database → Rules**, merge the `voiceRooms` fragment from [VOICE_CHAT_RULES.md](./VOICE_CHAT_RULES.md) into the existing `rules.prism` object, then publish. Do **not** replace the complete existing rules with the fragment; keep the existing accounts/chat permissions intact. Check for overly broad ancestor rules, because Realtime Database rules are additive and a broad parent read/write grant can override more-specific restrictions.
+
+After those changes, sign in with an existing Prism account, open a server text channel and select **Join Voice**, then approve microphone access. The page must be served over HTTPS. The client uses a public STUN server; some restrictive networks may need a TURN relay for connections to succeed.
