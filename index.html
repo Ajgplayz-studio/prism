@@ -1443,15 +1443,15 @@ const linkify = s => {
     codeBlocks.push("<pre><code>" + code + "</code></pre>");
     return marker;
   });
-  out = out.replace(/(https?:\\/\\/[^\\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-  out = out.replace(/\\*\\*(.+?)\\*\\*/g, "<strong>$1</strong>");
+  out = out.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   out = out.replace(/~~(.+?)~~/g, "<del>$1</del>");
-  out = out.replace(/(^|[^*])\\*([^*\\n]+)\\*(?!\\*)/g, "$1<em>$2</em>");
-  const inlineCode = new RegExp(tick + "([^" + tick + "\\\\n]+)" + tick, "g");
+  out = out.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  const inlineCode = new RegExp(tick + "([^" + tick + "\\n]+)" + tick, "g");
   out = out.replace(inlineCode, "<code>$1</code>");
-  out = out.replace(/(^|\\n)&gt;\\s?([^\\n]+)/g, "$1<blockquote>$2</blockquote>");
-  out = out.replace(/\\n/g, "<br>");
-  out = out.replace(/<a href="(https?:\\/\\/[^"]+\\.(?:png|jpe?g|gif|webp|avif)(?:[?#][^"]*)?)" target="_blank" rel="noopener noreferrer">([^<]+)<\\/a>/gi,
+  out = out.replace(/(^|\n)&gt;\s?([^\n]+)/g, "$1<blockquote>$2</blockquote>");
+  out = out.replace(/\n/g, "<br>");
+  out = out.replace(/<a href="(https?:\/\/[^"]+\.(?:png|jpe?g|gif|webp|avif)(?:[?#][^"]*)?)" target="_blank" rel="noopener noreferrer">([^<]+)<\/a>/gi,
     '<a class="message-image-link" href="$1" target="_blank" rel="noopener noreferrer"><img class="message-image" src="$1" alt="Shared image" loading="lazy" decoding="async"></a>');
   codeBlocks.forEach((block, index) => { out = out.replace("PRISMCODEBLOCK" + index + "END", block); });
   return out;
@@ -2996,7 +2996,7 @@ function formatComposer(type){
   const tick=String.fromCharCode(96);
   const formats={
     bold:["**","**"], italic:["*","*"], strike:["~~","~~"],
-    code:[tick,tick], codeblock:[tick.repeat(3)+"\\n","\\n"+tick.repeat(3)], quote:["> ",""]
+    code:[tick,tick], codeblock:[tick.repeat(3)+"\n","\n"+tick.repeat(3)], quote:["> ",""]
   };
   let prefix="", suffix="", content=selected;
   if(type==="link"){
@@ -3007,7 +3007,7 @@ function formatComposer(type){
     [prefix,suffix]=formats[type]||["",""];
   }
   if(type==="quote"){
-    content=(selected||"quote").split("\\n").map(line=>"> "+line).join("\\n");
+    content=(selected||"quote").split("\n").map(line=>"> "+line).join("\n");
     prefix="";suffix="";
   }
   input.setRangeText(prefix+content+suffix,start,end,"select");
