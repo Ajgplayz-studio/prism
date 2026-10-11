@@ -2583,13 +2583,14 @@ function openForumPost(pid){
 
 /* ---------------- admin (ajgplayz) ---------------- */
 function confirmDeleteUser(uid, uname){
-  if(!isAdmin() || uid === me.uid) return;
+  if(!isAdmin() || uid === me.uid || adminIsProtectedName(uname)) return;
   openModal("Delete user",
     "Really delete @" + uname + "? Their account, username, memberships and DMs will be removed and they won't be able to log back in. This can't be undone.",
     "", "Delete", () => deleteUser(uid, uname));
   $("m-input").style.display = "none";
 }
 async function deleteUser(uid, uname){
+  if(!isAdmin() || uid === me.uid || adminIsProtectedName(uname)) return;
   try{
     await db.ref("prism/banned/" + uid).set({u: uname, ts: Date.now()});
     const updates = {};
@@ -2615,6 +2616,7 @@ async function deleteUser(uid, uname){
     });
     dmIds.forEach(id => { updates["prism/dmMessages/" + id] = null; });
     updates["prism/users/" + uid] = null;
+    updates["prism/admins/" + uid] = null;
     updates["prism/usernames/" + String(uname).toLowerCase()] = null;
     updates["prism/presence/" + uid] = null;
     updates["prism/myServers/" + uid] = null;
