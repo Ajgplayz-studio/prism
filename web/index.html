@@ -1435,6 +1435,33 @@
 </style>
 </head>
 <body>
+<script>
+/* NEW URL notice: this GitHub Pages copy has moved to Cloudflare */
+(function(){
+  try {
+    var isOld = location.hostname === 'ajgplayz-studio.github.io' &&
+                location.pathname.indexOf('/prism/web') === 0;
+    if (!isOld) return;
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);';
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#202127;color:#e5e5e9;padding:28px 32px;border-radius:12px;text-align:center;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:system-ui,sans-serif;';
+    var msg = document.createElement('div');
+    msg.style.cssText = 'font-size:20px;font-weight:700;margin-bottom:20px;';
+    msg.textContent = 'NEW URL';
+    var btn = document.createElement('button');
+    btn.textContent = 'OK';
+    btn.style.cssText = 'background:#5755d9;color:#fff;border:none;border-radius:8px;padding:10px 40px;font-size:16px;font-weight:600;cursor:pointer;';
+    btn.onclick = function(){
+      window.location.href = 'https://prism.foxcorpgames.workers.dev/web' + (location.hash || '');
+    };
+    box.appendChild(msg);
+    box.appendChild(btn);
+    overlay.appendChild(box);
+    (document.body || document.documentElement).appendChild(overlay);
+  } catch(e){}
+})();
+</script>
 
 <!-- auth -->
 <div id="auth">
@@ -5144,7 +5171,7 @@ $("avatar").onkeydown = event => { if(event.key === "Enter" || event.key === " "
 document.addEventListener("keydown", event => {
   if(event.key === "Escape" && !$("profile-card").classList.contains("hidden")) closeUserProfile();
 });
-$("get-themes").onclick = () => { window.open("https://ajgplayz-studio.github.io/prism/ct/#invite=oVUfWYCa", "_blank", "noopener,noreferrer"); };
+$("get-themes").onclick = () => { window.open("https://prism.foxcorpgames.workers.dev/web/#invite=oVUfWYCa", "_blank", "noopener,noreferrer"); };
 $("set-cancel").onclick = () => {
   $("settings").classList.add("hidden");
   draftAvatar = settings.avatar || "";
