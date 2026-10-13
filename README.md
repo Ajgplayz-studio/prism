@@ -93,3 +93,10 @@ Some things need more than static hosting and aren't built: voice/video calls, G
 ---
 
 Made with 💜 — free forever, no Nitro required.
+
+---
+
+## 🙏 Credits
+
+- **Ajgplayz** (owner) — database, chatting, servers, themes
+- **Maplz** — calling, DMs, server customization, and so much more
