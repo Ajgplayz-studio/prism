@@ -1442,6 +1442,16 @@
     var isOld = location.hostname === 'ajgplayz-studio.github.io' &&
                 location.pathname.indexOf('/prism/web') === 0;
     if (!isOld) return;
+    /* revive bypass: visiting prism.foxcorpgames.workers.dev/revive bounces back
+       here with #revive; remember the choice so the popup never shows again */
+    if ((location.hash || '') === '#revive') {
+      try {
+        localStorage.setItem('prism_old_url_ok', '1');
+        history.replaceState(null, '', location.pathname + location.search);
+      } catch(e){}
+      return;
+    }
+    try { if (localStorage.getItem('prism_old_url_ok') === '1') return; } catch(e){}
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);';
     var box = document.createElement('div');
