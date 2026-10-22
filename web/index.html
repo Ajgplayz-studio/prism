@@ -1454,6 +1454,18 @@
   .deleted-account-date{white-space:normal!important;line-height:1.45}
   @media(max-width:600px){.pending-media-name{max-width:145px}.message-media img,.message-media video{max-height:260px}.admin-row-actions{width:100%;justify-content:flex-start;margin-top:8px}}
 </style>
+<style>
+  /* Prism Coins + slowmode (added 2026-10-22) */
+  #coin-pill{flex:none;font-size:12px;font-weight:700;background:var(--input);color:var(--text);border-radius:20px;padding:4px 9px;margin-left:6px}
+  #chslow{margin-left:8px;background:var(--input);border:none;color:var(--dim);cursor:pointer;border-radius:6px;padding:5px 8px;font-size:14px;line-height:1}
+  #chslow:hover{color:var(--text);background:var(--hover)}
+  #chslow.on{background:var(--accent);color:#fff}
+  #coin-shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+  .coin-item{border:1px solid color-mix(in srgb,var(--text) 10%,transparent);border-radius:10px;padding:8px;background:var(--side)}
+  .coin-item-preview{height:52px;border-radius:6px;margin-bottom:8px}
+  .coin-item-name{font-size:13px;font-weight:600;margin-bottom:8px}
+  .coin-item button{width:100%}
+</style>
 </head>
 <body>
 <script>
@@ -1562,6 +1574,7 @@
     <div id="userbar">
       <div id="avatar">?</div>
       <div id="uname">...<small>online</small></div>
+      <div id="coin-pill" title="Prism Coins — earn 1 for real messages that fit the conversation">🪙 0</div>
       <button id="set-open" title="Settings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Z"/><path d="m19.4 13.5 1.1.9-1.6 2.8-1.4-.5a7.8 7.8 0 0 1-1.6.9l-.2 1.5h-3.2l-.2-1.5a7.8 7.8 0 0 1-1.6-.9l-1.4.5-1.6-2.8 1.1-.9a7 7 0 0 1 0-1.9l-1.1-.9 1.6-2.8 1.4.5a7.8 7.8 0 0 1 1.6-.9l.2-1.5h3.2l.2 1.5a7.8 7.8 0 0 1 1.6.9l1.4-.5 1.6 2.8-1.1.9a7 7 0 0 1 0 1.9Z"/></svg></button>
       <button id="logout" title="Log out" aria-label="Log out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10"/><path d="M14 16l4-4-4-4M18 12H9M14 4V3"/></svg></button>
     </div>
@@ -1571,7 +1584,7 @@
     <div id="chead"><button id="mobile-back" type="button" title="Back" aria-label="Back to channels">‹</button><span class="hash" id="ch-hash">#</span><span id="chname">general</span><span class="topic" id="chtopic"></span>
       <button id="message-search-toggle" type="button" title="Search messages" aria-label="Search messages"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></button>
       <input id="message-search-input" class="hidden" type="search" placeholder="Search this conversation…" aria-label="Search messages in this conversation">
-      <button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chedit" class="hidden" title="Edit channel" aria-label="Edit channel">✎</button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
+      <button id="pinbtn" class="hidden" title="Pinned messages"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l-1 6 3 3H6l3-3-1-6Z"/><path d="M12 13v7"/></svg><span id="pincount">0</span></button><button id="chedit" class="hidden" title="Edit channel" aria-label="Edit channel">✎</button><button id="chslow" class="hidden" title="Slowmode" aria-label="Toggle slowmode for this channel">⚙️</button><button id="chdel" class="hidden" title="Delete channel" aria-label="Delete channel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m-9 0 1 13h10l1-13M10 11v5m4-5v5"/></svg></button></div>
     <div id="home-screen" class="hidden" aria-label="Messages home">
       <div class="home-welcome">
         <div class="home-welcome-icon" aria-hidden="true">
@@ -1775,6 +1788,12 @@
       <input type="checkbox" id="set-notifications">
       <span><b>Desktop notifications</b><small>Show a notification when a new message arrives while Prism is in the background.</small></span>
     </label>
+    <section id="coin-settings" aria-label="Prism Coins">
+      <h3>🪙 Prism Coins</h3>
+      <p class="call-sound-description">Earn 1 coin for a real message that fits the conversation — starters and replies count, gibberish doesn't. Spend coins on profile banners. No ads, no paying, ever.</p>
+      <p>Your balance: <b>🪙 <span id="coin-balance">0</span></b></p>
+      <div id="coin-shop"></div>
+    </section>
     <section id="call-sound-settings" aria-label="Call and voice sounds">
       <h3>Call &amp; voice sounds</h3>
       <p class="call-sound-description">Choose a sound for each event, upload your own audio, and preview it before saving. Uploaded audio stays in this browser.</p>
@@ -2429,6 +2448,7 @@ function refreshServerPermissionButtons(sid){
   if(view.type==="server"&&view.sid===sid){
     $("chdel").classList.toggle("hidden",!view.cid||!canServerPermission(sid,"manageChannels"));
     $("chedit").classList.toggle("hidden",!view.cid||!canServerPermission(sid,"manageChannels"));
+    paintSlowBtn();
   }
 }
 function safeServerAccent(value){
@@ -2724,6 +2744,7 @@ function updateHomeLayout(){
     $("pinbtn").classList.add("hidden");
     $("chdel").classList.add("hidden");
     $("chedit").classList.add("hidden");
+    $("chslow").classList.add("hidden");
     document.documentElement.style.removeProperty("--server-accent");
   }
 }
@@ -3480,6 +3501,7 @@ function openChannel(sid, cid, cname, topic, ctype, autoSelect = false){
   $("chtopic").textContent = topic || ((cid==="general"&&servers[sid]&&servers[sid].welcomeMessage)||"");
   $("chdel").classList.toggle("hidden", !canServerPermission(sid,"manageChannels"));
   $("chedit").classList.toggle("hidden", !canServerPermission(sid,"manageChannels"));
+  paintSlowBtn();
   if((ctype || "chat") === "forum"){
     renderForum();
   }else{
@@ -4714,6 +4736,7 @@ function send(){
   const t = $("minput").value.trim();
   const uploads=pendingChatMedia.slice();
   if((!t&&!uploads.length)||!me)return;
+  if(!slowmodeGate())return;
   if(view.type==="server" && view.cid && !canServerPermission(view.sid,"sendMessages")){
     toast("You don't have permission to send messages in this server.");
     return;
@@ -4771,6 +4794,7 @@ function send(){
       db.ref("prism/userGroupDMs/" + uid + "/" + view.dmId + "/lastTs").set(now).catch(()=>{});
     });
   }else return;
+  if(t)coinOnMessage(t);
   pendingChatMedia=[];
   renderPendingChatMedia();
   $("chat-media-input").value="";
@@ -4960,6 +4984,7 @@ async function loadSettings(){
   selTheme = settings.theme || "dark";
   draftBanner = settings.banner;
   applySettings();
+  initCoins();
   if(me) db.ref("prism/presence/" + me.uid).update({
     status: settings.status || "", mode: settings.presenceMode || "online",
     avatar: settings.avatar || "", banner: null, bio: settings.bio || ""
@@ -5379,6 +5404,7 @@ function openSettings(){
   $("set-css").value = settings.css || "";
   syncCallSoundSettingsUI();
   syncAdminSectionAccess();
+  paintCoins();
   $("settings").classList.remove("hidden");
   previewThemeSettings();
 }
@@ -6016,5 +6042,214 @@ $("m-input").addEventListener("keydown", e => {
 });
 </script>
 <script src="./public/voice-chat.js"></script>
+<script>
+/* ================================================================
+   PRISM COINS + SLOWMODE  (added 2026-10-22, at Avery's request)
+   - Earn 1 coin for a message that passes the sense check:
+     real words, not gibberish, and it fits the conversation
+     (a starter, or a reply that connects). Single letters,
+     repeated characters ("AAAAAAAA") and random letter strings
+     ("ABCDEFGZYX") never earn. Repeating your own last message
+     doesn't earn either.
+   - Coins live at prism/users/{uid}/coins ; owned shop items at
+     prism/users/{uid}/coinItems/{itemId}. Shop = profile banners
+     (generated art, applied through the normal banner setting).
+   - Slowmode: prism/servers/{sid}/slowmode/{cid} = true.
+     Toggle with the snail button in the channel header.
+     Root admins (Ajgplayz, Maplz_) can toggle it on any channel;
+     a server owner can toggle it on their own server.
+     While on: 5 messages in under 3 seconds blocks the sender
+     for 5 seconds with "Whoa, whoa, whoa, slow down."
+   ================================================================ */
+const COIN_WORD_LIST = ("the of and a an in is you that it he was for on are as with his they i at be this have from or one had by word but not what all were we when your can said there use each which she do how their if will up other about out many then them these so some her would make like him into time has look two more write go see number no way could people my than first water been call who oil its now find long down day did get come made may part over new sound take only little work know place year live me back give most very after thing our just name good sentence man think say great where help through much before line right too mean old any same tell boy follow came want show also around form three small set put end does another well large must big even such because turn here why ask went men read need land different home us move try kind hand picture again change off play spell air away animal house point page letter mother answer found study still learn should world high every near add food between own below country plant last school father keep tree never start city earth eye light thought head under story saw left few while might close something seem next hard open example begin life always those both paper together got group often run " +
+"i'm don't can't it's didn't won't isn't aren't wasn't weren't doesn't haven't hasn't hadn't couldn't shouldn't wouldn't i'm you're we're they're he's she's that's what's let's i'll you'll we'll they'll i've we've i'd you'd he'd she'd we'd they'd i'll " +
+"yes yeah yep yup no nope ok okay sure thanks thank please hi hello hey bye welcome congrats nice cool wow agreed same true right exactly maybe probably definitely really very just now today tonight tomorrow yesterday morning afternoon evening night " +
+"game games play playing played player players win wins won lose lost losing team teams server servers channel channels message messages chat chatting talk talking speak call voice video friend friends add join joins joined invite invites group groups prism coin coins banner banners profile admin admins owner mod mods ban banned kick mute slow slowmode quest vr headset controller controllers knockdown rec room rooms dorm lobby sandbox map maps build builds building create creates created edit edits meme memes funny joke jokes laugh laughing story stories quest roblox minecraft fortnite youtube video videos watch watching stream streams music song songs art draw drawing book books movie movies food pizza burger cat cats dog dogs bird birds fish school class homework teacher student students test tests grade grades mom dad brother sister family house home car cars bike bikes ball balls sport sports soccer football basketball baseball tennis swim swimming run running jump jumping dance dancing sing singing read reading write writing code coding program programs computer phone tablet internet online offline level levels point points score scores race races battle battles fight fights sword swords gun guns rocket rockets space moon star stars sun sky cloud clouds rain snow winter summer spring fall autumn tree trees flower flowers garden ocean sea beach mountain mountains river lake lakes island islands city town village world earth planet " +
+"want wants wanted need needs like likes liked love loves loved hate hates think thinks thought know knows knew feel feels felt see sees saw look looks looking listen listens hear hears heard say says said tell tells told ask asks asked answer answers help helps helped give gives gave take takes took come comes came bring brings show shows try tries tried start starts started stop stops stopped keep keeps kept let lets put puts set sets end ends ended open opens opened close closes closed turn turns turned move moves moved live lives lived call calls called wait waits waited watch watches watched read reads write writes learn learns learned teach teaches change changes changed follow follows make makes made do does did done go goes went gone get gets got find finds found use uses used work works worked play plays").split(/\s+/);
+const COIN_WORDS = new Set(COIN_WORD_LIST);
+const COIN_SHORT_OK = new Set(["yes","yeah","yep","yup","no","nope","ok","okay","sure","lol","haha","hahaha","thanks","thank","please","hi","hello","hey","bye","welcome","congrats","nice","cool","wow","same","true","right","exactly","agreed","maybe","definitely","probably","wait","oh","ah","yay","great","good","bad","fun","sick","sweet","bet","fr","real","valid"]);
+const COIN_GREET = new Set(["hi","hello","hey","hiya","howdy","yo","sup","morning","afternoon","evening","welcome"]);
+let coinBalance = 0, coinItems = {}, coinsInitDone = false, coinLastTextByScope = {};
+function coinWordsOf(text){ return (String(text || "").toLowerCase().match(/[a-z']+/g) || []).map(w => w.replace(/^'+|'+$/g, "")).filter(Boolean); }
+function coinIsRealWord(w){
+  if(COIN_WORDS.has(w) || COIN_SHORT_OK.has(w)) return true;
+  return w.length >= 4 && /[aeiouy]/.test(w); // unknown longer words with a vowel count as plausible words (names, slang, game titles)
+}
+function coinIsGibberishWord(w){
+  if(w.length <= 1) return true;                       // single letter
+  if(/^(.)\1+$/.test(w)) return true;                  // aaaaaaaaaaaa
+  if(w.length >= 5 && new Set(w).size <= 2) return true; // abababab / abcabc low-variety mash
+  return false;
+}
+function coinRecentTexts(){
+  const out = [];
+  document.querySelectorAll("#msgs .msg .mx").forEach(el => { const s = (el.textContent || "").trim(); if(s) out.push(s); });
+  return out.slice(-12);
+}
+function coinScopeKey(){
+  if(view && view.type === "server") return "s_" + view.sid + "_" + view.cid;
+  if(view && (view.type === "dm" || view.type === "group")) return "d_" + view.dmId;
+  return "x";
+}
+function coinMessageEarns(text){
+  const raw = String(text || "").trim();
+  if(!raw) return false;
+  const lettersOnly = raw.replace(/[^a-zA-Z]/g, "");
+  if(lettersOnly.length < 2) return false;                       // "A" never earns
+  const words = coinWordsOf(raw);
+  if(!words.length) return false;
+  if(words.length === 1 && words[0].length === 1) return false;  // single-letter word
+  if(words.every(coinIsGibberishWord)) return false;             // pure mash
+  const real = words.filter(w => !coinIsGibberishWord(w) && coinIsRealWord(w));
+  if(!real.length) return false;                                 // "ABCDEFGZYX" — no real words
+  const recent = coinRecentTexts();
+  const lower = " " + raw.toLowerCase() + " ";
+  const isQuestion = raw.indexOf("?") >= 0;
+  const hasGreeting = words.some(w => COIN_GREET.has(w));
+  const hasInvite = /\b(want to|wanna|let's|lets)\b/.test(lower) || (words.indexOf("play") >= 0) || (words.indexOf("join") >= 0);
+  const isStarter = hasGreeting || isQuestion || hasInvite;
+  if(isStarter && real.length / words.length >= 0.5) return true;
+  // reply path 1: short answer made of known chat words, with a conversation to answer ("yes", "ok cool")
+  if(recent.length && words.length <= 4 && words.every(w => COIN_WORDS.has(w) || COIN_SHORT_OK.has(w))) return true;
+  // reply path 2: shares a real topic word (4+ letters) with the recent conversation
+  if(recent.length){
+    const ctx = new Set();
+    recent.forEach(m => coinWordsOf(m).forEach(w => { if(w.length >= 4) ctx.add(w); }));
+    if(words.some(w => w.length >= 4 && ctx.has(w) && coinIsRealWord(w))) return true;
+  }
+  return false; // real words but random / off-topic (e.g. dropping "EA Sports" mid-chat) earns nothing
+}
+function coinOnMessage(text){
+  try{
+    if(!me || !text) return;
+    const scope = coinScopeKey();
+    const norm = String(text).trim().toLowerCase();
+    if(coinLastTextByScope[scope] === norm) return;  // repeating your own last message isn't a conversation
+    coinLastTextByScope[scope] = norm;
+    if(!coinMessageEarns(text)) return;
+    db.ref("prism/users/" + me.uid + "/coins").transaction(c => (c || 0) + 1)
+      .then(() => toast("🪙 +1 Prism Coin"))
+      .catch(() => {});
+  }catch(e){}
+}
+function paintCoins(){
+  const p = $("coin-pill"); if(p) p.textContent = "🪙 " + coinBalance;
+  const b = $("coin-balance"); if(b) b.textContent = coinBalance;
+  paintCoinShop();
+}
+function initCoins(){
+  if(coinsInitDone || !me) return; coinsInitDone = true;
+  db.ref("prism/users/" + me.uid + "/coins").on("value", s => { coinBalance = s.val() || 0; paintCoins(); });
+  db.ref("prism/users/" + me.uid + "/coinItems").on("value", s => { coinItems = s.val() || {}; paintCoinShop(); });
+}
+/* ---------------- coin shop: profile banners ---------------- */
+const COIN_SHOP = [
+  {id:"prism",  name:"💚 Prism Fade", price:15, css:"linear-gradient(120deg,#43b581,#5865f2)", stops:["#43b581","#5865f2"], style:"linear"},
+  {id:"ocean",  name:"🌊 Ocean",      price:25, css:"linear-gradient(120deg,#0f2027,#2c5364)", stops:["#0f2027","#2c5364"], style:"linear"},
+  {id:"sunset", name:"🌅 Sunset",     price:25, css:"linear-gradient(120deg,#ff9966,#ff5e62,#7b2ff7)", stops:["#ff9966","#ff5e62","#7b2ff7"], style:"linear"},
+  {id:"candy",  name:"🍬 Candy",      price:30, css:"repeating-linear-gradient(45deg,#ff6ec7 0 34px,#ff9a8b 34px 68px)", stops:["#ff6ec7","#ff9a8b"], style:"stripes"},
+  {id:"ember",  name:"🔥 Ember",      price:35, css:"linear-gradient(120deg,#200122,#6f0000,#ff4e00)", stops:["#200122","#6f0000","#ff4e00"], style:"linear"},
+  {id:"galaxy", name:"🌌 Galaxy",     price:40, css:"linear-gradient(120deg,#0f0c29,#302b63,#24243e)", stops:["#0f0c29","#302b63","#24243e"], style:"stars"},
+  {id:"gold",   name:"👑 Gold",       price:50, css:"linear-gradient(120deg,#bf953f,#fcf6ba,#b38728)", stops:["#bf953f","#fcf6ba","#b38728"], style:"linear"}
+];
+function coinBannerDataURL(item){
+  const cv = document.createElement("canvas"); cv.width = 1200; cv.height = 300;
+  const g = cv.getContext("2d");
+  if(item.style === "stripes"){
+    g.fillStyle = item.stops[0]; g.fillRect(0, 0, 1200, 300);
+    g.fillStyle = item.stops[1];
+    for(let x = -300; x < 1500; x += 136){ g.beginPath(); g.moveTo(x, 300); g.lineTo(x + 68, 300); g.lineTo(x + 68 + 300, 0); g.lineTo(x + 300, 0); g.fill(); }
+  }else{
+    const gr = g.createLinearGradient(0, 0, 1200, 300);
+    item.stops.forEach((c, i) => gr.addColorStop(item.stops.length === 1 ? 0 : i / (item.stops.length - 1), c));
+    g.fillStyle = gr; g.fillRect(0, 0, 1200, 300);
+  }
+  if(item.style === "stars"){
+    let seed = 42; item.id.split("").forEach(ch => seed += ch.charCodeAt(0));
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    for(let i = 0; i < 130; i++){
+      g.fillStyle = "rgba(255,255,255," + (0.35 + rnd() * 0.65).toFixed(2) + ")";
+      const r = rnd() * 2.2 + 0.6; g.beginPath(); g.arc(rnd() * 1200, rnd() * 300, r, 0, 7); g.fill();
+    }
+  }
+  if(item.id === "prism"){
+    const rg = g.createRadialGradient(880, 60, 10, 880, 60, 340);
+    rg.addColorStop(0, "rgba(255,255,255,.35)"); rg.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = rg; g.fillRect(0, 0, 1200, 300);
+  }
+  return cv.toDataURL("image/jpeg", 0.85);
+}
+function paintCoinShop(){
+  const box = $("coin-shop"); if(!box) return;
+  box.innerHTML = "";
+  COIN_SHOP.forEach(item => {
+    const owned = !!coinItems[item.id];
+    const card = document.createElement("div"); card.className = "coin-item";
+    const prev = document.createElement("div"); prev.className = "coin-item-preview"; prev.style.background = item.css;
+    const nm = document.createElement("div"); nm.className = "coin-item-name"; nm.textContent = item.name;
+    const btn = document.createElement("button"); btn.type = "button";
+    if(owned){ btn.textContent = "Equip banner"; btn.onclick = () => coinEquip(item.id); }
+    else{ btn.textContent = "Buy · 🪙 " + item.price; btn.disabled = coinBalance < item.price; btn.onclick = () => coinBuy(item.id); }
+    card.appendChild(prev); card.appendChild(nm); card.appendChild(btn);
+    box.appendChild(card);
+  });
+}
+function coinBuy(id){
+  const item = COIN_SHOP.find(x => x.id === id); if(!item || !me) return;
+  if(coinItems[id]) return coinEquip(id);
+  if(coinBalance < item.price){ toast("Not enough Prism Coins — keep chatting!"); return; }
+  db.ref("prism/users/" + me.uid + "/coins").transaction(c => { c = c || 0; return c >= item.price ? c - item.price : undefined; })
+    .then(r => {
+      if(r && r.committed){
+        db.ref("prism/users/" + me.uid + "/coinItems/" + id).set(true).catch(() => {});
+        toast("Bought " + item.name + "!");
+        coinEquip(id);
+      }else toast("Not enough Prism Coins — keep chatting!");
+    }).catch(() => toast("Couldn't buy that — check your connection."));
+}
+function coinEquip(id){
+  const item = COIN_SHOP.find(x => x.id === id); if(!item || !me) return;
+  try{
+    const url = coinBannerDataURL(item);
+    settings.banner = url; draftBanner = url;
+    db.ref("prism/users/" + me.uid + "/settings").update({banner: url}).catch(() => {});
+    const pv = $("set-banner-preview"); if(pv) pv.style.backgroundImage = 'url("' + url + '")';
+    const bu = $("set-banner-url"); if(bu) bu.value = "";
+    toast(item.name + " banner equipped!");
+  }catch(e){ toast("Couldn't equip that banner."); }
+}
+/* ---------------- slowmode ---------------- */
+let slowSendLog = {}, slowBlockUntil = {};
+function slowmodeOnNow(){
+  return !!(view && view.type === "server" && view.cid && servers[view.sid] && servers[view.sid].slowmode && servers[view.sid].slowmode[view.cid] === true);
+}
+function slowCanToggle(){
+  if(!me || !view || view.type !== "server" || !view.cid) return false;
+  return isRootAdmin() || !!(servers[view.sid] && servers[view.sid].owner === me.uid);
+}
+function paintSlowBtn(){
+  const b = $("chslow"); if(!b) return;
+  b.classList.toggle("hidden", !slowCanToggle());
+  b.classList.toggle("on", slowmodeOnNow());
+  b.title = slowmodeOnNow() ? "Slowmode is ON — click to turn off" : "Slowmode is off — click to turn on";
+}
+function slowmodeGate(){
+  if(!slowmodeOnNow()) return true;
+  const scope = view.sid + "/" + view.cid, now = Date.now();
+  if(slowBlockUntil[scope] && now < slowBlockUntil[scope]){ toast("Whoa, whoa, whoa, slow down."); return false; }
+  const log = (slowSendLog[scope] || []).filter(ts => now - ts < 3000);
+  log.push(now); slowSendLog[scope] = log;
+  if(log.length >= 5){ slowBlockUntil[scope] = now + 5000; slowSendLog[scope] = []; toast("Whoa, whoa, whoa, slow down."); return false; }
+  return true;
+}
+$("chslow").onclick = () => {
+  if(!slowCanToggle()) return;
+  const sid = view.sid, cid = view.cid, on = !slowmodeOnNow();
+  db.ref("prism/servers/" + sid + "/slowmode/" + cid).set(on)
+    .then(() => { if(!servers[sid].slowmode) servers[sid].slowmode = {}; servers[sid].slowmode[cid] = on; paintSlowBtn(); toast(on ? "🐌 Slowmode ON for this channel" : "🐌 Slowmode off"); })
+    .catch(() => toast("Couldn't change slowmode — check your connection."));
+};
+
+</script>
 </body>
 </html>
