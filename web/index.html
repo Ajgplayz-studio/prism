@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism has moved</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1e1f22;
+    color: #dbdee1;
+    font-family: "gg sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .wrap { width: 100%; max-width: 560px; text-align: center; }
+  .logo {
+    font-size: 44px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .logo span { color: #5865f2; }
+  h1 { font-size: 22px; color: #fff; margin-bottom: 8px; }
+  .sub { color: #b5bac1; font-size: 15px; margin-bottom: 28px; }
+  .card {
+    background: #2b2d31;
+    border: 1px solid #3f4147;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .card.hot { border-color: #5865f2; box-shadow: 0 0 0 1px #5865f2; }
+  .card h2 { font-size: 17px; color: #fff; margin-bottom: 6px; }
+  .card p { color: #b5bac1; font-size: 14px; line-height: 1.5; margin-bottom: 14px; }
+  .btn {
+    display: inline-block;
+    background: #5865f2;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 11px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn:hover { background: #4752c4; }
+  .btn.ghost { background: #4e5058; }
+  .btn.ghost:hover { background: #6d6f78; }
+  .note { color: #80848e; font-size: 13px; margin-top: 8px; }
+
+  /* Tutorial popup */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #2b2d31;
+    border: 1px solid #3f4147;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    text-align: left;
+    position: relative;
+  }
+  .modal h2 { font-size: 19px; color: #fff; margin-bottom: 4px; }
+  .modal .modal-sub { color: #b5bac1; font-size: 14px; margin-bottom: 18px; }
+  .modal h3 { font-size: 15px; color: #fff; margin: 16px 0 8px; }
+  .modal ol { margin-left: 20px; color: #b5bac1; font-size: 14px; line-height: 1.7; }
+  .modal ol li { margin-bottom: 4px; }
+  .addr {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .addr code {
+    flex: 1;
+    background: #1e1f22;
+    border: 1px solid #3f4147;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #fff;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .copy-btn {
+    background: #4e5058;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover { background: #6d6f78; }
+  .close-x {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: #b5bac1;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .close-x:hover { color: #fff; }
+  .modal .done { margin-top: 20px; width: 100%; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">Prism<span>.</span></div>
+  <h1>This version has shut down</h1>
+  <p class="sub">Prism has moved. Pick the one that matches how you were using it:</p>
+
+  <div class="card" id="web-card">
+    <h2>🌐 Using Prism in your browser?</h2>
+    <p>You're on the web version. Prism now lives at a new address — follow the steps to get there:</p>
+    <button class="btn" id="open-prism-btn">Open Prism</button>
+  </div>
+
+  <div class="card" id="app-card">
+    <h2>📱 Using the Prism app (APK or EXE)?</h2>
+    <p>This version of the app is out of date and no longer works. Please reinstall the latest version of the app to go back to normal:</p>
+    <a class="btn" href="https://prism.foxcorpgames.workers.dev/app/">Get the latest app</a>
+  </div>
+
+  <p class="note">Your account, servers, and messages are all safe — just open the new version and sign in.</p>
+</div>
+
+<!-- Tutorial popup -->
+<div class="overlay" id="tutorial-overlay">
+  <div class="modal">
+    <button class="close-x" id="tutorial-close" aria-label="Close">×</button>
+    <h2>Getting back to Prism</h2>
+    <p class="modal-sub">Follow the steps for how you use Prism:</p>
+
+    <h3>🌐 If you use Prism in your browser</h3>
+    <ol>
+      <li>Prism moved to a new address.</li>
+      <li>Copy the new address below and paste it into your browser's address bar.</li>
+      <li>Sign in like normal — everything is still there.</li>
+      <li>Bookmark the new address so you don't end up back here.</li>
+    </ol>
+    <div class="addr">
+      <code id="new-address">https://prism.foxcorpgames.workers.dev/website/</code>
+      <button class="copy-btn" id="copy-btn">Copy</button>
+    </div>
+
+    <h3>📱 If you use the Prism app (APK or EXE)</h3>
+    <ol>
+      <li>This version of the app is shut down — opening the new address inside it won't fix it.</li>
+      <li>Uninstall the old Prism app from your device.</li>
+      <li>Download the latest version from the download page.</li>
+      <li>Install it, open it, and sign in like normal.</li>
+    </ol>
+    <a class="btn done" href="https://prism.foxcorpgames.workers.dev/app/">Go to the download page</a>
+  </div>
+</div>
+
+<script>
+  // Best-effort guess at which card matters most. Both cards are always shown,
+  // so it still works even when the app can't be told apart from a browser.
+  (function () {
+    var ua = navigator.userAgent || "";
+    var looksLikeApp = /Electron/i.test(ua) || (/Android/i.test(ua) && /\bwv\b/i.test(ua));
+    var hot = document.getElementById(looksLikeApp ? "app-card" : "web-card");
+    if (hot) hot.classList.add("hot");
+  })();
+
+  // "Open Prism" opens the tutorial instead of jumping straight to the new
+  // address, so the shutdown can't be bypassed with one click.
+  var overlay = document.getElementById("tutorial-overlay");
+  document.getElementById("open-prism-btn").addEventListener("click", function () {
+    overlay.classList.add("open");
+  });
+  document.getElementById("tutorial-close").addEventListener("click", function () {
+    overlay.classList.remove("open");
+  });
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) overlay.classList.remove("open");
+  });
+
+  // Copy the new address to the clipboard.
+  document.getElementById("copy-btn").addEventListener("click", function () {
+    var addr = document.getElementById("new-address").textContent;
+    var btn = this;
+    function done() {
+      btn.textContent = "Copied!";
+      setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(addr).then(done, function () { fallbackCopy(addr, done); });
+    } else {
+      fallbackCopy(addr, done);
+    }
+  });
+  function fallbackCopy(text, done) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    done();
+  }
+</script>
+</body>
+</html>
